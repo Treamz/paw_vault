@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "70756738260",
+    "project_id": "pawvault-e0cc5",
+    "storage_bucket": "pawvault-e0cc5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:70756738260:android:495fdafa3fee8749778741",
+        "android_client_info": {
+          "package_name": "com.example.paw_vault"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnq9sx2OYrF-KDJU4I_lbLrIxBM-u8mZI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
