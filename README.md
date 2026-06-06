@@ -37,6 +37,15 @@ Run the app:
 flutter run
 ```
 
+Run with Firebase-ready dependencies:
+
+```bash
+flutter run --dart-define=PAWVAULT_USE_FIREBASE=true
+```
+
+Without that flag, the app starts in local-first placeholder mode and does not
+initialize Firebase.
+
 Run required checks:
 
 ```bash

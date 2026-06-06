@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:paw_vault/app/app.dart';
-import 'package:paw_vault/core/di/app_dependencies.dart';
+import 'package:paw_vault/app/bootstrap/app_bootstrap.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final dependencies = await AppBootstrap.createDependencies();
 
   runApp(
     PawVaultApp(
-      dependencies: AppDependencies.localFirst(),
+      dependencies: dependencies,
     ),
   );
 }

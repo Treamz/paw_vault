@@ -30,3 +30,40 @@
 - [x] Add model mapping plan for Firestore documents and timestamps.
 - [x] Add focused tests for value objects, pure model code, or mapping code once
   mappings exist.
+
+## Phase 3: Firebase Auth, Firestore repositories, Storage repositories
+
+- [x] Add Firebase startup path that initializes Firebase only when
+  `AppDependencies.firebaseReady(...)` is selected.
+- [x] Configure Firestore offline persistence settings in the Firebase startup
+  path.
+- [x] Add anonymous auth bootstrap contract that signs in when no Firebase user
+  exists.
+- [x] Add core Firestore mapper helpers for `EntityId`, `DateOnly`,
+  `UtcDateTime`, enums, `Uri`, and server timestamps.
+- [x] Add pure mapper tests for core Firestore mapper helpers.
+- [x] Add Firestore mapper for `Pet` with round-trip tests.
+- [ ] Add Firestore mapper for `PetEvent` with round-trip tests.
+- [ ] Add Firestore mapper for `PetDocument` with round-trip tests.
+- [ ] Add Firestore mapper for `Reminder` with round-trip tests.
+- [ ] Add Firestore mapper for `SmartMessage` with round-trip tests.
+- [ ] Add Firestore mapper for `VetSummaryExport` with round-trip tests.
+- [ ] Implement Firebase `PetRepository` using the mapper and existing
+  repository contract.
+- [ ] Implement Firebase `TimelineRepository` using the mapper and existing
+  repository contract.
+- [ ] Implement Firebase `DocumentRepository` using the mapper and existing
+  repository contract.
+- [ ] Implement Firebase `ReminderRepository` using the mapper and existing
+  repository contract.
+- [ ] Implement Firebase `SmartInputRepository` persistence methods without
+  allowing Gemini to write directly to Firestore.
+- [ ] Implement Firebase `VetSummaryExportRepository` using the mapper and
+  existing repository contract.
+- [ ] Confirm `StorageRepository` upload/delete contracts align with Firebase
+  Storage paths and document/photo/export use cases.
+- [ ] Add repository-level tests with fake or mocked data sources where useful.
+- [ ] Update `AppDependencies.firebaseReady(...)` to use Firebase repositories
+  after mappers and repository implementations are tested.
+- [ ] Run a Phase 3 architecture boundary review to confirm UI and Cubits still
+  do not access Firebase SDKs directly.
