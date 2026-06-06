@@ -25,8 +25,8 @@
 - [x] Review domain entities against `PawVault_MVP_Spec_Firebase_Gemini.md`.
 - [x] Add missing value objects/enums for IDs, dates, event types, document
   types, reminder repeat types, and AI draft statuses where useful.
-- [ ] Expand repository interfaces with read/write method contracts, without
+- [x] Expand repository interfaces with read/write method contracts, without
   implementing Firebase behavior yet.
-- [ ] Add model mapping plan for Firestore documents and timestamps.
-- [ ] Add focused tests for value objects, pure model code, or mapping code once
+- [x] Add model mapping plan for Firestore documents and timestamps.
+- [x] Add focused tests for value objects, pure model code, or mapping code once
   mappings exist.
