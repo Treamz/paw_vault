@@ -105,7 +105,7 @@
 ## Phase 6: Documents and document upload
 
 - [x] Add Phase 6 actionable task checklist.
-- [ ] Implement `DocumentsCubit` watch/load behavior for documents with fake
+- [x] Implement `DocumentsCubit` watch/load behavior for documents with fake
   repository tests.
 - [ ] Update the documents screen to render repository-backed loading, empty,
   error, and populated states.
