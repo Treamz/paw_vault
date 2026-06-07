@@ -74,7 +74,7 @@
 - [x] Implement `PetListCubit` watch/load behavior with fake repository tests.
 - [x] Update the pet list screen to render repository-backed loading, empty,
   error, and populated states.
-- [ ] Implement `PetProfileCubit` load behavior for a single pet with fake
+- [x] Implement `PetProfileCubit` load behavior for a single pet with fake
   repository tests.
 - [ ] Add pet form/input state model and validation rules.
 - [ ] Implement create/update pet Cubit methods with fake repository tests.
