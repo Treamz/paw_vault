@@ -72,7 +72,7 @@
 
 - [x] Add Phase 4 actionable task checklist.
 - [x] Implement `PetListCubit` watch/load behavior with fake repository tests.
-- [ ] Update the pet list screen to render repository-backed loading, empty,
+- [x] Update the pet list screen to render repository-backed loading, empty,
   error, and populated states.
 - [ ] Implement `PetProfileCubit` load behavior for a single pet with fake
   repository tests.

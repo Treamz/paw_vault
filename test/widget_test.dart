@@ -12,9 +12,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('PawVault'), findsWidgets);
-    expect(
-      find.text('Pet list placeholder for the local-first MVP.'),
-      findsOneWidget,
-    );
+    expect(find.text('No pets yet'), findsOneWidget);
   });
 }
