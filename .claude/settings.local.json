@@ -6,7 +6,13 @@
       "Bash(flutter analyze:*)",
       "Bash(flutter test:*)",
       "Bash(git add:*)",
-      "Bash(flutter pub run build_runner:*)"
+      "Bash(flutter pub run build_runner:*)",
+      "Bash(grep:*)",
+      "Bash(flutter doctor:*)",
+      "mcp__dart__analyze_files",
+      "Bash(dart run *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
