@@ -144,5 +144,5 @@
   `watchSmartMessages`, with loading/empty/error/populated states.
 - [x] Add AI safety affordances in the UI: label drafts as AI-generated and
   require user verification, with no medical diagnosis framing.
-- [ ] Run a Phase 7 architecture boundary review to confirm widgets/Cubits do
+- [x] Run a Phase 7 architecture boundary review to confirm widgets/Cubits do
   not access Firebase/Gemini SDKs directly and AI never writes to Firestore.
