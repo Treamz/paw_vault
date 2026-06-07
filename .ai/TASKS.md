@@ -134,7 +134,7 @@
 - [x] Implement `SmartInputCubit` submit flow: send user text, receive a
   `SmartInputDraft`, and emit idle/loading/review/error states, with fake
   repository tests (no direct Gemini/Firestore access).
-- [ ] Add a draft review UI showing detected intent, extracted data, suggested
+- [x] Add a draft review UI showing detected intent, extracted data, suggested
   actions, and a confidence/low-confidence indicator.
 - [ ] Implement a confirm action that persists the approved draft as a
   `SmartMessage` (status confirmed) via `SmartInputRepository`, with fake
