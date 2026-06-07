@@ -130,6 +130,44 @@ class PetProfileCubit extends Cubit<PetProfileState> {
       );
     }
   }
+
+  Future<void> deletePet() async {
+    final currentPet = state.pet;
+    if (currentPet == null) {
+      emit(
+        state.copyWith(
+          status: PetProfileStatus.failure,
+          errorMessage: 'Cannot delete: no pet loaded',
+        ),
+      );
+      return;
+    }
+
+    emit(state.copyWith(status: PetProfileStatus.deleting));
+
+    try {
+      await _petRepository.initialize();
+      await _petRepository.deletePet(
+        userId: currentPet.userId,
+        petId: currentPet.id,
+      );
+
+      emit(
+        PetProfileState(
+          status: PetProfileStatus.deleted,
+          userId: currentPet.userId,
+          petId: currentPet.id.value,
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: PetProfileStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
 }
 
 enum PetProfileStatus {
@@ -137,6 +175,8 @@ enum PetProfileStatus {
   loading,
   ready,
   saving,
+  deleting,
+  deleted,
   notFound,
   failure,
 }

@@ -78,7 +78,7 @@
   repository tests.
 - [x] Add pet form/input state model and validation rules.
 - [x] Implement create/update pet Cubit methods with fake repository tests.
-- [ ] Implement delete pet Cubit method with fake repository tests.
+- [x] Implement delete pet Cubit method with fake repository tests.
 - [ ] Replace placeholder pet profile screen with basic read-only pet details.
 - [ ] Add create/edit pet UI wired through Cubit and repository interfaces.
 - [ ] Add delete confirmation UI for pet profiles.

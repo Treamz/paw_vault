@@ -269,6 +269,89 @@ void main() {
 
       await cubit.close();
     });
+
+    test('deletes a loaded pet', () async {
+      final existingPet = Pet(
+        id: const EntityId('pet-1'),
+        userId: const EntityId('user-1'),
+        name: 'ToDelete',
+      );
+      final authRepository = _FakeAuthRepository(
+        currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+      );
+      final petRepository = _FakePetRepository(pet: existingPet);
+      final cubit = PetProfileCubit(
+        petRepository: petRepository,
+        authRepository: authRepository,
+      );
+
+      await cubit.load('pet-1');
+
+      final states = <PetProfileState>[];
+      final subscription = cubit.stream.listen(states.add);
+
+      await cubit.deletePet();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(petRepository.deletePetCallCount, 1);
+      expect(petRepository.deletedUserId, const EntityId('user-1'));
+      expect(petRepository.deletedPetId, const EntityId('pet-1'));
+      expect(states.first.status, PetProfileStatus.deleting);
+      expect(states.last.status, PetProfileStatus.deleted);
+      expect(states.last.userId, const EntityId('user-1'));
+      expect(states.last.petId, 'pet-1');
+
+      await subscription.cancel();
+      await cubit.close();
+    });
+
+    test('emits failure when deleting with no loaded pet', () async {
+      final authRepository = _FakeAuthRepository(
+        currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+      );
+      final petRepository = _FakePetRepository();
+      final cubit = PetProfileCubit(
+        petRepository: petRepository,
+        authRepository: authRepository,
+      );
+
+      await cubit.deletePet();
+
+      expect(cubit.state.status, PetProfileStatus.failure);
+      expect(
+          cubit.state.errorMessage, contains('Cannot delete: no pet loaded'));
+      expect(petRepository.deletePetCallCount, isZero);
+
+      await cubit.close();
+    });
+
+    test('emits failure when delete throws', () async {
+      final existingPet = Pet(
+        id: const EntityId('pet-1'),
+        userId: const EntityId('user-1'),
+        name: 'ToDelete',
+      );
+      final authRepository = _FakeAuthRepository(
+        currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+      );
+      final petRepository = _FakePetRepository(
+        pet: existingPet,
+        throwsOnDelete: true,
+      );
+      final cubit = PetProfileCubit(
+        petRepository: petRepository,
+        authRepository: authRepository,
+      );
+
+      await cubit.load('pet-1');
+
+      await cubit.deletePet();
+
+      expect(cubit.state.status, PetProfileStatus.failure);
+      expect(cubit.state.errorMessage, contains('delete failed'));
+
+      await cubit.close();
+    });
   });
 }
 
@@ -320,23 +403,35 @@ class _FakePetRepository implements PetRepository {
     this.pet,
     this.throwsOnInitialize = false,
     this.throwsOnSave = false,
+    this.throwsOnDelete = false,
   });
 
   final Pet? pet;
   final bool throwsOnInitialize;
   final bool throwsOnSave;
+  final bool throwsOnDelete;
 
   int initializeCallCount = 0;
   int savePetCallCount = 0;
+  int deletePetCallCount = 0;
   EntityId? requestedUserId;
   EntityId? requestedPetId;
   Pet? savedPet;
+  EntityId? deletedUserId;
+  EntityId? deletedPetId;
 
   @override
   Future<void> deletePet({
     required EntityId userId,
     required EntityId petId,
-  }) async {}
+  }) async {
+    deletePetCallCount++;
+    if (throwsOnDelete) {
+      throw StateError('delete failed');
+    }
+    deletedUserId = userId;
+    deletedPetId = petId;
+  }
 
   @override
   Future<Pet?> getPet({
