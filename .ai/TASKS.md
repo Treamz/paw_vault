@@ -67,3 +67,20 @@
   after mappers and repository implementations are tested.
 - [x] Run a Phase 3 architecture boundary review to confirm UI and Cubits still
   do not access Firebase SDKs directly.
+
+## Phase 4: Pet CRUD
+
+- [x] Add Phase 4 actionable task checklist.
+- [x] Implement `PetListCubit` watch/load behavior with fake repository tests.
+- [ ] Update the pet list screen to render repository-backed loading, empty,
+  error, and populated states.
+- [ ] Implement `PetProfileCubit` load behavior for a single pet with fake
+  repository tests.
+- [ ] Add pet form/input state model and validation rules.
+- [ ] Implement create/update pet Cubit methods with fake repository tests.
+- [ ] Implement delete pet Cubit method with fake repository tests.
+- [ ] Replace placeholder pet profile screen with basic read-only pet details.
+- [ ] Add create/edit pet UI wired through Cubit and repository interfaces.
+- [ ] Add delete confirmation UI for pet profiles.
+- [ ] Run a Phase 4 architecture boundary review to confirm widgets still use
+  Cubits/repositories and do not access Firebase SDKs directly.
