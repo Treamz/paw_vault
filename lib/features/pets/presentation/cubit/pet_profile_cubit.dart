@@ -3,6 +3,7 @@ import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/pets/presentation/models/pet_form_state.dart';
 
 class PetProfileCubit extends Cubit<PetProfileState> {
   PetProfileCubit({
@@ -48,12 +49,94 @@ class PetProfileCubit extends Cubit<PetProfileState> {
       );
     }
   }
+
+  Future<void> createPet(PetFormState formState) async {
+    emit(state.copyWith(status: PetProfileStatus.saving));
+
+    try {
+      await _petRepository.initialize();
+      final user = await _authRepository.currentUser() ??
+          await _authRepository.signInAnonymously();
+      final userId = EntityId(user.id);
+      final now = DateTime.now();
+      final petId = EntityId('${now.microsecondsSinceEpoch}');
+
+      final pet = formState.toPet(
+        id: petId,
+        userId: userId,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await _petRepository.savePet(pet);
+
+      emit(
+        PetProfileState(
+          status: PetProfileStatus.ready,
+          userId: userId,
+          petId: petId.value,
+          pet: pet,
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: PetProfileStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  Future<void> updatePet(PetFormState formState) async {
+    final currentPet = state.pet;
+    if (currentPet == null) {
+      emit(
+        state.copyWith(
+          status: PetProfileStatus.failure,
+          errorMessage: 'Cannot update: no pet loaded',
+        ),
+      );
+      return;
+    }
+
+    emit(state.copyWith(status: PetProfileStatus.saving));
+
+    try {
+      await _petRepository.initialize();
+      final now = DateTime.now();
+
+      final updatedPet = formState.toPet(
+        id: currentPet.id,
+        userId: currentPet.userId,
+        createdAt: currentPet.createdAt?.value,
+        updatedAt: now,
+      );
+
+      await _petRepository.savePet(updatedPet);
+
+      emit(
+        state.copyWith(
+          status: PetProfileStatus.ready,
+          pet: updatedPet,
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: PetProfileStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
 }
 
 enum PetProfileStatus {
   initial,
   loading,
   ready,
+  saving,
   notFound,
   failure,
 }
@@ -74,4 +157,20 @@ class PetProfileState {
   final String? errorMessage;
 
   bool get isReady => status == PetProfileStatus.ready;
+
+  PetProfileState copyWith({
+    PetProfileStatus? status,
+    EntityId? userId,
+    String? petId,
+    Pet? pet,
+    String? errorMessage,
+  }) {
+    return PetProfileState(
+      status: status ?? this.status,
+      userId: userId ?? this.userId,
+      petId: petId ?? this.petId,
+      pet: pet ?? this.pet,
+      errorMessage: errorMessage ?? this.errorMessage,
+    );
+  }
 }

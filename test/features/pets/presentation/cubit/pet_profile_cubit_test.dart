@@ -5,6 +5,7 @@ import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/pets/presentation/cubit/pet_profile_cubit.dart';
+import 'package:paw_vault/features/pets/presentation/models/pet_form_state.dart';
 
 void main() {
   group('PetProfileCubit', () {
@@ -98,6 +99,176 @@ void main() {
 
       await cubit.close();
     });
+
+    test('creates a new pet from form state', () async {
+      final authRepository = _FakeAuthRepository(
+        currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+      );
+      final petRepository = _FakePetRepository();
+      final cubit = PetProfileCubit(
+        petRepository: petRepository,
+        authRepository: authRepository,
+      );
+      const formState = PetFormState(
+        name: 'Fluffy',
+        species: 'Cat',
+        breed: 'Persian',
+      );
+      final states = <PetProfileState>[];
+      final subscription = cubit.stream.listen(states.add);
+
+      await cubit.createPet(formState);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(petRepository.initializeCallCount, 1);
+      expect(petRepository.savePetCallCount, 1);
+      expect(petRepository.savedPet, isNotNull);
+      expect(petRepository.savedPet!.name, 'Fluffy');
+      expect(petRepository.savedPet!.species, 'Cat');
+      expect(petRepository.savedPet!.breed, 'Persian');
+      expect(petRepository.savedPet!.userId, const EntityId('user-1'));
+      expect(states.first.status, PetProfileStatus.saving);
+      expect(states.last.status, PetProfileStatus.ready);
+      expect(states.last.pet, petRepository.savedPet);
+      expect(states.last.userId, const EntityId('user-1'));
+      expect(states.last.petId, isNotEmpty);
+
+      await subscription.cancel();
+      await cubit.close();
+    });
+
+    test('creates pet with anonymous user when no current user', () async {
+      final authRepository = _FakeAuthRepository(
+        signedInUser: const AppUser(id: 'anon-1', isAnonymous: true),
+      );
+      final petRepository = _FakePetRepository();
+      final cubit = PetProfileCubit(
+        petRepository: petRepository,
+        authRepository: authRepository,
+      );
+      const formState = PetFormState(name: 'Buddy');
+
+      await cubit.createPet(formState);
+
+      expect(authRepository.signInAnonymouslyCallCount, 1);
+      expect(petRepository.savedPet!.userId, const EntityId('anon-1'));
+      expect(cubit.state.status, PetProfileStatus.ready);
+
+      await cubit.close();
+    });
+
+    test('emits failure when create throws', () async {
+      final authRepository = _FakeAuthRepository(
+        currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+      );
+      final petRepository = _FakePetRepository(throwsOnSave: true);
+      final cubit = PetProfileCubit(
+        petRepository: petRepository,
+        authRepository: authRepository,
+      );
+      const formState = PetFormState(name: 'Buddy');
+
+      await cubit.createPet(formState);
+
+      expect(cubit.state.status, PetProfileStatus.failure);
+      expect(cubit.state.errorMessage, contains('save failed'));
+
+      await cubit.close();
+    });
+
+    test('updates an existing pet from form state', () async {
+      final existingPet = Pet(
+        id: const EntityId('pet-1'),
+        userId: const EntityId('user-1'),
+        name: 'OldName',
+        species: 'Dog',
+      );
+      final authRepository = _FakeAuthRepository(
+        currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+      );
+      final petRepository = _FakePetRepository(pet: existingPet);
+      final cubit = PetProfileCubit(
+        petRepository: petRepository,
+        authRepository: authRepository,
+      );
+
+      await cubit.load('pet-1');
+
+      const formState = PetFormState(
+        name: 'UpdatedName',
+        species: 'Dog',
+        breed: 'Labrador',
+      );
+      final states = <PetProfileState>[];
+      final subscription = cubit.stream.listen(states.add);
+
+      await cubit.updatePet(formState);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(petRepository.savePetCallCount, 1);
+      expect(petRepository.savedPet, isNotNull);
+      expect(petRepository.savedPet!.id, const EntityId('pet-1'));
+      expect(petRepository.savedPet!.userId, const EntityId('user-1'));
+      expect(petRepository.savedPet!.name, 'UpdatedName');
+      expect(petRepository.savedPet!.breed, 'Labrador');
+      expect(states.first.status, PetProfileStatus.saving);
+      expect(states.last.status, PetProfileStatus.ready);
+      expect(states.last.pet!.name, 'UpdatedName');
+
+      await subscription.cancel();
+      await cubit.close();
+    });
+
+    test('emits failure when updating with no loaded pet', () async {
+      final authRepository = _FakeAuthRepository(
+        currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+      );
+      final petRepository = _FakePetRepository();
+      final cubit = PetProfileCubit(
+        petRepository: petRepository,
+        authRepository: authRepository,
+      );
+      const formState = PetFormState(name: 'UpdatedName');
+
+      await cubit.updatePet(formState);
+
+      expect(cubit.state.status, PetProfileStatus.failure);
+      expect(
+          cubit.state.errorMessage, contains('Cannot update: no pet loaded'));
+      expect(petRepository.savePetCallCount, isZero);
+
+      await cubit.close();
+    });
+
+    test('emits failure when update throws', () async {
+      final existingPet = Pet(
+        id: const EntityId('pet-1'),
+        userId: const EntityId('user-1'),
+        name: 'OldName',
+      );
+      final authRepository = _FakeAuthRepository(
+        currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+      );
+      final petRepository = _FakePetRepository(
+        pet: existingPet,
+        throwsOnSave: true,
+      );
+      final cubit = PetProfileCubit(
+        petRepository: petRepository,
+        authRepository: authRepository,
+      );
+
+      await cubit.load('pet-1');
+
+      const formState = PetFormState(name: 'UpdatedName');
+
+      await cubit.updatePet(formState);
+
+      expect(cubit.state.status, PetProfileStatus.failure);
+      expect(cubit.state.errorMessage, contains('save failed'));
+
+      await cubit.close();
+    });
   });
 }
 
@@ -148,14 +319,18 @@ class _FakePetRepository implements PetRepository {
   _FakePetRepository({
     this.pet,
     this.throwsOnInitialize = false,
+    this.throwsOnSave = false,
   });
 
   final Pet? pet;
   final bool throwsOnInitialize;
+  final bool throwsOnSave;
 
   int initializeCallCount = 0;
+  int savePetCallCount = 0;
   EntityId? requestedUserId;
   EntityId? requestedPetId;
+  Pet? savedPet;
 
   @override
   Future<void> deletePet({
@@ -182,7 +357,13 @@ class _FakePetRepository implements PetRepository {
   }
 
   @override
-  Future<void> savePet(Pet pet) async {}
+  Future<void> savePet(Pet pet) async {
+    savePetCallCount++;
+    if (throwsOnSave) {
+      throw StateError('save failed');
+    }
+    savedPet = pet;
+  }
 
   @override
   Stream<List<Pet>> watchPets(EntityId userId) {

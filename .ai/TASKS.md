@@ -77,7 +77,7 @@
 - [x] Implement `PetProfileCubit` load behavior for a single pet with fake
   repository tests.
 - [x] Add pet form/input state model and validation rules.
-- [ ] Implement create/update pet Cubit methods with fake repository tests.
+- [x] Implement create/update pet Cubit methods with fake repository tests.
 - [ ] Implement delete pet Cubit method with fake repository tests.
 - [ ] Replace placeholder pet profile screen with basic read-only pet details.
 - [ ] Add create/edit pet UI wired through Cubit and repository interfaces.
