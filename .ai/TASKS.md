@@ -160,7 +160,7 @@
 - [x] Add an image/PDF picker supporting camera capture, gallery, and PDF
   selection. Uses `image_picker` (camera/gallery) + `file_picker` (PDF/image),
   behind a `DocumentSourcePicker` port returning a `PickedFile`.
-- [ ] Implement a `DocumentExtractionCubit`: pick file, request extraction, and
+- [x] Implement a `DocumentExtractionCubit`: pick file, request extraction, and
   emit idle/picking/extracting/review/saving/failure states, with fake tests.
 - [ ] Implement confirm-and-save: build a `PetDocument` from the edited form and
   the uploaded file via `DocumentUploadService`, persist via
