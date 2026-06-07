@@ -15,7 +15,9 @@
       "Bash(git commit -m ' *)",
       "Bash(xargs ls -la)",
       "Bash(flutter pub *)",
-      "mcp__dart__rip_grep_packages"
+      "mcp__dart__rip_grep_packages",
+      "mcp__dart__get_runtime_errors",
+      "mcp__dart__dtd"
     ]
   }
 }

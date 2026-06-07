@@ -127,3 +127,22 @@
 - [x] Add delete confirmation UI for documents.
 - [x] Run a Phase 6 architecture boundary review to confirm widgets still use
   Cubits/repositories and do not access Firebase SDKs/Storage directly.
+
+## Phase 7: Gemini Smart Text Input
+
+- [x] Add Phase 7 actionable task checklist.
+- [ ] Implement `SmartInputCubit` submit flow: send user text, receive a
+  `SmartInputDraft`, and emit idle/loading/review/error states, with fake
+  repository tests (no direct Gemini/Firestore access).
+- [ ] Add a draft review UI showing detected intent, extracted data, suggested
+  actions, and a confidence/low-confidence indicator.
+- [ ] Implement a confirm action that persists the approved draft as a
+  `SmartMessage` (status confirmed) via `SmartInputRepository`, with fake
+  repository tests; AI output is never saved without explicit confirmation.
+- [ ] Implement a dismiss/discard action that drops the draft without saving.
+- [ ] Add watched smart message history for the pet via
+  `watchSmartMessages`, with loading/empty/error/populated states.
+- [ ] Add AI safety affordances in the UI: label drafts as AI-generated and
+  require user verification, with no medical diagnosis framing.
+- [ ] Run a Phase 7 architecture boundary review to confirm widgets/Cubits do
+  not access Firebase/Gemini SDKs directly and AI never writes to Firestore.
