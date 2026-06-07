@@ -154,7 +154,7 @@
   `PetDocumentType`, title, issue/expiry dates, notes, extracted text,
   confidence). Reuses the existing `PickedFile` value object (bytes, MIME,
   extension) from the documents feature.
-- [ ] Extend the AI port for multimodal document extraction from file bytes +
+- [x] Extend the AI port for multimodal document extraction from file bytes +
   MIME type, returning a `DocumentExtractionDraft`; update the noop and Firebase
   AI data sources/repositories (noop returns a stub; AI never writes Firestore).
 - [ ] Add an image/PDF picker supporting camera capture, gallery, and PDF
