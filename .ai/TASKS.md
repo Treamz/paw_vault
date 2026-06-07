@@ -162,7 +162,7 @@
   behind a `DocumentSourcePicker` port returning a `PickedFile`.
 - [x] Implement a `DocumentExtractionCubit`: pick file, request extraction, and
   emit idle/picking/extracting/review/saving/failure states, with fake tests.
-- [ ] Implement confirm-and-save: build a `PetDocument` from the edited form and
+- [x] Implement confirm-and-save: build a `PetDocument` from the edited form and
   the uploaded file via `DocumentUploadService`, persist via
   `DocumentRepository`, with fake tests; nothing saved without confirmation.
 - [ ] Add the extraction review UI: a pre-filled editable document form (type,

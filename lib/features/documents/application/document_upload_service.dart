@@ -29,17 +29,33 @@ class DocumentUploadService {
       return null;
     }
 
+    return uploadDocumentFile(
+      userId: userId,
+      petId: petId,
+      documentId: documentId,
+      file: picked,
+    );
+  }
+
+  /// Uploads an already-picked [file] under the document storage path. Used
+  /// when the file was selected elsewhere (e.g. the extraction flow).
+  Future<StorageFile> uploadDocumentFile({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId documentId,
+    required PickedFile file,
+  }) {
     final path = FirebaseStoragePaths.documentOriginal(
       userId: userId.value,
       petId: petId.value,
       documentId: documentId.value,
-      extension: picked.extension,
+      extension: file.extension,
     );
 
     return _storageRepository.uploadBytes(
       path: path,
-      bytes: picked.bytes,
-      contentType: picked.contentType,
+      bytes: file.bytes,
+      contentType: file.contentType,
     );
   }
 }
