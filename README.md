@@ -91,6 +91,34 @@ Then:
 
 Do not skip roadmap phases or implement multiple large phases at once.
 
+See `docs/NAVIGATION.md` for the full screen-to-screen navigation map.
+
+## Dart/Flutter MCP Server
+
+The Dart/Flutter MCP server lets an AI agent analyze the project and inspect a
+running app (runtime errors, widget tree, hot reload).
+
+Add it once per tool:
+
+```bash
+# Claude Code
+claude mcp add --transport stdio dart -- dart mcp-server
+```
+
+```toml
+# Codex (.codex/config.toml or ~/.codex/config.toml)
+[mcp_servers.dart]
+command = "dart"
+args = ["mcp-server"]
+```
+
+MCP tools load at session start, so start a new session after adding it.
+
+To inspect a running app, connect to its Dart Tooling Daemon (DTD): list the
+available DTD URIs, connect to the one whose workspace root is this project,
+then use `get_runtime_errors`, `widget_inspector`, and `hot_reload`. See
+`AGENTS.md` → MCP for the full tool list and workflow.
+
 ## Continuing With Codex
 
 Ask Codex to continue from the autonomous workflow:
