@@ -111,7 +111,7 @@
   error, and populated states.
 - [x] Add document filtering by type (and optional expiring-soon view) in
   `DocumentsCubit`.
-- [ ] Add document form/input state model and validation rules (title, type,
+- [x] Add document form/input state model and validation rules (title, type,
   issue/expiry dates, notes).
 - [ ] Add a storage upload service/use case that picks a file and uploads bytes
   through `StorageRepository`, returning the file URL and storage path.
