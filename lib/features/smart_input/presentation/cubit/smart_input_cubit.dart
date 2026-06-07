@@ -7,14 +7,73 @@ class SmartInputCubit extends Cubit<SmartInputState> {
 
   final SmartInputRepository _smartInputRepository;
 
-  Future<void> createDraft(String input) async {
-    final draft = await _smartInputRepository.createDraft(input);
-    emit(SmartInputState(draft: draft));
+  /// Sends [input] to the AI repository and emits the resulting draft for
+  /// review. The draft is never persisted here — saving requires explicit
+  /// user confirmation in a later step.
+  Future<void> submit(String input) async {
+    if (input.trim().isEmpty) {
+      emit(
+        state.copyWith(
+          status: SmartInputStatus.failure,
+          errorMessage: 'Enter some text to analyze.',
+        ),
+      );
+      return;
+    }
+
+    emit(
+      const SmartInputState(status: SmartInputStatus.processing),
+    );
+
+    try {
+      final draft = await _smartInputRepository.createDraft(input);
+      emit(
+        SmartInputState(
+          status: SmartInputStatus.review,
+          draft: draft,
+        ),
+      );
+    } catch (error) {
+      emit(
+        SmartInputState(
+          status: SmartInputStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
   }
 }
 
-class SmartInputState {
-  const SmartInputState({this.draft});
+enum SmartInputStatus {
+  idle,
+  processing,
+  review,
+  failure,
+}
 
+class SmartInputState {
+  const SmartInputState({
+    this.status = SmartInputStatus.idle,
+    this.draft,
+    this.errorMessage,
+  });
+
+  final SmartInputStatus status;
   final SmartInputDraft? draft;
+  final String? errorMessage;
+
+  bool get isProcessing => status == SmartInputStatus.processing;
+  bool get hasDraft => status == SmartInputStatus.review && draft != null;
+
+  SmartInputState copyWith({
+    SmartInputStatus? status,
+    SmartInputDraft? draft,
+    String? errorMessage,
+  }) {
+    return SmartInputState(
+      status: status ?? this.status,
+      draft: draft ?? this.draft,
+      errorMessage: errorMessage ?? this.errorMessage,
+    );
+  }
 }

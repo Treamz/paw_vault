@@ -131,7 +131,7 @@
 ## Phase 7: Gemini Smart Text Input
 
 - [x] Add Phase 7 actionable task checklist.
-- [ ] Implement `SmartInputCubit` submit flow: send user text, receive a
+- [x] Implement `SmartInputCubit` submit flow: send user text, receive a
   `SmartInputDraft`, and emit idle/loading/review/error states, with fake
   repository tests (no direct Gemini/Firestore access).
 - [ ] Add a draft review UI showing detected intent, extracted data, suggested
