@@ -5,4 +5,24 @@ abstract interface class FirestoreReminderDataSource {
     required String userId,
     required String petId,
   });
+
+  Future<Reminder?> getReminder({
+    required String userId,
+    required String petId,
+    required String reminderId,
+  });
+
+  Future<void> saveReminder(Reminder reminder);
+
+  Future<void> completeReminder({
+    required String userId,
+    required String petId,
+    required String reminderId,
+  });
+
+  Future<void> deleteReminder({
+    required String userId,
+    required String petId,
+    required String reminderId,
+  });
 }

@@ -37,4 +37,11 @@ abstract final class FirestorePaths {
   }) {
     return '${pet(userId: userId, petId: petId)}/smartMessages';
   }
+
+  static String vetSummaryExports({
+    required String userId,
+    required String petId,
+  }) {
+    return '${pet(userId: userId, petId: petId)}/vetSummaryExports';
+  }
 }

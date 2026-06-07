@@ -43,27 +43,27 @@
   `UtcDateTime`, enums, `Uri`, and server timestamps.
 - [x] Add pure mapper tests for core Firestore mapper helpers.
 - [x] Add Firestore mapper for `Pet` with round-trip tests.
-- [ ] Add Firestore mapper for `PetEvent` with round-trip tests.
-- [ ] Add Firestore mapper for `PetDocument` with round-trip tests.
-- [ ] Add Firestore mapper for `Reminder` with round-trip tests.
-- [ ] Add Firestore mapper for `SmartMessage` with round-trip tests.
-- [ ] Add Firestore mapper for `VetSummaryExport` with round-trip tests.
-- [ ] Implement Firebase `PetRepository` using the mapper and existing
+- [x] Add Firestore mapper for `PetEvent` with round-trip tests.
+- [x] Add Firestore mapper for `PetDocument` with round-trip tests.
+- [x] Add Firestore mapper for `Reminder` with round-trip tests.
+- [x] Add Firestore mapper for `SmartMessage` with round-trip tests.
+- [x] Add Firestore mapper for `VetSummaryExport` with round-trip tests.
+- [x] Implement Firebase `PetRepository` using the mapper and existing
   repository contract.
-- [ ] Implement Firebase `TimelineRepository` using the mapper and existing
+- [x] Implement Firebase `TimelineRepository` using the mapper and existing
   repository contract.
-- [ ] Implement Firebase `DocumentRepository` using the mapper and existing
+- [x] Implement Firebase `DocumentRepository` using the mapper and existing
   repository contract.
-- [ ] Implement Firebase `ReminderRepository` using the mapper and existing
+- [x] Implement Firebase `ReminderRepository` using the mapper and existing
   repository contract.
-- [ ] Implement Firebase `SmartInputRepository` persistence methods without
+- [x] Implement Firebase `SmartInputRepository` persistence methods without
   allowing Gemini to write directly to Firestore.
-- [ ] Implement Firebase `VetSummaryExportRepository` using the mapper and
+- [x] Implement Firebase `VetSummaryExportRepository` using the mapper and
   existing repository contract.
-- [ ] Confirm `StorageRepository` upload/delete contracts align with Firebase
+- [x] Confirm `StorageRepository` upload/delete contracts align with Firebase
   Storage paths and document/photo/export use cases.
-- [ ] Add repository-level tests with fake or mocked data sources where useful.
-- [ ] Update `AppDependencies.firebaseReady(...)` to use Firebase repositories
+- [x] Add repository-level tests with fake or mocked data sources where useful.
+- [x] Update `AppDependencies.firebaseReady(...)` to use Firebase repositories
   after mappers and repository implementations are tested.
-- [ ] Run a Phase 3 architecture boundary review to confirm UI and Cubits still
+- [x] Run a Phase 3 architecture boundary review to confirm UI and Cubits still
   do not access Firebase SDKs directly.

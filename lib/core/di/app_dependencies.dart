@@ -9,18 +9,30 @@ import 'package:paw_vault/core/storage/data/datasources/flutter_fire_storage_dat
 import 'package:paw_vault/core/storage/data/datasources/noop_firebase_storage_data_source.dart';
 import 'package:paw_vault/core/storage/data/repositories/firebase_ready_storage_repository.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/features/documents/data/datasources/flutter_fire_document_data_source.dart';
+import 'package:paw_vault/features/documents/data/repositories/firebase_document_repository.dart';
 import 'package:paw_vault/features/documents/data/repositories/local_document_repository.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
+import 'package:paw_vault/features/pets/data/datasources/flutter_fire_pet_data_source.dart';
+import 'package:paw_vault/features/pets/data/repositories/firebase_pet_repository.dart';
 import 'package:paw_vault/features/pets/data/repositories/local_pet_repository.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/reminders/data/datasources/flutter_fire_reminder_data_source.dart';
+import 'package:paw_vault/features/reminders/data/repositories/firebase_reminder_repository.dart';
 import 'package:paw_vault/features/reminders/data/repositories/local_reminder_repository.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:paw_vault/features/smart_input/data/datasources/flutter_fire_smart_input_data_source.dart';
 import 'package:paw_vault/features/smart_input/data/repositories/firebase_ready_ai_repository.dart';
+import 'package:paw_vault/features/smart_input/data/repositories/firebase_smart_input_repository.dart';
 import 'package:paw_vault/features/smart_input/data/repositories/noop_smart_input_repository.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/ai_repository.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
+import 'package:paw_vault/features/timeline/data/datasources/flutter_fire_timeline_data_source.dart';
+import 'package:paw_vault/features/timeline/data/repositories/firebase_timeline_repository.dart';
 import 'package:paw_vault/features/timeline/data/repositories/local_timeline_repository.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
+import 'package:paw_vault/features/vet_summary_export/data/datasources/flutter_fire_vet_summary_export_data_source.dart';
+import 'package:paw_vault/features/vet_summary_export/data/repositories/firebase_vet_summary_export_repository.dart';
 import 'package:paw_vault/features/vet_summary_export/data/repositories/local_vet_summary_export_repository.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/repositories/vet_summary_export_repository.dart';
 
@@ -68,13 +80,26 @@ class AppDependencies {
       storageRepository: FirebaseReadyStorageRepository(
         FlutterFireStorageDataSource(firebase.storage),
       ),
-      petRepository: LocalPetRepository(),
-      timelineRepository: LocalTimelineRepository(),
-      documentRepository: LocalDocumentRepository(),
-      reminderRepository: LocalReminderRepository(),
+      petRepository: FirebasePetRepository(
+        FlutterFirePetDataSource(firebase.firestore),
+      ),
+      timelineRepository: FirebaseTimelineRepository(
+        FlutterFireTimelineDataSource(firebase.firestore),
+      ),
+      documentRepository: FirebaseDocumentRepository(
+        FlutterFireDocumentDataSource(firebase.firestore),
+      ),
+      reminderRepository: FirebaseReminderRepository(
+        FlutterFireReminderDataSource(firebase.firestore),
+      ),
       aiRepository: aiRepository,
-      smartInputRepository: NoopSmartInputRepository(aiRepository),
-      vetSummaryExportRepository: LocalVetSummaryExportRepository(),
+      smartInputRepository: FirebaseSmartInputRepository(
+        aiRepository: aiRepository,
+        dataSource: FlutterFireSmartInputDataSource(firebase.firestore),
+      ),
+      vetSummaryExportRepository: FirebaseVetSummaryExportRepository(
+        FlutterFireVetSummaryExportDataSource(firebase.firestore),
+      ),
     );
   }
 

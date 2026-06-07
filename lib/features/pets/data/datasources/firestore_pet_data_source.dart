@@ -7,4 +7,11 @@ abstract interface class FirestorePetDataSource {
     required String userId,
     required String petId,
   });
+
+  Future<void> savePet(Pet pet);
+
+  Future<void> deletePet({
+    required String userId,
+    required String petId,
+  });
 }

@@ -5,4 +5,18 @@ abstract interface class FirestoreDocumentDataSource {
     required String userId,
     required String petId,
   });
+
+  Future<PetDocument?> getDocument({
+    required String userId,
+    required String petId,
+    required String documentId,
+  });
+
+  Future<void> saveDocument(PetDocument document);
+
+  Future<void> deleteDocument({
+    required String userId,
+    required String petId,
+    required String documentId,
+  });
 }

@@ -5,4 +5,18 @@ abstract interface class FirestoreSmartInputDataSource {
     required String userId,
     required String petId,
   });
+
+  Future<SmartMessage?> getSmartMessage({
+    required String userId,
+    required String petId,
+    required String messageId,
+  });
+
+  Future<void> saveSmartMessage(SmartMessage message);
+
+  Future<void> deleteSmartMessage({
+    required String userId,
+    required String petId,
+    required String messageId,
+  });
 }
