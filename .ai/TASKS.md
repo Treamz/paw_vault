@@ -118,7 +118,7 @@
 - [x] Implement create/update document Cubit methods that upload via
   `StorageRepository` then persist metadata via `DocumentRepository`, with fake
   repository tests.
-- [ ] Implement delete document Cubit method that removes both the storage file
+- [x] Implement delete document Cubit method that removes both the storage file
   and the Firestore metadata, with fake repository tests.
 - [ ] Replace placeholder documents screen with a document list display
   (title, type, expiry, thumbnail/icon).

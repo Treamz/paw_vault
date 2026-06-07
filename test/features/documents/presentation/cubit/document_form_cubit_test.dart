@@ -143,13 +143,66 @@ void main() {
 
       expect(cubit.state.status, DocumentFormStatus.notFound);
     });
+
+    test('deleteDocument removes the storage file and the metadata', () async {
+      final existing = _document();
+      final documentRepository = _FakeDocumentRepository(document: existing);
+      final storageRepository = _FakeStorageRepository();
+      final cubit = _cubit(
+        documentRepository: documentRepository,
+        picked: _pickedFile(),
+        storageRepository: storageRepository,
+      );
+
+      await cubit.load('pet-1', 'doc-1');
+      await cubit.deleteDocument();
+
+      expect(storageRepository.deletedPath, existing.storagePath);
+      expect(documentRepository.deleteCallCount, 1);
+      expect(documentRepository.deletedDocumentId, existing.id);
+      expect(cubit.state.status, DocumentFormStatus.ready);
+      expect(cubit.state.document, isNull);
+    });
+
+    test('deleteDocument fails when no document is loaded', () async {
+      final documentRepository = _FakeDocumentRepository();
+      final cubit = _cubit(
+        documentRepository: documentRepository,
+        picked: _pickedFile(),
+      );
+
+      await cubit.deleteDocument();
+
+      expect(cubit.state.status, DocumentFormStatus.failure);
+      expect(documentRepository.deleteCallCount, isZero);
+    });
+
+    test('deleteDocument keeps the metadata when the file delete fails',
+        () async {
+      final existing = _document();
+      final documentRepository = _FakeDocumentRepository(document: existing);
+      final storageRepository = _FakeStorageRepository(throwsOnDelete: true);
+      final cubit = _cubit(
+        documentRepository: documentRepository,
+        picked: _pickedFile(),
+        storageRepository: storageRepository,
+      );
+
+      await cubit.load('pet-1', 'doc-1');
+      await cubit.deleteDocument();
+
+      expect(cubit.state.status, DocumentFormStatus.failure);
+      expect(documentRepository.deleteCallCount, isZero);
+    });
   });
 }
 
 DocumentFormCubit _cubit({
   required _FakeDocumentRepository documentRepository,
   required PickedFile? picked,
+  _FakeStorageRepository? storageRepository,
 }) {
+  final storage = storageRepository ?? _FakeStorageRepository();
   return DocumentFormCubit(
     documentRepository: documentRepository,
     authRepository: _FakeAuthRepository(
@@ -157,8 +210,9 @@ DocumentFormCubit _cubit({
     ),
     uploadService: DocumentUploadService(
       filePicker: _FakeFilePicker(picked: picked),
-      storageRepository: _FakeStorageRepository(),
+      storageRepository: storage,
     ),
+    storageRepository: storage,
   );
 }
 
@@ -216,13 +270,18 @@ class _FakeDocumentRepository implements DocumentRepository {
 
   int saveCallCount = 0;
   PetDocument? savedDocument;
+  int deleteCallCount = 0;
+  EntityId? deletedDocumentId;
 
   @override
   Future<void> deleteDocument({
     required EntityId userId,
     required EntityId petId,
     required EntityId documentId,
-  }) async {}
+  }) async {
+    deleteCallCount++;
+    deletedDocumentId = documentId;
+  }
 
   @override
   Future<PetDocument?> getDocument({
@@ -264,6 +323,13 @@ class _FakeFilePicker implements FilePicker {
 }
 
 class _FakeStorageRepository implements StorageRepository {
+  _FakeStorageRepository({this.throwsOnDelete = false});
+
+  final bool throwsOnDelete;
+
+  int deleteCallCount = 0;
+  String? deletedPath;
+
   @override
   Future<StorageFile> uploadBytes({
     required String path,
@@ -277,5 +343,11 @@ class _FakeStorageRepository implements StorageRepository {
   }
 
   @override
-  Future<void> delete(String path) async {}
+  Future<void> delete(String path) async {
+    deleteCallCount++;
+    if (throwsOnDelete) {
+      throw StateError('delete failed');
+    }
+    deletedPath = path;
+  }
 }

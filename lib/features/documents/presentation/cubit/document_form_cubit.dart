@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/documents/application/document_upload_service.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
@@ -11,14 +12,17 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
     required DocumentRepository documentRepository,
     required AuthRepository authRepository,
     required DocumentUploadService uploadService,
+    required StorageRepository storageRepository,
   })  : _documentRepository = documentRepository,
         _authRepository = authRepository,
         _uploadService = uploadService,
+        _storageRepository = storageRepository,
         super(const DocumentFormState());
 
   final DocumentRepository _documentRepository;
   final AuthRepository _authRepository;
   final DocumentUploadService _uploadService;
+  final StorageRepository _storageRepository;
 
   Future<void> load(String petId, String documentId) async {
     emit(DocumentFormState(
@@ -155,6 +159,50 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
         state.copyWith(
           status: DocumentFormStatus.ready,
           document: updatedDocument,
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: DocumentFormStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  Future<void> deleteDocument() async {
+    final currentDocument = state.document;
+    if (currentDocument == null) {
+      emit(
+        state.copyWith(
+          status: DocumentFormStatus.failure,
+          errorMessage: 'Cannot delete: no document loaded',
+        ),
+      );
+      return;
+    }
+
+    emit(state.copyWith(status: DocumentFormStatus.deleting));
+
+    try {
+      await _documentRepository.initialize();
+      // Remove the stored file first; only drop the metadata once the file is
+      // gone so a failed storage delete leaves a consistent, retryable record.
+      await _storageRepository.delete(currentDocument.storagePath);
+      await _documentRepository.deleteDocument(
+        userId: currentDocument.userId,
+        petId: currentDocument.petId,
+        documentId: currentDocument.id,
+      );
+
+      emit(
+        DocumentFormState(
+          status: DocumentFormStatus.ready,
+          userId: state.userId,
+          petId: state.petId,
+          documentId: state.documentId,
+          document: null,
         ),
       );
     } catch (error) {
