@@ -41,6 +41,18 @@ structured draft, shows confirmation, and saves only after user approval.
 Implement document scan/import flows, extraction draft creation, review, and
 confirmation before saving extracted data.
 
+Decisions (2026-06-07):
+
+- Reachable from Smart Input: the user can attach a file/image there, and if
+  Gemini classifies it as a pet document, route into this extraction flow.
+- Accept images (camera + gallery) and PDFs.
+- Gemini extraction is multimodal: extend `AiRepository` to accept file bytes +
+  MIME type and return a draft with a suggested `PetDocumentType` and fields.
+- Confirmation is a pre-filled, editable document form (type, title,
+  issue/expiry dates, notes); nothing is saved until the user confirms.
+- On confirm, upload the file via the existing `DocumentUploadService` and save
+  a `PetDocument` via `DocumentRepository`.
+
 ## Phase 9: Reminders and local notifications
 
 Implement reminders, repeat rules, completion state, and local notifications.
