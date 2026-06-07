@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
@@ -121,18 +122,168 @@ void main() {
       await subscription.cancel();
       await cubit.close();
     });
+
+    test('filters documents by type', () async {
+      final passport = _document(id: 'doc-1', type: PetDocumentType.passport);
+      final insurance = _document(id: 'doc-2', type: PetDocumentType.insurance);
+      final receipt = _document(id: 'doc-3', type: PetDocumentType.receipt);
+      final cubit = _readyCubit([passport, insurance, receipt]);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.filteredDocuments.length, 3);
+
+      cubit.setTypeFilter(PetDocumentType.insurance);
+
+      expect(cubit.state.filteredDocuments, [insurance]);
+
+      await cubit.close();
+    });
+
+    test('filters documents expiring on or before a cutoff', () async {
+      final expiringSoon = _document(
+        id: 'doc-1',
+        expiryDate: const DateOnly(year: 2026, month: 6, day: 20),
+      );
+      final expiringLater = _document(
+        id: 'doc-2',
+        expiryDate: const DateOnly(year: 2026, month: 9, day: 1),
+      );
+      final noExpiry = _document(id: 'doc-3');
+      final cubit = _readyCubit([expiringSoon, expiringLater, noExpiry]);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.setExpiringBeforeFilter(DateTime(2026, 7, 1));
+
+      expect(cubit.state.filteredDocuments, [expiringSoon]);
+
+      await cubit.close();
+    });
+
+    test('includes a document expiring exactly on the cutoff date', () async {
+      final onCutoff = _document(
+        id: 'doc-1',
+        expiryDate: const DateOnly(year: 2026, month: 7, day: 1),
+      );
+      final cubit = _readyCubit([onCutoff]);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.setExpiringBeforeFilter(DateTime(2026, 7, 1));
+
+      expect(cubit.state.filteredDocuments, [onCutoff]);
+
+      await cubit.close();
+    });
+
+    test('combines type and expiry filters', () async {
+      final match = _document(
+        id: 'doc-1',
+        type: PetDocumentType.insurance,
+        expiryDate: const DateOnly(year: 2026, month: 6, day: 20),
+      );
+      final wrongType = _document(
+        id: 'doc-2',
+        type: PetDocumentType.passport,
+        expiryDate: const DateOnly(year: 2026, month: 6, day: 20),
+      );
+      final wrongDate = _document(
+        id: 'doc-3',
+        type: PetDocumentType.insurance,
+        expiryDate: const DateOnly(year: 2026, month: 12, day: 1),
+      );
+      final cubit = _readyCubit([match, wrongType, wrongDate]);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.setTypeFilter(PetDocumentType.insurance);
+      cubit.setExpiringBeforeFilter(DateTime(2026, 7, 1));
+
+      expect(cubit.state.filteredDocuments, [match]);
+
+      await cubit.close();
+    });
+
+    test('clears all filters', () async {
+      final passport = _document(id: 'doc-1', type: PetDocumentType.passport);
+      final insurance = _document(id: 'doc-2', type: PetDocumentType.insurance);
+      final cubit = _readyCubit([passport, insurance]);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.setTypeFilter(PetDocumentType.passport);
+      cubit.setExpiringBeforeFilter(DateTime(2026, 7, 1));
+
+      expect(cubit.state.filterType, PetDocumentType.passport);
+      expect(cubit.state.expiringBefore, isNotNull);
+
+      cubit.clearFilters();
+
+      expect(cubit.state.filterType, isNull);
+      expect(cubit.state.expiringBefore, isNull);
+      expect(cubit.state.filteredDocuments.length, 2);
+
+      await cubit.close();
+    });
+
+    test('preserves filters when watched documents update', () async {
+      final passport = _document(id: 'doc-1', type: PetDocumentType.passport);
+      final insurance = _document(id: 'doc-2', type: PetDocumentType.insurance);
+      final repository = _FakeDocumentRepository(
+        documentsStream: Stream<List<PetDocument>>.fromIterable([
+          [passport],
+          [passport, insurance],
+        ]),
+      );
+      final cubit = DocumentsCubit(
+        documentRepository: repository,
+        authRepository: _FakeAuthRepository(
+          currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+        ),
+      );
+
+      await cubit.load('pet-1');
+      cubit.setTypeFilter(PetDocumentType.passport);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.documents.length, 2);
+      expect(cubit.state.filterType, PetDocumentType.passport);
+      expect(cubit.state.filteredDocuments, [passport]);
+
+      await cubit.close();
+    });
   });
 }
 
-PetDocument _document() {
+DocumentsCubit _readyCubit(List<PetDocument> documents) {
+  return DocumentsCubit(
+    documentRepository: _FakeDocumentRepository(watchedDocuments: documents),
+    authRepository: _FakeAuthRepository(
+      currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+    ),
+  );
+}
+
+PetDocument _document({
+  String id = 'document-1',
+  PetDocumentType type = PetDocumentType.vaccinationCertificate,
+  DateOnly? expiryDate,
+}) {
   return PetDocument(
-    id: const EntityId('document-1'),
+    id: EntityId(id),
     userId: const EntityId('user-1'),
     petId: const EntityId('pet-1'),
     title: 'Vaccination certificate',
-    type: PetDocumentType.vaccinationCertificate,
+    type: type,
     fileUrl: Uri.parse('https://example.com/doc.pdf'),
-    storagePath: 'users/user-1/pets/pet-1/documents/document-1.pdf',
+    storagePath: 'users/user-1/pets/pet-1/documents/$id.pdf',
+    expiryDate: expiryDate,
   );
 }
 
@@ -172,11 +323,13 @@ class _FakeAuthRepository implements AuthRepository {
 class _FakeDocumentRepository implements DocumentRepository {
   _FakeDocumentRepository({
     this.watchedDocuments = const [],
+    this.documentsStream,
     this.throwsOnInitialize = false,
     this.throwsOnWatch = false,
   });
 
   final List<PetDocument> watchedDocuments;
+  final Stream<List<PetDocument>>? documentsStream;
   final bool throwsOnInitialize;
   final bool throwsOnWatch;
 
@@ -221,6 +374,6 @@ class _FakeDocumentRepository implements DocumentRepository {
     if (throwsOnWatch) {
       return Stream<List<PetDocument>>.error(StateError('watch failed'));
     }
-    return Stream<List<PetDocument>>.value(watchedDocuments);
+    return documentsStream ?? Stream<List<PetDocument>>.value(watchedDocuments);
   }
 }

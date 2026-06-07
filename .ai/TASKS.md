@@ -109,7 +109,7 @@
   repository tests.
 - [x] Update the documents screen to render repository-backed loading, empty,
   error, and populated states.
-- [ ] Add document filtering by type (and optional expiring-soon view) in
+- [x] Add document filtering by type (and optional expiring-soon view) in
   `DocumentsCubit`.
 - [ ] Add document form/input state model and validation rules (title, type,
   issue/expiry dates, notes).
