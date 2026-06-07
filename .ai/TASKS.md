@@ -157,8 +157,9 @@
 - [x] Extend the AI port for multimodal document extraction from file bytes +
   MIME type, returning a `DocumentExtractionDraft`; update the noop and Firebase
   AI data sources/repositories (noop returns a stub; AI never writes Firestore).
-- [ ] Add an image/PDF picker supporting camera capture, gallery, and PDF
-  selection (confirm picker package before adding a dependency).
+- [x] Add an image/PDF picker supporting camera capture, gallery, and PDF
+  selection. Uses `image_picker` (camera/gallery) + `file_picker` (PDF/image),
+  behind a `DocumentSourcePicker` port returning a `PickedFile`.
 - [ ] Implement a `DocumentExtractionCubit`: pick file, request extraction, and
   emit idle/picking/extracting/review/saving/failure states, with fake tests.
 - [ ] Implement confirm-and-save: build a `PetDocument` from the edited form and
