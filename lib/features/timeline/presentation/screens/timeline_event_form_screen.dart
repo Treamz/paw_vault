@@ -59,6 +59,35 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
   DateTime? _selectedDate;
   DateTime? _selectedReminderDate;
 
+  Future<void> _showDeleteConfirmation(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Event'),
+        content: const Text(
+          'Are you sure you want to delete this event? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      context.read<TimelineEventCubit>().deleteEvent();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -187,6 +216,12 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
         if (state.status == TimelineEventStatus.ready && widget.isEditMode) {
           if (state.event != null && _titleController.text.isEmpty) {
             _loadEventData(state.event!);
+          } else if (state.event == null) {
+            // Event was deleted successfully
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Event deleted successfully')),
+            );
+            context.router.back();
           }
         }
 
@@ -195,16 +230,6 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
             !widget.isEditMode) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Event saved successfully')),
-          );
-          context.router.back();
-        }
-
-        if (state.status == TimelineEventStatus.ready &&
-            widget.isEditMode &&
-            state.event == null) {
-          // Event was deleted or form was successfully updated
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Event updated successfully')),
           );
           context.router.back();
         }
@@ -221,6 +246,24 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.isEditMode ? 'Edit Event' : 'Add Event'),
+          actions: [
+            if (widget.isEditMode)
+              BlocBuilder<TimelineEventCubit, TimelineEventState>(
+                builder: (context, state) {
+                  if (state.status == TimelineEventStatus.ready &&
+                      state.event != null) {
+                    return IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: state.status == TimelineEventStatus.deleting
+                          ? null
+                          : () => _showDeleteConfirmation(context),
+                      tooltip: 'Delete event',
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+          ],
         ),
         body: BlocBuilder<TimelineEventCubit, TimelineEventState>(
           builder: (context, state) {
