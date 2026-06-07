@@ -101,3 +101,29 @@
 - [x] Add delete confirmation UI for timeline events.
 - [x] Run a Phase 5 architecture boundary review to confirm widgets still use
   Cubits/repositories and do not access Firebase SDKs directly.
+
+## Phase 6: Documents and document upload
+
+- [x] Add Phase 6 actionable task checklist.
+- [x] Implement `DocumentsCubit` watch/load behavior for documents with fake
+  repository tests.
+- [x] Update the documents screen to render repository-backed loading, empty,
+  error, and populated states.
+- [x] Add document filtering by type (and optional expiring-soon view) in
+  `DocumentsCubit`.
+- [x] Add document form/input state model and validation rules (title, type,
+  issue/expiry dates, notes).
+- [x] Add a storage upload service/use case that picks a file and uploads bytes
+  through `StorageRepository`, returning the file URL and storage path.
+- [x] Implement create/update document Cubit methods that upload via
+  `StorageRepository` then persist metadata via `DocumentRepository`, with fake
+  repository tests.
+- [x] Implement delete document Cubit method that removes both the storage file
+  and the Firestore metadata, with fake repository tests.
+- [x] Replace placeholder documents screen with a document list display
+  (title, type, expiry, thumbnail/icon).
+- [x] Add upload/create/edit document UI wired through Cubit and repository
+  interfaces, including file picking and progress/error feedback.
+- [x] Add delete confirmation UI for documents.
+- [x] Run a Phase 6 architecture boundary review to confirm widgets still use
+  Cubits/repositories and do not access Firebase SDKs/Storage directly.

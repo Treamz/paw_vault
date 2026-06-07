@@ -162,6 +162,10 @@ class _PetListContent extends StatelessWidget {
             ),
             title: Text(pet.name),
             subtitle: Text(_petSubtitle(pet)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.router.push(
+              PetProfileRoute(petId: pet.id.value),
+            ),
           ),
         );
       },

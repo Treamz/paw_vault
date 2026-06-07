@@ -317,6 +317,7 @@ class _PetFormViewState extends State<_PetFormView> {
                         Expanded(
                           child: DropdownButtonFormField<PetWeightUnit>(
                             initialValue: _selectedWeightUnit,
+                            isExpanded: true,
                             decoration:
                                 const InputDecoration(labelText: 'Unit'),
                             items: PetWeightUnit.values

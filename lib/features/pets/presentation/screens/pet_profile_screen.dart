@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/pets/presentation/cubit/pet_profile_cubit.dart';
@@ -160,6 +161,8 @@ class _PetProfileView extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
                   ],
+                  _buildRecordsCard(context, pet.id.value),
+                  const SizedBox(height: 16),
                   _buildInfoCard(
                     context,
                     'Basic Information',
@@ -233,6 +236,34 @@ class _PetProfileView extends StatelessWidget {
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildRecordsCard(BuildContext context, String petId) {
+    final entries = <(IconData, String, PageRouteInfo)>[
+      (Icons.timeline, 'Timeline', TimelineRoute(petId: petId)),
+      (Icons.folder, 'Documents', DocumentsRoute(petId: petId)),
+      (Icons.notifications, 'Reminders', RemindersRoute(petId: petId)),
+      (Icons.bolt, 'Smart Input', SmartInputRoute(petId: petId)),
+      (
+        Icons.summarize,
+        'Vet Summary Export',
+        VetSummaryExportRoute(petId: petId),
+      ),
+    ];
+
+    return Card(
+      child: Column(
+        children: [
+          for (final (icon, label, route) in entries)
+            ListTile(
+              leading: Icon(icon),
+              title: Text(label),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.router.push(route),
+            ),
+        ],
       ),
     );
   }

@@ -81,7 +81,15 @@ decisions, or other human decisions are required.
 
 Use the Dart and Flutter MCP server when available.
 
-Preferred MCP server:
+### Setup
+
+Claude Code (CLI):
+
+```bash
+claude mcp add --transport stdio dart -- dart mcp-server
+```
+
+Codex (`.codex/config.toml` or `~/.codex/config.toml`):
 
 ```toml
 [mcp_servers.dart]
@@ -89,8 +97,35 @@ command = "dart"
 args = ["mcp-server"]
 ```
 
-If the app is running, use Flutter MCP tools to inspect runtime errors and the
-widget tree when relevant.
+MCP tools load at session start; after adding the server, start a new session.
+
+### Working with it
+
+Static analysis without a running app:
+
+- `analyze_files` — analyze the project or specific paths for errors.
+- `pub_dev_search`, `pub` — discover/manage packages.
+- `read_package_uris`, `rip_grep_packages` — explore dependency source (e.g. to
+  check a package's real API before using it).
+
+Inspecting a running app (requires a DTD connection):
+
+1. `dtd` → `listDtdUris` to find the running app's daemon, then `dtd` →
+   `connect` with the URI whose workspace root is this project.
+2. `get_runtime_errors` — read the most recent runtime errors (e.g. layout
+   overflows, exceptions). Use this to diagnose UI bugs reported by the user.
+3. `widget_inspector` (`get_widget_tree`, `summaryOnly: true`) — inspect the
+   live widget tree to confirm which screen is shown and that expected widgets
+   render.
+4. `hot_reload` — apply code changes to the running app, then re-check
+   `get_runtime_errors` to confirm the fix.
+
+`flutter_driver_command` (tap/enter_text/screenshot) requires the app to be
+launched with `enableFlutterDriverExtension()`; it is not available on a normal
+`flutter run`. Without it, verify by inspecting the widget tree and watching
+`get_runtime_errors`.
+
+See `docs/NAVIGATION.md` for the screen-to-screen flow used when verifying UI.
 
 ## Required Checks
 
