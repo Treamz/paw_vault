@@ -5,6 +5,8 @@ import 'package:paw_vault/app/theme/app_theme.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/di/app_dependencies.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/features/document_extraction/domain/repositories/document_extraction_ai_repository.dart';
+import 'package:paw_vault/features/document_extraction/domain/services/document_source_picker.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
@@ -56,6 +58,12 @@ class _PawVaultAppState extends State<PawVaultApp> {
         ),
         RepositoryProvider<FilePicker>.value(
           value: widget.dependencies.filePicker,
+        ),
+        RepositoryProvider<DocumentExtractionAiRepository>.value(
+          value: widget.dependencies.documentExtractionAiRepository,
+        ),
+        RepositoryProvider<DocumentSourcePicker>.value(
+          value: widget.dependencies.documentSourcePicker,
         ),
         RepositoryProvider<ReminderRepository>.value(
           value: widget.dependencies.reminderRepository,

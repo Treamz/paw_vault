@@ -170,7 +170,7 @@
   affordances.
 - [ ] Add an entry point from Smart Input ("Attach document or photo") that
   launches the extraction flow when the file is classified as a document.
-- [ ] Wire AI extraction and the picker through `AppDependencies`/providers and
+- [x] Wire AI extraction and the picker through `AppDependencies`/providers and
   register the extraction route.
 - [ ] Run a Phase 8 architecture boundary review: UI/Cubits use no Firebase/
   Gemini SDKs, AI returns drafts only and never writes to Firestore, and a
