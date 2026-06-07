@@ -1,7 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/presentation/cubit/documents_cubit.dart';
@@ -154,18 +156,42 @@ class _DocumentsContent extends StatelessWidget {
       separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final document = documents[index];
+        final expiry = document.expiryDate;
         return Card(
           child: ListTile(
             key: ValueKey('document-${document.id.value}'),
-            leading: const CircleAvatar(
-              child: Icon(Icons.description),
+            leading: CircleAvatar(
+              child: Icon(_documentIcon(document.type)),
             ),
             title: Text(document.title),
-            subtitle: Text(_formatDocumentType(document.type)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_formatDocumentType(document.type)),
+                if (expiry != null) ...[
+                  const SizedBox(height: 4),
+                  _ExpiryLabel(expiry: expiry),
+                ],
+              ],
+            ),
+            isThreeLine: expiry != null,
           ),
         );
       },
     );
+  }
+
+  IconData _documentIcon(PetDocumentType type) {
+    return switch (type) {
+      PetDocumentType.passport => Icons.menu_book,
+      PetDocumentType.vaccinationCertificate => Icons.vaccines,
+      PetDocumentType.insurance => Icons.shield,
+      PetDocumentType.labResult => Icons.science,
+      PetDocumentType.prescription => Icons.medication,
+      PetDocumentType.receipt => Icons.receipt_long,
+      PetDocumentType.vetReport => Icons.medical_information,
+      PetDocumentType.other => Icons.description,
+    };
   }
 
   String _formatDocumentType(PetDocumentType type) {
@@ -179,5 +205,37 @@ class _DocumentsContent extends StatelessWidget {
       PetDocumentType.vetReport => 'Vet Report',
       PetDocumentType.other => 'Other',
     };
+  }
+}
+
+class _ExpiryLabel extends StatelessWidget {
+  const _ExpiryLabel({required this.expiry});
+
+  final DateOnly expiry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final today = DateOnly.fromDateTime(DateTime.now());
+    final isExpired = expiry.compareTo(today) < 0;
+    final formatted = DateFormat.yMMMd().format(expiry.toUtcDateTime());
+
+    return Row(
+      children: [
+        Icon(
+          isExpired ? Icons.warning_amber : Icons.event,
+          size: 16,
+          color: isExpired ? theme.colorScheme.error : null,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          isExpired ? 'Expired $formatted' : 'Expires $formatted',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: isExpired ? theme.colorScheme.error : null,
+            fontWeight: isExpired ? FontWeight.bold : null,
+          ),
+        ),
+      ],
+    );
   }
 }

@@ -120,7 +120,7 @@
   repository tests.
 - [x] Implement delete document Cubit method that removes both the storage file
   and the Firestore metadata, with fake repository tests.
-- [ ] Replace placeholder documents screen with a document list display
+- [x] Replace placeholder documents screen with a document list display
   (title, type, expiry, thumbnail/icon).
 - [ ] Add upload/create/edit document UI wired through Cubit and repository
   interfaces, including file picking and progress/error feedback.
