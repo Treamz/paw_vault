@@ -81,6 +81,6 @@
 - [x] Implement delete pet Cubit method with fake repository tests.
 - [x] Replace placeholder pet profile screen with basic read-only pet details.
 - [x] Add create/edit pet UI wired through Cubit and repository interfaces.
-- [ ] Add delete confirmation UI for pet profiles.
+- [x] Add delete confirmation UI for pet profiles.
 - [ ] Run a Phase 4 architecture boundary review to confirm widgets still use
   Cubits/repositories and do not access Firebase SDKs directly.
