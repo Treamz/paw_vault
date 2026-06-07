@@ -150,9 +150,10 @@
 ## Phase 8: Document scanner and Gemini document extraction
 
 - [x] Add Phase 8 actionable task checklist.
-- [ ] Add a `DocumentExtractionDraft` domain entity (suggested
+- [x] Add a `DocumentExtractionDraft` domain entity (suggested
   `PetDocumentType`, title, issue/expiry dates, notes, extracted text,
-  confidence) plus a value object for the picked file (bytes, MIME, extension).
+  confidence). Reuses the existing `PickedFile` value object (bytes, MIME,
+  extension) from the documents feature.
 - [ ] Extend the AI port for multimodal document extraction from file bytes +
   MIME type, returning a `DocumentExtractionDraft`; update the noop and Firebase
   AI data sources/repositories (noop returns a stub; AI never writes Firestore).
