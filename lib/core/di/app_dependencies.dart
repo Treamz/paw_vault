@@ -12,7 +12,9 @@ import 'package:paw_vault/core/storage/domain/repositories/storage_repository.da
 import 'package:paw_vault/features/documents/data/datasources/flutter_fire_document_data_source.dart';
 import 'package:paw_vault/features/documents/data/repositories/firebase_document_repository.dart';
 import 'package:paw_vault/features/documents/data/repositories/local_document_repository.dart';
+import 'package:paw_vault/features/documents/data/services/file_picker_impl.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
+import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/pets/data/datasources/flutter_fire_pet_data_source.dart';
 import 'package:paw_vault/features/pets/data/repositories/firebase_pet_repository.dart';
 import 'package:paw_vault/features/pets/data/repositories/local_pet_repository.dart';
@@ -47,6 +49,7 @@ class AppDependencies {
     required this.aiRepository,
     required this.smartInputRepository,
     required this.vetSummaryExportRepository,
+    required this.filePicker,
   });
 
   factory AppDependencies.localFirst() {
@@ -65,6 +68,7 @@ class AppDependencies {
       aiRepository: aiRepository,
       smartInputRepository: NoopSmartInputRepository(aiRepository),
       vetSummaryExportRepository: LocalVetSummaryExportRepository(),
+      filePicker: const FilePickerImpl(),
     );
   }
 
@@ -100,6 +104,7 @@ class AppDependencies {
       vetSummaryExportRepository: FirebaseVetSummaryExportRepository(
         FlutterFireVetSummaryExportDataSource(firebase.firestore),
       ),
+      filePicker: const FilePickerImpl(),
     );
   }
 
@@ -112,4 +117,5 @@ class AppDependencies {
   final AiRepository aiRepository;
   final SmartInputRepository smartInputRepository;
   final VetSummaryExportRepository vetSummaryExportRepository;
+  final FilePicker filePicker;
 }

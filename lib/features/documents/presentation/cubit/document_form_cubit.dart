@@ -69,6 +69,19 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
     String petId,
     PetDocumentFormState formState,
   ) async {
+    // Validate before uploading so invalid metadata never leaves an orphaned
+    // file in storage.
+    final validation = formState.validate();
+    if (!validation.isValid) {
+      emit(
+        state.copyWith(
+          status: DocumentFormStatus.failure,
+          errorMessage: 'Please fix validation errors',
+        ),
+      );
+      return;
+    }
+
     final priorStatus = state.status;
     emit(state.copyWith(status: DocumentFormStatus.saving));
 

@@ -65,6 +65,26 @@ void main() {
       expect(cubit.state.status, DocumentFormStatus.initial);
     });
 
+    test('createDocument rejects invalid input before uploading', () async {
+      final documentRepository = _FakeDocumentRepository();
+      final storageRepository = _FakeStorageRepository();
+      final cubit = _cubit(
+        documentRepository: documentRepository,
+        picked: _pickedFile(),
+        storageRepository: storageRepository,
+      );
+
+      await cubit.createDocument(
+        'pet-1',
+        const PetDocumentFormState(title: ''),
+      );
+
+      expect(cubit.state.status, DocumentFormStatus.failure);
+      expect(documentRepository.saveCallCount, isZero);
+      // Nothing was uploaded, so no file can be orphaned.
+      expect(storageRepository.uploadCallCount, isZero);
+    });
+
     test('createDocument emits failure when saving throws', () async {
       final documentRepository = _FakeDocumentRepository(throwsOnSave: true);
       final cubit = _cubit(
@@ -329,6 +349,7 @@ class _FakeStorageRepository implements StorageRepository {
 
   int deleteCallCount = 0;
   String? deletedPath;
+  int uploadCallCount = 0;
 
   @override
   Future<StorageFile> uploadBytes({
@@ -336,6 +357,7 @@ class _FakeStorageRepository implements StorageRepository {
     required Uint8List bytes,
     required String contentType,
   }) async {
+    uploadCallCount++;
     return StorageFile(
       path: path,
       downloadUrl: Uri.parse('https://storage.example.com/$path'),

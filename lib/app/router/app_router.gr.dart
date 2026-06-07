@@ -11,6 +11,75 @@
 part of 'app_router.dart';
 
 /// generated route for
+/// [DocumentFormScreen]
+class DocumentFormRoute extends PageRouteInfo<DocumentFormRouteArgs> {
+  DocumentFormRoute({
+    required String petId,
+    String? documentId,
+    Key? key,
+    List<PageRouteInfo>? children,
+  }) : super(
+          DocumentFormRoute.name,
+          args: DocumentFormRouteArgs(
+            petId: petId,
+            documentId: documentId,
+            key: key,
+          ),
+          rawPathParams: {'petId': petId},
+          rawQueryParams: {'documentId': documentId},
+          initialChildren: children,
+        );
+
+  static const String name = 'DocumentFormRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final queryParams = data.queryParams;
+      final args = data.argsAs<DocumentFormRouteArgs>(
+        orElse: () => DocumentFormRouteArgs(
+          petId: pathParams.getString('petId'),
+          documentId: queryParams.optString('documentId'),
+        ),
+      );
+      return DocumentFormScreen(
+        petId: args.petId,
+        documentId: args.documentId,
+        key: args.key,
+      );
+    },
+  );
+}
+
+class DocumentFormRouteArgs {
+  const DocumentFormRouteArgs({required this.petId, this.documentId, this.key});
+
+  final String petId;
+
+  final String? documentId;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'DocumentFormRouteArgs{petId: $petId, documentId: $documentId, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! DocumentFormRouteArgs) return false;
+    return petId == other.petId &&
+        documentId == other.documentId &&
+        key == other.key;
+  }
+
+  @override
+  int get hashCode => petId.hashCode ^ documentId.hashCode ^ key.hashCode;
+}
+
+/// generated route for
 /// [DocumentsScreen]
 class DocumentsRoute extends PageRouteInfo<DocumentsRouteArgs> {
   DocumentsRoute({

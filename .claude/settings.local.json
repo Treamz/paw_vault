@@ -12,7 +12,10 @@
       "mcp__dart__analyze_files",
       "Bash(dart run *)",
       "Bash(echo \"exit: $?\")",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(xargs ls -la)",
+      "Bash(flutter pub *)",
+      "mcp__dart__rip_grep_packages"
     ]
   }
 }

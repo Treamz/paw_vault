@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
@@ -48,10 +49,26 @@ class _DocumentsView extends StatelessWidget {
                 ),
               DocumentsStatus.ready => state.documents.isEmpty
                   ? const _DocumentsEmpty()
-                  : _DocumentsContent(documents: state.documents),
+                  : _DocumentsContent(
+                      documents: state.documents,
+                      petId: state.petId!,
+                    ),
             };
           },
         ),
+      ),
+      floatingActionButton: BlocBuilder<DocumentsCubit, DocumentsState>(
+        builder: (context, state) {
+          if (state.petId == null) return const SizedBox.shrink();
+
+          return FloatingActionButton.extended(
+            onPressed: () => context.router.push(
+              DocumentFormRoute(petId: state.petId!),
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text('Add document'),
+          );
+        },
       ),
     );
   }
@@ -144,9 +161,13 @@ class _DocumentsFailure extends StatelessWidget {
 }
 
 class _DocumentsContent extends StatelessWidget {
-  const _DocumentsContent({required this.documents});
+  const _DocumentsContent({
+    required this.documents,
+    required this.petId,
+  });
 
   final List<PetDocument> documents;
+  final String petId;
 
   @override
   Widget build(BuildContext context) {
@@ -175,6 +196,9 @@ class _DocumentsContent extends StatelessWidget {
               ],
             ),
             isThreeLine: expiry != null,
+            onTap: () => context.router.push(
+              DocumentFormRoute(petId: petId, documentId: document.id.value),
+            ),
           ),
         );
       },
