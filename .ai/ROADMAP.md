@@ -50,7 +50,15 @@ Implement reminders, repeat rules, completion state, and local notifications.
 Implement vet summary PDF generation, local sharing/export, and optional
 Firebase Storage upload.
 
-## Phase 11: Polish, tests, release candidate
+## Phase 11: Account auth and cross-device sync
+
+Add real account authentication on top of the existing anonymous bootstrap:
+email/password and/or federated sign-in, a login/sign-up UI, linking an
+anonymous account to a permanent one (so existing local data is preserved),
+sign-out, and signed-in account state. Enables the same archive to be accessed
+across devices instead of being tied to a single device's anonymous user.
+
+## Phase 12: Polish, tests, release candidate
 
 Improve UX, accessibility, error states, empty states, test coverage, platform
 configuration, and release readiness.
