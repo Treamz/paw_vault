@@ -107,7 +107,7 @@
 - [x] Add Phase 6 actionable task checklist.
 - [x] Implement `DocumentsCubit` watch/load behavior for documents with fake
   repository tests.
-- [ ] Update the documents screen to render repository-backed loading, empty,
+- [x] Update the documents screen to render repository-backed loading, empty,
   error, and populated states.
 - [ ] Add document filtering by type (and optional expiring-soon view) in
   `DocumentsCubit`.
