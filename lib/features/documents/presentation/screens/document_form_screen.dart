@@ -71,6 +71,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
   DateTime? _expiryDate;
   bool _populated = false;
   bool _submitted = false;
+  bool _deleteRequested = false;
 
   @override
   void dispose() {
@@ -146,11 +147,55 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
     }
   }
 
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Document'),
+        content: const Text(
+          'Are you sure you want to delete this document? '
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      setState(() => _deleteRequested = true);
+      context.read<DocumentFormCubit>().deleteDocument();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.isEditMode ? 'Edit Document' : 'Add Document'),
+        actions: [
+          if (widget.isEditMode)
+            BlocBuilder<DocumentFormCubit, DocumentFormState>(
+              builder: (context, state) {
+                final canDelete = state.status == DocumentFormStatus.ready &&
+                    state.document != null;
+                if (!canDelete) return const SizedBox.shrink();
+                return IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: 'Delete document',
+                  onPressed: () => _confirmDelete(context),
+                );
+              },
+            ),
+        ],
       ),
       body: SafeArea(
         child: BlocConsumer<DocumentFormCubit, DocumentFormState>(
@@ -162,6 +207,17 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
               _populateFrom(state.document!);
             }
 
+            // A delete the user confirmed has completed (document removed).
+            if (_deleteRequested &&
+                state.status == DocumentFormStatus.ready &&
+                state.document == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Document deleted')),
+              );
+              context.router.maybePop();
+              return;
+            }
+
             // A save (create or edit) the user initiated has completed.
             if (_submitted && state.status == DocumentFormStatus.ready) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -171,7 +227,10 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
             }
 
             if (state.status == DocumentFormStatus.failure) {
-              setState(() => _submitted = false);
+              setState(() {
+                _submitted = false;
+                _deleteRequested = false;
+              });
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.errorMessage ?? 'Something went wrong'),
@@ -187,11 +246,12 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
               return const Center(child: Text('Document not found'));
             }
 
-            final isSaving = state.status == DocumentFormStatus.saving;
+            final isBusy = state.status == DocumentFormStatus.saving ||
+                state.status == DocumentFormStatus.deleting;
 
             return AbsorbPointer(
-              absorbing: isSaving,
-              child: _form(context, isSaving),
+              absorbing: isBusy,
+              child: _form(context, isBusy),
             );
           },
         ),

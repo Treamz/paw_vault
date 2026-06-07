@@ -124,6 +124,6 @@
   (title, type, expiry, thumbnail/icon).
 - [x] Add upload/create/edit document UI wired through Cubit and repository
   interfaces, including file picking and progress/error feedback.
-- [ ] Add delete confirmation UI for documents.
+- [x] Add delete confirmation UI for documents.
 - [ ] Run a Phase 6 architecture boundary review to confirm widgets still use
   Cubits/repositories and do not access Firebase SDKs/Storage directly.
