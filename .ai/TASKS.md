@@ -87,7 +87,7 @@
 
 ## Phase 5: Timeline and events
 
-- [ ] Add Phase 5 actionable task checklist.
+- [x] Add Phase 5 actionable task checklist.
 - [ ] Implement `TimelineCubit` watch/load behavior for timeline events with fake
   repository tests.
 - [ ] Update the timeline screen to render repository-backed loading, empty,
