@@ -140,7 +140,7 @@
   `SmartMessage` (status confirmed) via `SmartInputRepository`, with fake
   repository tests; AI output is never saved without explicit confirmation.
 - [x] Implement a dismiss/discard action that drops the draft without saving.
-- [ ] Add watched smart message history for the pet via
+- [x] Add watched smart message history for the pet via
   `watchSmartMessages`, with loading/empty/error/populated states.
 - [ ] Add AI safety affordances in the UI: label drafts as AI-generated and
   require user verification, with no medical diagnosis framing.

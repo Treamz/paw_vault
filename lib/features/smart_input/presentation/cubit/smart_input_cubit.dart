@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
@@ -16,6 +18,45 @@ class SmartInputCubit extends Cubit<SmartInputState> {
 
   final SmartInputRepository _smartInputRepository;
   final AuthRepository _authRepository;
+  StreamSubscription<List<SmartMessage>>? _messagesSubscription;
+  EntityId? _userId;
+
+  /// Subscribes to the pet's saved smart messages for the history list.
+  Future<void> load(String petId) async {
+    emit(state.copyWith(historyStatus: SmartHistoryStatus.loading));
+
+    try {
+      final user = await _currentUserId();
+      await _messagesSubscription?.cancel();
+      _messagesSubscription = _smartInputRepository
+          .watchSmartMessages(userId: user, petId: EntityId(petId))
+          .listen(
+        (messages) {
+          emit(
+            state.copyWith(
+              historyStatus: SmartHistoryStatus.ready,
+              messages: messages,
+            ),
+          );
+        },
+        onError: (Object error) {
+          emit(
+            state.copyWith(
+              historyStatus: SmartHistoryStatus.failure,
+              historyError: error.toString(),
+            ),
+          );
+        },
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          historyStatus: SmartHistoryStatus.failure,
+          historyError: error.toString(),
+        ),
+      );
+    }
+  }
 
   /// Sends [input] to the AI repository and emits the resulting draft for
   /// review. The draft is never persisted here — saving requires explicit
@@ -32,22 +73,28 @@ class SmartInputCubit extends Cubit<SmartInputState> {
     }
 
     emit(
-      const SmartInputState(status: SmartInputStatus.processing),
+      state.copyWith(
+        status: SmartInputStatus.processing,
+        clearDraft: true,
+        clearErrorMessage: true,
+      ),
     );
 
     try {
       final draft = await _smartInputRepository.createDraft(input);
       emit(
-        SmartInputState(
+        state.copyWith(
           status: SmartInputStatus.review,
           draft: draft,
+          clearErrorMessage: true,
         ),
       );
     } catch (error) {
       emit(
-        SmartInputState(
+        state.copyWith(
           status: SmartInputStatus.failure,
           errorMessage: error.toString(),
+          clearDraft: true,
         ),
       );
     }
@@ -70,13 +117,12 @@ class SmartInputCubit extends Cubit<SmartInputState> {
     emit(state.copyWith(status: SmartInputStatus.saving));
 
     try {
-      final user = await _authRepository.currentUser() ??
-          await _authRepository.signInAnonymously();
+      final userId = await _currentUserId();
       final now = DateTime.now();
 
       final message = SmartMessage(
         id: EntityId('${now.microsecondsSinceEpoch}'),
-        userId: EntityId(user.id),
+        userId: userId,
         petId: EntityId(petId),
         originalText: draft.originalText,
         detectedIntent: draft.detectedIntent,
@@ -89,7 +135,13 @@ class SmartInputCubit extends Cubit<SmartInputState> {
 
       await _smartInputRepository.saveSmartMessage(message);
 
-      emit(const SmartInputState(status: SmartInputStatus.confirmed));
+      emit(
+        state.copyWith(
+          status: SmartInputStatus.confirmed,
+          clearDraft: true,
+          clearErrorMessage: true,
+        ),
+      );
     } catch (error) {
       emit(
         state.copyWith(
@@ -102,7 +154,29 @@ class SmartInputCubit extends Cubit<SmartInputState> {
 
   /// Discards the current draft without saving anything, returning to idle.
   void dismissDraft() {
-    emit(const SmartInputState());
+    emit(
+      state.copyWith(
+        status: SmartInputStatus.idle,
+        clearDraft: true,
+        clearErrorMessage: true,
+      ),
+    );
+  }
+
+  Future<EntityId> _currentUserId() async {
+    final cached = _userId;
+    if (cached != null) return cached;
+    final user = await _authRepository.currentUser() ??
+        await _authRepository.signInAnonymously();
+    final id = EntityId(user.id);
+    _userId = id;
+    return id;
+  }
+
+  @override
+  Future<void> close() async {
+    await _messagesSubscription?.cancel();
+    return super.close();
   }
 }
 
@@ -115,16 +189,28 @@ enum SmartInputStatus {
   failure,
 }
 
+enum SmartHistoryStatus {
+  loading,
+  ready,
+  failure,
+}
+
 class SmartInputState {
   const SmartInputState({
     this.status = SmartInputStatus.idle,
     this.draft,
     this.errorMessage,
+    this.historyStatus = SmartHistoryStatus.loading,
+    this.messages = const [],
+    this.historyError,
   });
 
   final SmartInputStatus status;
   final SmartInputDraft? draft;
   final String? errorMessage;
+  final SmartHistoryStatus historyStatus;
+  final List<SmartMessage> messages;
+  final String? historyError;
 
   bool get isProcessing => status == SmartInputStatus.processing;
   bool get isSaving => status == SmartInputStatus.saving;
@@ -136,11 +222,20 @@ class SmartInputState {
     SmartInputStatus? status,
     SmartInputDraft? draft,
     String? errorMessage,
+    SmartHistoryStatus? historyStatus,
+    List<SmartMessage>? messages,
+    String? historyError,
+    bool clearDraft = false,
+    bool clearErrorMessage = false,
   }) {
     return SmartInputState(
       status: status ?? this.status,
-      draft: draft ?? this.draft,
-      errorMessage: errorMessage ?? this.errorMessage,
+      draft: clearDraft ? null : (draft ?? this.draft),
+      errorMessage:
+          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      historyStatus: historyStatus ?? this.historyStatus,
+      messages: messages ?? this.messages,
+      historyError: historyError ?? this.historyError,
     );
   }
 }

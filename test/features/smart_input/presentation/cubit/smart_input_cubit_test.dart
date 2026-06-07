@@ -86,6 +86,33 @@ void main() {
       await cubit.close();
     });
 
+    test('load emits the watched smart messages as history', () async {
+      final message = _message();
+      final repository = _FakeSmartInputRepository(watchedMessages: [message]);
+      final cubit = _cubit(repository);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.historyStatus, SmartHistoryStatus.ready);
+      expect(cubit.state.messages, [message]);
+
+      await cubit.close();
+    });
+
+    test('load emits history failure when the stream errors', () async {
+      final repository = _FakeSmartInputRepository(throwsOnWatch: true);
+      final cubit = _cubit(repository);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.historyStatus, SmartHistoryStatus.failure);
+      expect(cubit.state.historyError, contains('watch failed'));
+
+      await cubit.close();
+    });
+
     test('dismissDraft clears the draft without saving', () async {
       final repository = _FakeSmartInputRepository(draft: _draft());
       final cubit = _cubit(repository);
@@ -139,6 +166,18 @@ SmartInputDraft _draft() {
   );
 }
 
+SmartMessage _message() {
+  return const SmartMessage(
+    id: EntityId('msg-1'),
+    userId: EntityId('user-1'),
+    petId: EntityId('pet-1'),
+    originalText: 'Bella got her rabies shot today',
+    detectedIntent: SmartMessageIntent.addVaccination,
+    confidence: 0.92,
+    status: SmartMessageStatus.confirmed,
+  );
+}
+
 class _FakeAuthRepository implements AuthRepository {
   _FakeAuthRepository({this.currentUserValue});
 
@@ -164,11 +203,15 @@ class _FakeSmartInputRepository implements SmartInputRepository {
     this.draft,
     this.throwsOnCreate = false,
     this.throwsOnSave = false,
+    this.watchedMessages = const [],
+    this.throwsOnWatch = false,
   });
 
   final SmartInputDraft? draft;
   final bool throwsOnCreate;
   final bool throwsOnSave;
+  final List<SmartMessage> watchedMessages;
+  final bool throwsOnWatch;
 
   int createDraftCallCount = 0;
   String? createDraftInput;
@@ -215,6 +258,9 @@ class _FakeSmartInputRepository implements SmartInputRepository {
     required EntityId userId,
     required EntityId petId,
   }) {
-    return const Stream<List<SmartMessage>>.empty();
+    if (throwsOnWatch) {
+      return Stream<List<SmartMessage>>.error(StateError('watch failed'));
+    }
+    return Stream<List<SmartMessage>>.value(watchedMessages);
   }
 }

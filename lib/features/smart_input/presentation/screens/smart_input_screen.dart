@@ -22,7 +22,7 @@ class SmartInputScreen extends StatelessWidget {
       create: (context) => SmartInputCubit(
         smartInputRepository: context.read<SmartInputRepository>(),
         authRepository: context.read<AuthRepository>(),
-      ),
+      )..load(petId),
       child: _SmartInputView(petId: petId),
     );
   }
@@ -138,6 +138,8 @@ class _SmartInputViewState extends State<_SmartInputView> {
                       ],
                     ),
                   ],
+                  const SizedBox(height: 24),
+                  _HistorySection(state: state),
                 ],
               ),
             );
@@ -288,6 +290,81 @@ class _DraftReview extends StatelessWidget {
       SmartSuggestedActionType.createDocument => 'Create document',
       SmartSuggestedActionType.updatePetNotes => 'Update pet notes',
       SmartSuggestedActionType.unknown => 'Unknown',
+    };
+  }
+}
+
+class _HistorySection extends StatelessWidget {
+  const _HistorySection({required this.state});
+
+  final SmartInputState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Saved entries',
+          style: theme.textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        switch (state.historyStatus) {
+          SmartHistoryStatus.loading => const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          SmartHistoryStatus.failure => Text(
+              state.historyError ?? 'Could not load saved entries',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          SmartHistoryStatus.ready => state.messages.isEmpty
+              ? Text(
+                  'No saved entries yet.',
+                  style: theme.textTheme.bodyMedium,
+                )
+              : Column(
+                  children: [
+                    for (final message in state.messages)
+                      _HistoryTile(message: message),
+                  ],
+                ),
+        },
+      ],
+    );
+  }
+}
+
+class _HistoryTile extends StatelessWidget {
+  const _HistoryTile({required this.message});
+
+  final SmartMessage message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        key: ValueKey('smart-message-${message.id.value}'),
+        leading: const Icon(Icons.check_circle_outline),
+        title: Text(message.originalText),
+        subtitle: Text(_formatIntent(message.detectedIntent)),
+      ),
+    );
+  }
+
+  String _formatIntent(SmartMessageIntent intent) {
+    return switch (intent) {
+      SmartMessageIntent.addAllergy => 'Add allergy',
+      SmartMessageIntent.addMedication => 'Add medication',
+      SmartMessageIntent.addVaccination => 'Add vaccination',
+      SmartMessageIntent.addSymptom => 'Add symptom',
+      SmartMessageIntent.addVetVisit => 'Add vet visit',
+      SmartMessageIntent.addReminder => 'Add reminder',
+      SmartMessageIntent.addNote => 'Add note',
+      SmartMessageIntent.unknown => 'Unknown',
     };
   }
 }
