@@ -86,6 +86,22 @@ void main() {
       await cubit.close();
     });
 
+    test('dismissDraft clears the draft without saving', () async {
+      final repository = _FakeSmartInputRepository(draft: _draft());
+      final cubit = _cubit(repository);
+
+      await cubit.submit('Bella got her rabies shot today');
+      expect(cubit.state.hasDraft, isTrue);
+
+      cubit.dismissDraft();
+
+      expect(cubit.state.status, SmartInputStatus.idle);
+      expect(cubit.state.draft, isNull);
+      expect(repository.saveCallCount, isZero);
+
+      await cubit.close();
+    });
+
     test('confirmDraft emits failure when saving throws', () async {
       final repository = _FakeSmartInputRepository(
         draft: _draft(),

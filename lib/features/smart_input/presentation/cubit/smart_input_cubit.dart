@@ -99,6 +99,11 @@ class SmartInputCubit extends Cubit<SmartInputState> {
       );
     }
   }
+
+  /// Discards the current draft without saving anything, returning to idle.
+  void dismissDraft() {
+    emit(const SmartInputState());
+  }
 }
 
 enum SmartInputStatus {

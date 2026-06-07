@@ -103,20 +103,39 @@ class _SmartInputViewState extends State<_SmartInputView> {
                   if (state.hasDraft) ...[
                     _DraftReview(draft: state.draft!),
                     const SizedBox(height: 12),
-                    FilledButton.icon(
-                      onPressed: isSaving
-                          ? null
-                          : () => context
-                              .read<SmartInputCubit>()
-                              .confirmDraft(widget.petId),
-                      icon: isSaving
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.check),
-                      label: Text(isSaving ? 'Saving…' : 'Confirm & save'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: isSaving
+                                ? null
+                                : () => context
+                                    .read<SmartInputCubit>()
+                                    .dismissDraft(),
+                            icon: const Icon(Icons.close),
+                            label: const Text('Discard'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: isSaving
+                                ? null
+                                : () => context
+                                    .read<SmartInputCubit>()
+                                    .confirmDraft(widget.petId),
+                            icon: isSaving
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.check),
+                            label: Text(isSaving ? 'Saving…' : 'Confirm'),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ],
