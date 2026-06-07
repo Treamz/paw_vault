@@ -146,3 +146,30 @@
   require user verification, with no medical diagnosis framing.
 - [x] Run a Phase 7 architecture boundary review to confirm widgets/Cubits do
   not access Firebase/Gemini SDKs directly and AI never writes to Firestore.
+
+## Phase 8: Document scanner and Gemini document extraction
+
+- [x] Add Phase 8 actionable task checklist.
+- [ ] Add a `DocumentExtractionDraft` domain entity (suggested
+  `PetDocumentType`, title, issue/expiry dates, notes, extracted text,
+  confidence) plus a value object for the picked file (bytes, MIME, extension).
+- [ ] Extend the AI port for multimodal document extraction from file bytes +
+  MIME type, returning a `DocumentExtractionDraft`; update the noop and Firebase
+  AI data sources/repositories (noop returns a stub; AI never writes Firestore).
+- [ ] Add an image/PDF picker supporting camera capture, gallery, and PDF
+  selection (confirm picker package before adding a dependency).
+- [ ] Implement a `DocumentExtractionCubit`: pick file, request extraction, and
+  emit idle/picking/extracting/review/saving/failure states, with fake tests.
+- [ ] Implement confirm-and-save: build a `PetDocument` from the edited form and
+  the uploaded file via `DocumentUploadService`, persist via
+  `DocumentRepository`, with fake tests; nothing saved without confirmation.
+- [ ] Add the extraction review UI: a pre-filled editable document form (type,
+  title, issue/expiry dates, notes) seeded from the draft, with AI/confidence
+  affordances.
+- [ ] Add an entry point from Smart Input ("Attach document or photo") that
+  launches the extraction flow when the file is classified as a document.
+- [ ] Wire AI extraction and the picker through `AppDependencies`/providers and
+  register the extraction route.
+- [ ] Run a Phase 8 architecture boundary review: UI/Cubits use no Firebase/
+  Gemini SDKs, AI returns drafts only and never writes to Firestore, and a
+  document is saved only after explicit user confirmation.
