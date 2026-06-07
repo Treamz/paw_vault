@@ -88,16 +88,16 @@
 ## Phase 5: Timeline and events
 
 - [x] Add Phase 5 actionable task checklist.
-- [ ] Implement `TimelineCubit` watch/load behavior for timeline events with fake
+- [x] Implement `TimelineCubit` watch/load behavior for timeline events with fake
   repository tests.
-- [ ] Update the timeline screen to render repository-backed loading, empty,
+- [x] Update the timeline screen to render repository-backed loading, empty,
   error, and populated states.
-- [ ] Add event filtering by type and date range in `TimelineCubit`.
-- [ ] Add timeline event form/input state model and validation rules.
-- [ ] Implement create/update event Cubit methods with fake repository tests.
-- [ ] Implement delete event Cubit method with fake repository tests.
-- [ ] Replace placeholder timeline screen with event list display.
-- [ ] Add create/edit event UI wired through Cubit and repository interfaces.
-- [ ] Add delete confirmation UI for timeline events.
+- [x] Add event filtering by type and date range in `TimelineCubit`.
+- [x] Add timeline event form/input state model and validation rules.
+- [x] Implement create/update event Cubit methods with fake repository tests.
+- [x] Implement delete event Cubit method with fake repository tests.
+- [x] Replace placeholder timeline screen with event list display.
+- [x] Add create/edit event UI wired through Cubit and repository interfaces.
+- [x] Add delete confirmation UI for timeline events.
 - [ ] Run a Phase 5 architecture boundary review to confirm widgets still use
   Cubits/repositories and do not access Firebase SDKs directly.
