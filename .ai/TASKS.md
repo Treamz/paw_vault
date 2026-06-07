@@ -165,7 +165,7 @@
 - [x] Implement confirm-and-save: build a `PetDocument` from the edited form and
   the uploaded file via `DocumentUploadService`, persist via
   `DocumentRepository`, with fake tests; nothing saved without confirmation.
-- [ ] Add the extraction review UI: a pre-filled editable document form (type,
+- [x] Add the extraction review UI: a pre-filled editable document form (type,
   title, issue/expiry dates, notes) seeded from the draft, with AI/confidence
   affordances.
 - [ ] Add an entry point from Smart Input ("Attach document or photo") that
