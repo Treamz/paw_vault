@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
@@ -97,6 +98,16 @@ class _SmartInputViewState extends State<_SmartInputView> {
                           )
                         : const Icon(Icons.auto_awesome),
                     label: Text(isProcessing ? 'Analyzing…' : 'Analyze'),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: isProcessing || isSaving
+                        ? null
+                        : () => context.router.push(
+                              DocumentExtractionRoute(petId: widget.petId),
+                            ),
+                    icon: const Icon(Icons.document_scanner),
+                    label: const Text('Attach document or photo'),
                   ),
                   const SizedBox(height: 16),
                   if (state.status == SmartInputStatus.failure &&

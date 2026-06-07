@@ -168,7 +168,7 @@
 - [x] Add the extraction review UI: a pre-filled editable document form (type,
   title, issue/expiry dates, notes) seeded from the draft, with AI/confidence
   affordances.
-- [ ] Add an entry point from Smart Input ("Attach document or photo") that
+- [x] Add an entry point from Smart Input ("Attach document or photo") that
   launches the extraction flow when the file is classified as a document.
 - [x] Wire AI extraction and the picker through `AppDependencies`/providers and
   register the extraction route.
