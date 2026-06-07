@@ -74,7 +74,23 @@ server (see `AGENTS.md` → MCP). Typical loop:
 4. After code changes, `hot_reload` and call `get_runtime_errors` to confirm no
    layout/exception regressions.
 
-> Note: tap automation via `flutter_driver_command` requires the app to be
-> launched with `enableFlutterDriverExtension()` (a dedicated driver
-> entrypoint). Without it, verify by inspecting the widget tree and by manually
-> tapping while watching `get_runtime_errors`.
+### Tap automation (Flutter Driver)
+
+For end-to-end tap automation via the MCP `flutter_driver_command` tool, launch
+the app with the instrumented entrypoint (it calls
+`enableFlutterDriverExtension()`):
+
+```bash
+flutter run -t test_driver/app.dart -d <device-id>
+```
+
+Then connect via DTD as above and drive the UI, e.g. tap a pet tile by text:
+
+- `widget_inspector` `get_widget_tree` to read the real widget text/keys.
+- `flutter_driver_command` `tap` with `finderType: ByText`, `text: "Jotaro"`.
+- `flutter_driver_command` `waitFor` the next screen's widget to confirm the
+  transition.
+
+Without the driver entrypoint (a normal `flutter run`), `flutter_driver_command`
+is unavailable; verify instead by inspecting the widget tree and watching
+`get_runtime_errors` while tapping manually.
