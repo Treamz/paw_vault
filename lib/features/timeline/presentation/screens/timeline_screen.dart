@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
@@ -47,10 +48,27 @@ class _TimelineView extends StatelessWidget {
                 ),
               TimelineStatus.ready => state.filteredEvents.isEmpty
                   ? const _TimelineEmpty()
-                  : _TimelineContent(events: state.filteredEvents),
+                  : _TimelineContent(
+                      events: state.filteredEvents,
+                      petId: state.petId!,
+                    ),
             };
           },
         ),
+      ),
+      floatingActionButton: BlocBuilder<TimelineCubit, TimelineState>(
+        builder: (context, state) {
+          if (state.petId == null) return const SizedBox.shrink();
+
+          return FloatingActionButton(
+            onPressed: () {
+              context.router.push(
+                TimelineEventFormRoute(petId: state.petId!),
+              );
+            },
+            child: const Icon(Icons.add),
+          );
+        },
       ),
     );
   }
@@ -142,9 +160,13 @@ class _TimelineFailure extends StatelessWidget {
 }
 
 class _TimelineContent extends StatelessWidget {
-  const _TimelineContent({required this.events});
+  const _TimelineContent({
+    required this.events,
+    required this.petId,
+  });
 
   final List<PetEvent> events;
+  final String petId;
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +195,14 @@ class _TimelineContent extends StatelessWidget {
               ],
             ),
             isThreeLine: true,
+            onTap: () {
+              context.router.push(
+                TimelineEventFormRoute(
+                  petId: petId,
+                  eventId: event.id.value,
+                ),
+              );
+            },
           ),
         );
       },

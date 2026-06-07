@@ -5,7 +5,8 @@
       "Bash(dart format:*)",
       "Bash(flutter analyze:*)",
       "Bash(flutter test:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(flutter pub run build_runner:*)"
     ]
   }
 }
