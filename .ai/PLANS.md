@@ -18,6 +18,23 @@
 - Keep changes scoped to the current task.
 - Prefer small, verifiable increments over broad rewrites.
 
+## Branch And Commit Workflow
+
+- Use one branch per roadmap phase or tightly related feature area.
+- Create a new branch before starting a new roadmap phase, a separate feature
+  area, or work that should be independently reviewed.
+- Continue on the current branch for small follow-up tasks in the same phase.
+- Before switching branches, check `git status --short`.
+- If the worktree has related uncommitted work, either commit it first or carry
+  it intentionally to the new branch.
+- If the worktree has unrelated uncommitted work, stop and ask the user before
+  switching branches.
+- Commit when the current task is complete, `.ai/TASKS.md` is updated, and the
+  required checks pass.
+- Do not commit incomplete behavior unless the user explicitly asks for a
+  checkpoint commit.
+- Use concise imperative commit messages.
+
 ## Safety Rules
 
 - Gemini must not write directly to Firestore.

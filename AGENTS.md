@@ -61,6 +61,22 @@ During coding:
 Stop only when credentials, Firebase console actions, account setup, product
 decisions, or other human decisions are required.
 
+## Git Workflow
+
+- Keep one branch focused on one roadmap phase or tightly related feature area.
+- Create a new branch when starting a new roadmap phase, a materially different
+  feature area, or work that should be reviewed separately.
+- Stay on the current branch for small follow-up tasks within the same phase.
+- Commit after a coherent task is complete, required checks pass, and
+  `.ai/TASKS.md` is updated.
+- Do not commit half-finished behavior unless the user explicitly asks for a
+  checkpoint commit.
+- Before switching branches, commit or intentionally carry only related
+  uncommitted changes.
+- Never switch branches with unrelated dirty work without first clarifying with
+  the user.
+- Use short imperative commit messages, for example `Start pet CRUD list flow`.
+
 ## MCP
 
 Use the Dart and Flutter MCP server when available.
