@@ -76,8 +76,7 @@ class PetEventFormState {
     }
 
     if (description != null && description!.trim().length > 5000) {
-      errors['description'] =
-          'Description must be 5000 characters or less';
+      errors['description'] = 'Description must be 5000 characters or less';
     }
 
     if (nextReminderDate != null) {
@@ -85,8 +84,8 @@ class PetEventFormState {
         errors['nextReminderDate'] =
             'Reminder date cannot be before event date';
       }
-      final twoYearsFromNow =
-          DateTime(DateTime.now().year + 2, DateTime.now().month, DateTime.now().day);
+      final twoYearsFromNow = DateTime(
+          DateTime.now().year + 2, DateTime.now().month, DateTime.now().day);
       if (nextReminderDate!.isAfter(twoYearsFromNow)) {
         errors['nextReminderDate'] =
             'Reminder date cannot be more than 2 years in the future';
@@ -96,8 +95,11 @@ class PetEventFormState {
     for (final attachment in attachments) {
       if (attachment.trim().isNotEmpty) {
         final uri = Uri.tryParse(attachment);
-        if (uri == null || (!uri.hasScheme || (uri.scheme != 'http' && uri.scheme != 'https'))) {
-          errors['attachments'] = 'All attachments must be valid HTTP/HTTPS URLs';
+        if (uri == null ||
+            (!uri.hasScheme ||
+                (uri.scheme != 'http' && uri.scheme != 'https'))) {
+          errors['attachments'] =
+              'All attachments must be valid HTTP/HTTPS URLs';
           break;
         }
       }
@@ -133,7 +135,8 @@ class PetEventFormState {
       petId: petId,
       type: type!,
       title: title.trim(),
-      description: description?.trim().isEmpty == true ? null : description?.trim(),
+      description:
+          description?.trim().isEmpty == true ? null : description?.trim(),
       date: UtcDateTime(date!),
       nextReminderDate:
           nextReminderDate != null ? UtcDateTime(nextReminderDate!) : null,
@@ -163,6 +166,5 @@ class PetEventFormValidationException implements Exception {
   final PetEventFormValidation validation;
 
   @override
-  String toString() =>
-      'PetEventFormValidationException: ${validation.errors}';
+  String toString() => 'PetEventFormValidationException: ${validation.errors}';
 }

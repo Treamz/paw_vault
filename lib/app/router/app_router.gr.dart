@@ -18,11 +18,11 @@ class DocumentsRoute extends PageRouteInfo<DocumentsRouteArgs> {
     Key? key,
     List<PageRouteInfo>? children,
   }) : super(
-         DocumentsRoute.name,
-         args: DocumentsRouteArgs(petId: petId, key: key),
-         rawPathParams: {'petId': petId},
-         initialChildren: children,
-       );
+          DocumentsRoute.name,
+          args: DocumentsRouteArgs(petId: petId, key: key),
+          rawPathParams: {'petId': petId},
+          initialChildren: children,
+        );
 
   static const String name = 'DocumentsRoute';
 
@@ -65,21 +65,21 @@ class DocumentsRouteArgs {
 /// [PetFormScreen]
 class PetFormRoute extends PageRouteInfo<PetFormRouteArgs> {
   PetFormRoute({String? petId, Key? key, List<PageRouteInfo>? children})
-    : super(
-        PetFormRoute.name,
-        args: PetFormRouteArgs(petId: petId, key: key),
-        rawPathParams: {'petId': petId},
-        initialChildren: children,
-      );
+      : super(
+          PetFormRoute.name,
+          args: PetFormRouteArgs(petId: petId, key: key),
+          rawQueryParams: {'petId': petId},
+          initialChildren: children,
+        );
 
   static const String name = 'PetFormRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      final pathParams = data.inheritedPathParams;
+      final queryParams = data.queryParams;
       final args = data.argsAs<PetFormRouteArgs>(
-        orElse: () => PetFormRouteArgs(petId: pathParams.optString('petId')),
+        orElse: () => PetFormRouteArgs(petId: queryParams.optString('petId')),
       );
       return PetFormScreen(petId: args.petId, key: args.key);
     },
@@ -113,7 +113,7 @@ class PetFormRouteArgs {
 /// [PetListScreen]
 class PetListRoute extends PageRouteInfo<void> {
   const PetListRoute({List<PageRouteInfo>? children})
-    : super(PetListRoute.name, initialChildren: children);
+      : super(PetListRoute.name, initialChildren: children);
 
   static const String name = 'PetListRoute';
 
@@ -133,11 +133,11 @@ class PetProfileRoute extends PageRouteInfo<PetProfileRouteArgs> {
     Key? key,
     List<PageRouteInfo>? children,
   }) : super(
-         PetProfileRoute.name,
-         args: PetProfileRouteArgs(petId: petId, key: key),
-         rawPathParams: {'petId': petId},
-         initialChildren: children,
-       );
+          PetProfileRoute.name,
+          args: PetProfileRouteArgs(petId: petId, key: key),
+          rawPathParams: {'petId': petId},
+          initialChildren: children,
+        );
 
   static const String name = 'PetProfileRoute';
 
@@ -184,11 +184,11 @@ class RemindersRoute extends PageRouteInfo<RemindersRouteArgs> {
     Key? key,
     List<PageRouteInfo>? children,
   }) : super(
-         RemindersRoute.name,
-         args: RemindersRouteArgs(petId: petId, key: key),
-         rawPathParams: {'petId': petId},
-         initialChildren: children,
-       );
+          RemindersRoute.name,
+          args: RemindersRouteArgs(petId: petId, key: key),
+          rawPathParams: {'petId': petId},
+          initialChildren: children,
+        );
 
   static const String name = 'RemindersRoute';
 
@@ -235,11 +235,11 @@ class SmartInputRoute extends PageRouteInfo<SmartInputRouteArgs> {
     Key? key,
     List<PageRouteInfo>? children,
   }) : super(
-         SmartInputRoute.name,
-         args: SmartInputRouteArgs(petId: petId, key: key),
-         rawPathParams: {'petId': petId},
-         initialChildren: children,
-       );
+          SmartInputRoute.name,
+          args: SmartInputRouteArgs(petId: petId, key: key),
+          rawPathParams: {'petId': petId},
+          initialChildren: children,
+        );
 
   static const String name = 'SmartInputRoute';
 
@@ -287,15 +287,16 @@ class TimelineEventFormRoute extends PageRouteInfo<TimelineEventFormRouteArgs> {
     Key? key,
     List<PageRouteInfo>? children,
   }) : super(
-         TimelineEventFormRoute.name,
-         args: TimelineEventFormRouteArgs(
-           petId: petId,
-           eventId: eventId,
-           key: key,
-         ),
-         rawPathParams: {'petId': petId, 'eventId': eventId},
-         initialChildren: children,
-       );
+          TimelineEventFormRoute.name,
+          args: TimelineEventFormRouteArgs(
+            petId: petId,
+            eventId: eventId,
+            key: key,
+          ),
+          rawPathParams: {'petId': petId},
+          rawQueryParams: {'eventId': eventId},
+          initialChildren: children,
+        );
 
   static const String name = 'TimelineEventFormRoute';
 
@@ -303,12 +304,12 @@ class TimelineEventFormRoute extends PageRouteInfo<TimelineEventFormRouteArgs> {
     name,
     builder: (data) {
       final pathParams = data.inheritedPathParams;
+      final queryParams = data.queryParams;
       final args = data.argsAs<TimelineEventFormRouteArgs>(
-        orElse:
-            () => TimelineEventFormRouteArgs(
-              petId: pathParams.getString('petId'),
-              eventId: pathParams.optString('eventId'),
-            ),
+        orElse: () => TimelineEventFormRouteArgs(
+          petId: pathParams.getString('petId'),
+          eventId: queryParams.optString('eventId'),
+        ),
       );
       return TimelineEventFormScreen(
         petId: args.petId,
@@ -356,11 +357,11 @@ class TimelineRoute extends PageRouteInfo<TimelineRouteArgs> {
     Key? key,
     List<PageRouteInfo>? children,
   }) : super(
-         TimelineRoute.name,
-         args: TimelineRouteArgs(petId: petId, key: key),
-         rawPathParams: {'petId': petId},
-         initialChildren: children,
-       );
+          TimelineRoute.name,
+          args: TimelineRouteArgs(petId: petId, key: key),
+          rawPathParams: {'petId': petId},
+          initialChildren: children,
+        );
 
   static const String name = 'TimelineRoute';
 
@@ -407,11 +408,11 @@ class VetSummaryExportRoute extends PageRouteInfo<VetSummaryExportRouteArgs> {
     Key? key,
     List<PageRouteInfo>? children,
   }) : super(
-         VetSummaryExportRoute.name,
-         args: VetSummaryExportRouteArgs(petId: petId, key: key),
-         rawPathParams: {'petId': petId},
-         initialChildren: children,
-       );
+          VetSummaryExportRoute.name,
+          args: VetSummaryExportRouteArgs(petId: petId, key: key),
+          rawPathParams: {'petId': petId},
+          initialChildren: children,
+        );
 
   static const String name = 'VetSummaryExportRoute';
 
@@ -420,9 +421,8 @@ class VetSummaryExportRoute extends PageRouteInfo<VetSummaryExportRouteArgs> {
     builder: (data) {
       final pathParams = data.inheritedPathParams;
       final args = data.argsAs<VetSummaryExportRouteArgs>(
-        orElse:
-            () =>
-                VetSummaryExportRouteArgs(petId: pathParams.getString('petId')),
+        orElse: () =>
+            VetSummaryExportRouteArgs(petId: pathParams.getString('petId')),
       );
       return VetSummaryExportScreen(petId: args.petId, key: args.key);
     },

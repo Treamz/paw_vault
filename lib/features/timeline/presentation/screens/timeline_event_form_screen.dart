@@ -12,7 +12,7 @@ import 'package:paw_vault/features/timeline/presentation/models/pet_event_form_s
 class TimelineEventFormScreen extends StatelessWidget {
   const TimelineEventFormScreen({
     @PathParam('petId') required this.petId,
-    @PathParam('eventId') this.eventId,
+    @QueryParam('eventId') this.eventId,
     super.key,
   });
 
@@ -107,7 +107,8 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
       _formState = PetEventFormState.fromEvent(event);
       _titleController.text = event.title;
       _descriptionController.text = event.description ?? '';
-      _attachmentsController.text = event.attachments.map((uri) => uri.toString()).join(', ');
+      _attachmentsController.text =
+          event.attachments.map((uri) => uri.toString()).join(', ');
       _selectedType = event.type;
       _selectedDate = event.date.value;
       _selectedReminderDate = event.nextReminderDate?.value;
@@ -126,7 +127,9 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
         type: _selectedType,
         title: _titleController.text,
         date: _selectedDate,
-        description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
+        description: _descriptionController.text.isEmpty
+            ? null
+            : _descriptionController.text,
         nextReminderDate: _selectedReminderDate,
         attachments: attachments,
       );
@@ -188,7 +191,8 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
     }
 
     final cubit = context.read<TimelineEventCubit>();
-    final screen = context.findAncestorWidgetOfExactType<TimelineEventFormScreen>();
+    final screen =
+        context.findAncestorWidgetOfExactType<TimelineEventFormScreen>();
 
     if (widget.isEditMode) {
       cubit.updateEvent(_formState);
@@ -267,11 +271,13 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
         ),
         body: BlocBuilder<TimelineEventCubit, TimelineEventState>(
           builder: (context, state) {
-            if (widget.isEditMode && state.status == TimelineEventStatus.loading) {
+            if (widget.isEditMode &&
+                state.status == TimelineEventStatus.loading) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            if (widget.isEditMode && state.status == TimelineEventStatus.notFound) {
+            if (widget.isEditMode &&
+                state.status == TimelineEventStatus.notFound) {
               return const Center(child: Text('Event not found'));
             }
 
@@ -397,7 +403,8 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
                               width: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : Text(widget.isEditMode ? 'Save Changes' : 'Add Event'),
+                          : Text(
+                              widget.isEditMode ? 'Save Changes' : 'Add Event'),
                     ),
                     const SizedBox(height: 8),
                     TextButton(

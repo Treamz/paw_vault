@@ -82,7 +82,7 @@
 - [x] Replace placeholder pet profile screen with basic read-only pet details.
 - [x] Add create/edit pet UI wired through Cubit and repository interfaces.
 - [x] Add delete confirmation UI for pet profiles.
-- [ ] Run a Phase 4 architecture boundary review to confirm widgets still use
+- [x] Run a Phase 4 architecture boundary review to confirm widgets still use
   Cubits/repositories and do not access Firebase SDKs directly.
 
 ## Phase 5: Timeline and events
@@ -99,5 +99,5 @@
 - [x] Replace placeholder timeline screen with event list display.
 - [x] Add create/edit event UI wired through Cubit and repository interfaces.
 - [x] Add delete confirmation UI for timeline events.
-- [ ] Run a Phase 5 architecture boundary review to confirm widgets still use
+- [x] Run a Phase 5 architecture boundary review to confirm widgets still use
   Cubits/repositories and do not access Firebase SDKs directly.

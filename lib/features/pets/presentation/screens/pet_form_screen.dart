@@ -12,7 +12,7 @@ import 'package:paw_vault/features/pets/presentation/models/pet_form_state.dart'
 @RoutePage()
 class PetFormScreen extends StatelessWidget {
   const PetFormScreen({
-    @PathParam('petId') this.petId,
+    @QueryParam('petId') this.petId,
     super.key,
   });
 

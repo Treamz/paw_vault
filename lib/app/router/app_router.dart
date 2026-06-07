@@ -17,17 +17,12 @@ class AppRouter extends RootStackRouter {
   @override
   List<AutoRoute> get routes => [
         AutoRoute(page: PetListRoute.page, initial: true, path: '/'),
-        AutoRoute(page: PetFormRoute.page, path: '/pets/new'),
-        AutoRoute(page: PetFormRoute.page, path: '/pets/:petId/edit'),
+        AutoRoute(page: PetFormRoute.page, path: '/pets/form'),
         AutoRoute(page: PetProfileRoute.page, path: '/pets/:petId'),
         AutoRoute(page: TimelineRoute.page, path: '/pets/:petId/timeline'),
         AutoRoute(
           page: TimelineEventFormRoute.page,
-          path: '/pets/:petId/timeline/events/new',
-        ),
-        AutoRoute(
-          page: TimelineEventFormRoute.page,
-          path: '/pets/:petId/timeline/events/:eventId/edit',
+          path: '/pets/:petId/timeline/event-form',
         ),
         AutoRoute(page: DocumentsRoute.page, path: '/pets/:petId/documents'),
         AutoRoute(page: RemindersRoute.page, path: '/pets/:petId/reminders'),

@@ -107,8 +107,7 @@ void main() {
       final authRepository = _FakeAuthRepository(
         currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
       );
-      final timelineRepository =
-          _FakeTimelineRepository(throwsOnWatch: true);
+      final timelineRepository = _FakeTimelineRepository(throwsOnWatch: true);
       final cubit = TimelineCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
@@ -149,18 +148,18 @@ void main() {
       cubit.setEventTypeFilter(PetEventType.vaccination);
 
       expect(cubit.state.filteredEvents.length, 2);
-      expect(cubit.state.filteredEvents.every((e) => e.type == PetEventType.vaccination), isTrue);
+      expect(
+          cubit.state.filteredEvents
+              .every((e) => e.type == PetEventType.vaccination),
+          isTrue);
 
       await cubit.close();
     });
 
     test('filters events by date range', () async {
-      final event1 =
-          _event(date: UtcDateTime(DateTime(2024, 1, 1)));
-      final event2 =
-          _event(date: UtcDateTime(DateTime(2024, 2, 15)));
-      final event3 =
-          _event(date: UtcDateTime(DateTime(2024, 3, 30)));
+      final event1 = _event(date: UtcDateTime(DateTime(2024, 1, 1)));
+      final event2 = _event(date: UtcDateTime(DateTime(2024, 2, 15)));
+      final event3 = _event(date: UtcDateTime(DateTime(2024, 3, 30)));
       final authRepository = _FakeAuthRepository(
         currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
       );

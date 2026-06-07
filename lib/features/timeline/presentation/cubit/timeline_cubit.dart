@@ -141,8 +141,7 @@ class TimelineState {
 
     if (filterStartDate != null) {
       filtered = filtered
-          .where(
-              (event) => !event.date.value.isBefore(filterStartDate!))
+          .where((event) => !event.date.value.isBefore(filterStartDate!))
           .toList();
     }
 
@@ -173,10 +172,12 @@ class TimelineState {
       userId: userId ?? this.userId,
       petId: petId ?? this.petId,
       events: events ?? this.events,
-      filterEventType:
-          clearEventTypeFilter ? null : (filterEventType ?? this.filterEventType),
-      filterStartDate:
-          clearStartDateFilter ? null : (filterStartDate ?? this.filterStartDate),
+      filterEventType: clearEventTypeFilter
+          ? null
+          : (filterEventType ?? this.filterEventType),
+      filterStartDate: clearStartDateFilter
+          ? null
+          : (filterStartDate ?? this.filterStartDate),
       filterEndDate:
           clearEndDateFilter ? null : (filterEndDate ?? this.filterEndDate),
       errorMessage: errorMessage ?? this.errorMessage,

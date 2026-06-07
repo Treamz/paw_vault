@@ -26,7 +26,8 @@ void main() {
       expect(formState.title, 'Annual vaccination');
       expect(formState.description, 'Rabies shot');
       expect(formState.date?.toUtc(), DateTime(2024, 1, 15).toUtc());
-      expect(formState.nextReminderDate?.toUtc(), DateTime(2025, 1, 15).toUtc());
+      expect(
+          formState.nextReminderDate?.toUtc(), DateTime(2025, 1, 15).toUtc());
       expect(formState.attachments, ['https://example.com/cert.pdf']);
     });
 
@@ -282,9 +283,11 @@ void main() {
       expect(event.title, 'Annual vaccination');
       expect(event.description, 'Rabies shot');
       expect(event.date.value.toUtc(), DateTime(2024, 1, 15).toUtc());
-      expect(event.nextReminderDate?.value.toUtc(), DateTime(2025, 1, 15).toUtc());
+      expect(
+          event.nextReminderDate?.value.toUtc(), DateTime(2025, 1, 15).toUtc());
       expect(event.attachments.length, 1);
-      expect(event.attachments.first.toString(), 'https://example.com/cert.pdf');
+      expect(
+          event.attachments.first.toString(), 'https://example.com/cert.pdf');
       expect(event.source, PetEventSource.manual);
       expect(event.createdAt?.value.toUtc(), DateTime(2024, 1, 1).toUtc());
       expect(event.updatedAt?.value.toUtc(), DateTime(2024, 1, 15).toUtc());
