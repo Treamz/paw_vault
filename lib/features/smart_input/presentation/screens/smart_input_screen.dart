@@ -69,6 +69,8 @@ class _SmartInputViewState extends State<_SmartInputView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const _AiDisclaimer(),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: _controller,
                     enabled: !isProcessing && !isSaving,
@@ -144,6 +146,55 @@ class _SmartInputViewState extends State<_SmartInputView> {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _AiDisclaimer extends StatelessWidget {
+  const _AiDisclaimer();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      color: theme.colorScheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: theme.colorScheme.onSecondaryContainer,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI-assisted organizing',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'This tool only structures what you write into a draft for '
+                    'you to review and confirm — it never saves anything on its '
+                    'own. It does not provide medical advice and is not a '
+                    'substitute for your veterinarian.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

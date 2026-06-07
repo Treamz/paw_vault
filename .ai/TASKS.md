@@ -142,7 +142,7 @@
 - [x] Implement a dismiss/discard action that drops the draft without saving.
 - [x] Add watched smart message history for the pet via
   `watchSmartMessages`, with loading/empty/error/populated states.
-- [ ] Add AI safety affordances in the UI: label drafts as AI-generated and
+- [x] Add AI safety affordances in the UI: label drafts as AI-generated and
   require user verification, with no medical diagnosis framing.
 - [ ] Run a Phase 7 architecture boundary review to confirm widgets/Cubits do
   not access Firebase/Gemini SDKs directly and AI never writes to Firestore.
