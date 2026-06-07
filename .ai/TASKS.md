@@ -136,7 +136,7 @@
   repository tests (no direct Gemini/Firestore access).
 - [x] Add a draft review UI showing detected intent, extracted data, suggested
   actions, and a confidence/low-confidence indicator.
-- [ ] Implement a confirm action that persists the approved draft as a
+- [x] Implement a confirm action that persists the approved draft as a
   `SmartMessage` (status confirmed) via `SmartInputRepository`, with fake
   repository tests; AI output is never saved without explicit confirmation.
 - [ ] Implement a dismiss/discard action that drops the draft without saving.

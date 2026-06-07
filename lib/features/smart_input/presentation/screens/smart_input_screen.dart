@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
@@ -18,15 +19,19 @@ class SmartInputScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) =>
-          SmartInputCubit(context.read<SmartInputRepository>()),
-      child: const _SmartInputView(),
+      create: (context) => SmartInputCubit(
+        smartInputRepository: context.read<SmartInputRepository>(),
+        authRepository: context.read<AuthRepository>(),
+      ),
+      child: _SmartInputView(petId: petId),
     );
   }
 }
 
 class _SmartInputView extends StatefulWidget {
-  const _SmartInputView();
+  const _SmartInputView({required this.petId});
+
+  final String petId;
 
   @override
   State<_SmartInputView> createState() => _SmartInputViewState();
@@ -46,9 +51,18 @@ class _SmartInputViewState extends State<_SmartInputView> {
     return Scaffold(
       appBar: AppBar(title: const Text('Smart Input')),
       body: SafeArea(
-        child: BlocBuilder<SmartInputCubit, SmartInputState>(
+        child: BlocConsumer<SmartInputCubit, SmartInputState>(
+          listener: (context, state) {
+            if (state.status == SmartInputStatus.confirmed) {
+              _controller.clear();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Saved to records')),
+              );
+            }
+          },
           builder: (context, state) {
             final isProcessing = state.isProcessing;
+            final isSaving = state.isSaving;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -57,7 +71,7 @@ class _SmartInputViewState extends State<_SmartInputView> {
                 children: [
                   TextField(
                     controller: _controller,
-                    enabled: !isProcessing,
+                    enabled: !isProcessing && !isSaving,
                     minLines: 3,
                     maxLines: 6,
                     decoration: const InputDecoration(
@@ -68,7 +82,7 @@ class _SmartInputViewState extends State<_SmartInputView> {
                   ),
                   const SizedBox(height: 12),
                   FilledButton.icon(
-                    onPressed: isProcessing
+                    onPressed: isProcessing || isSaving
                         ? null
                         : () => context
                             .read<SmartInputCubit>()
@@ -86,7 +100,25 @@ class _SmartInputViewState extends State<_SmartInputView> {
                   if (state.status == SmartInputStatus.failure &&
                       state.errorMessage != null)
                     _ErrorBanner(message: state.errorMessage!),
-                  if (state.hasDraft) _DraftReview(draft: state.draft!),
+                  if (state.hasDraft) ...[
+                    _DraftReview(draft: state.draft!),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: isSaving
+                          ? null
+                          : () => context
+                              .read<SmartInputCubit>()
+                              .confirmDraft(widget.petId),
+                      icon: isSaving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.check),
+                      label: Text(isSaving ? 'Saving…' : 'Confirm & save'),
+                    ),
+                  ],
                 ],
               ),
             );

@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
+import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
@@ -10,7 +12,7 @@ void main() {
     test('submits text and emits the AI draft for review', () async {
       final draft = _draft();
       final repository = _FakeSmartInputRepository(draft: draft);
-      final cubit = SmartInputCubit(repository);
+      final cubit = _cubit(repository);
       final states = <SmartInputState>[];
       final subscription = cubit.stream.listen(states.add);
 
@@ -29,7 +31,7 @@ void main() {
 
     test('rejects empty input without calling the repository', () async {
       final repository = _FakeSmartInputRepository(draft: _draft());
-      final cubit = SmartInputCubit(repository);
+      final cubit = _cubit(repository);
 
       await cubit.submit('   ');
 
@@ -41,7 +43,7 @@ void main() {
 
     test('emits failure when the AI repository throws', () async {
       final repository = _FakeSmartInputRepository(throwsOnCreate: true);
-      final cubit = SmartInputCubit(repository);
+      final cubit = _cubit(repository);
 
       await cubit.submit('Bella got her rabies shot today');
 
@@ -50,7 +52,66 @@ void main() {
 
       await cubit.close();
     });
+
+    test('confirmDraft saves the reviewed draft as a confirmed message',
+        () async {
+      final repository = _FakeSmartInputRepository(draft: _draft());
+      final cubit = _cubit(repository);
+
+      await cubit.submit('Bella got her rabies shot today');
+      await cubit.confirmDraft('pet-1');
+
+      final saved = repository.savedMessage;
+      expect(saved, isNotNull);
+      expect(saved!.status, SmartMessageStatus.confirmed);
+      expect(saved.petId, const EntityId('pet-1'));
+      expect(saved.userId, const EntityId('user-1'));
+      expect(saved.detectedIntent, SmartMessageIntent.addVaccination);
+      expect(saved.originalText, 'Bella got her rabies shot today');
+      expect(cubit.state.status, SmartInputStatus.confirmed);
+      expect(cubit.state.hasDraft, isFalse);
+
+      await cubit.close();
+    });
+
+    test('confirmDraft does nothing when there is no draft', () async {
+      final repository = _FakeSmartInputRepository(draft: _draft());
+      final cubit = _cubit(repository);
+
+      await cubit.confirmDraft('pet-1');
+
+      expect(repository.saveCallCount, isZero);
+      expect(cubit.state.status, SmartInputStatus.failure);
+
+      await cubit.close();
+    });
+
+    test('confirmDraft emits failure when saving throws', () async {
+      final repository = _FakeSmartInputRepository(
+        draft: _draft(),
+        throwsOnSave: true,
+      );
+      final cubit = _cubit(repository);
+
+      await cubit.submit('Bella got her rabies shot today');
+      await cubit.confirmDraft('pet-1');
+
+      expect(cubit.state.status, SmartInputStatus.failure);
+      // The draft is preserved so the user can retry confirming.
+      expect(cubit.state.draft, isNotNull);
+
+      await cubit.close();
+    });
   });
+}
+
+SmartInputCubit _cubit(_FakeSmartInputRepository repository) {
+  return SmartInputCubit(
+    smartInputRepository: repository,
+    authRepository: _FakeAuthRepository(
+      currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+    ),
+  );
 }
 
 SmartInputDraft _draft() {
@@ -62,17 +123,41 @@ SmartInputDraft _draft() {
   );
 }
 
+class _FakeAuthRepository implements AuthRepository {
+  _FakeAuthRepository({this.currentUserValue});
+
+  final AppUser? currentUserValue;
+
+  @override
+  Future<AppUser?> currentUser() async => currentUserValue;
+
+  @override
+  Future<AppUser> signInAnonymously() async =>
+      const AppUser(id: 'signed-in-user', isAnonymous: true);
+
+  @override
+  Future<void> signOut() async {}
+
+  @override
+  Stream<AppUser?> watchCurrentUser() =>
+      Stream<AppUser?>.value(currentUserValue);
+}
+
 class _FakeSmartInputRepository implements SmartInputRepository {
   _FakeSmartInputRepository({
     this.draft,
     this.throwsOnCreate = false,
+    this.throwsOnSave = false,
   });
 
   final SmartInputDraft? draft;
   final bool throwsOnCreate;
+  final bool throwsOnSave;
 
   int createDraftCallCount = 0;
   String? createDraftInput;
+  int saveCallCount = 0;
+  SmartMessage? savedMessage;
 
   @override
   Future<SmartInputDraft> createDraft(String input) async {
@@ -101,7 +186,13 @@ class _FakeSmartInputRepository implements SmartInputRepository {
   }
 
   @override
-  Future<void> saveSmartMessage(SmartMessage message) async {}
+  Future<void> saveSmartMessage(SmartMessage message) async {
+    saveCallCount++;
+    if (throwsOnSave) {
+      throw StateError('save failed');
+    }
+    savedMessage = message;
+  }
 
   @override
   Stream<List<SmartMessage>> watchSmartMessages({
