@@ -206,7 +206,7 @@
 - [x] Add Phase 10 actionable task checklist.
 - [x] Add a `VetSummaryData` model aggregating the pet profile, timeline events,
   documents, and reminders for a summary.
-- [ ] Add a summary aggregation use case that loads the data from the feature
+- [x] Add a summary aggregation use case that loads the data from the feature
   repositories for a pet, with fake-repository tests.
 - [ ] Add a PDF builder (pure Dart) that renders `VetSummaryData` to PDF bytes
   using the `pdf` package, with tests asserting non-empty output.
