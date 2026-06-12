@@ -228,9 +228,10 @@
 ## Phase 11: Account auth and cross-device sync
 
 - [x] Add Phase 11 actionable task checklist.
-- [ ] Extend the `AppUser` entity and `AuthRepository` contract with email and
+- [x] Extend the `AppUser` entity and `AuthRepository` contract with email and
   credential-based sign-up/sign-in/link methods (email/password, Google,
-  Apple), without implementing Firebase behavior yet.
+  Apple), without implementing Firebase behavior yet. Added via an
+  `AccountAuthRepository` sub-interface to avoid breaking existing fakes.
 - [ ] Implement Firebase email/password sign-up that links the credential to the
   current anonymous user (falling back to sign-in when already registered) and
   email/password sign-in, in the auth data source and repository, with
