@@ -9,6 +9,10 @@ import 'package:paw_vault/core/storage/data/datasources/flutter_fire_storage_dat
 import 'package:paw_vault/core/storage/data/datasources/noop_firebase_storage_data_source.dart';
 import 'package:paw_vault/core/storage/data/repositories/firebase_ready_storage_repository.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/features/document_extraction/data/repositories/firebase_ready_document_extraction_ai_repository.dart';
+import 'package:paw_vault/features/document_extraction/data/services/document_source_picker_impl.dart';
+import 'package:paw_vault/features/document_extraction/domain/repositories/document_extraction_ai_repository.dart';
+import 'package:paw_vault/features/document_extraction/domain/services/document_source_picker.dart';
 import 'package:paw_vault/features/documents/data/datasources/flutter_fire_document_data_source.dart';
 import 'package:paw_vault/features/documents/data/repositories/firebase_document_repository.dart';
 import 'package:paw_vault/features/documents/data/repositories/local_document_repository.dart';
@@ -50,6 +54,8 @@ class AppDependencies {
     required this.smartInputRepository,
     required this.vetSummaryExportRepository,
     required this.filePicker,
+    required this.documentExtractionAiRepository,
+    required this.documentSourcePicker,
   });
 
   factory AppDependencies.localFirst() {
@@ -69,13 +75,15 @@ class AppDependencies {
       smartInputRepository: NoopSmartInputRepository(aiRepository),
       vetSummaryExportRepository: LocalVetSummaryExportRepository(),
       filePicker: const FilePickerImpl(),
+      documentExtractionAiRepository:
+          FirebaseReadyDocumentExtractionAiRepository(aiDataSource),
+      documentSourcePicker: DocumentSourcePickerImpl(),
     );
   }
 
   factory AppDependencies.firebaseReady(FirebaseInstances firebase) {
-    final aiRepository = FirebaseReadyAiRepository(
-      FlutterFireAiLogicDataSource(firebase.ai),
-    );
+    final aiDataSource = FlutterFireAiLogicDataSource(firebase.ai);
+    final aiRepository = FirebaseReadyAiRepository(aiDataSource);
 
     return AppDependencies(
       authRepository: FirebaseReadyAuthRepository(
@@ -105,6 +113,9 @@ class AppDependencies {
         FlutterFireVetSummaryExportDataSource(firebase.firestore),
       ),
       filePicker: const FilePickerImpl(),
+      documentExtractionAiRepository:
+          FirebaseReadyDocumentExtractionAiRepository(aiDataSource),
+      documentSourcePicker: DocumentSourcePickerImpl(),
     );
   }
 
@@ -118,4 +129,6 @@ class AppDependencies {
   final SmartInputRepository smartInputRepository;
   final VetSummaryExportRepository vetSummaryExportRepository;
   final FilePicker filePicker;
+  final DocumentExtractionAiRepository documentExtractionAiRepository;
+  final DocumentSourcePicker documentSourcePicker;
 }

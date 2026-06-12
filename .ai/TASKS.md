@@ -146,3 +146,32 @@
   require user verification, with no medical diagnosis framing.
 - [x] Run a Phase 7 architecture boundary review to confirm widgets/Cubits do
   not access Firebase/Gemini SDKs directly and AI never writes to Firestore.
+
+## Phase 8: Document scanner and Gemini document extraction
+
+- [x] Add Phase 8 actionable task checklist.
+- [x] Add a `DocumentExtractionDraft` domain entity (suggested
+  `PetDocumentType`, title, issue/expiry dates, notes, extracted text,
+  confidence). Reuses the existing `PickedFile` value object (bytes, MIME,
+  extension) from the documents feature.
+- [x] Extend the AI port for multimodal document extraction from file bytes +
+  MIME type, returning a `DocumentExtractionDraft`; update the noop and Firebase
+  AI data sources/repositories (noop returns a stub; AI never writes Firestore).
+- [x] Add an image/PDF picker supporting camera capture, gallery, and PDF
+  selection. Uses `image_picker` (camera/gallery) + `file_picker` (PDF/image),
+  behind a `DocumentSourcePicker` port returning a `PickedFile`.
+- [x] Implement a `DocumentExtractionCubit`: pick file, request extraction, and
+  emit idle/picking/extracting/review/saving/failure states, with fake tests.
+- [x] Implement confirm-and-save: build a `PetDocument` from the edited form and
+  the uploaded file via `DocumentUploadService`, persist via
+  `DocumentRepository`, with fake tests; nothing saved without confirmation.
+- [x] Add the extraction review UI: a pre-filled editable document form (type,
+  title, issue/expiry dates, notes) seeded from the draft, with AI/confidence
+  affordances.
+- [x] Add an entry point from Smart Input ("Attach document or photo") that
+  launches the extraction flow when the file is classified as a document.
+- [x] Wire AI extraction and the picker through `AppDependencies`/providers and
+  register the extraction route.
+- [x] Run a Phase 8 architecture boundary review: UI/Cubits use no Firebase/
+  Gemini SDKs, AI returns drafts only and never writes to Firestore, and a
+  document is saved only after explicit user confirmation.

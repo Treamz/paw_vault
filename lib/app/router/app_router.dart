@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/foundation.dart';
+import 'package:paw_vault/features/document_extraction/presentation/screens/document_extraction_screen.dart';
 import 'package:paw_vault/features/documents/presentation/screens/document_form_screen.dart';
 import 'package:paw_vault/features/documents/presentation/screens/documents_screen.dart';
 import 'package:paw_vault/features/pets/presentation/screens/pet_form_screen.dart';
@@ -29,6 +30,10 @@ class AppRouter extends RootStackRouter {
         AutoRoute(
           page: DocumentFormRoute.page,
           path: '/pets/:petId/documents/form',
+        ),
+        AutoRoute(
+          page: DocumentExtractionRoute.page,
+          path: '/pets/:petId/documents/scan',
         ),
         AutoRoute(page: RemindersRoute.page, path: '/pets/:petId/reminders'),
         AutoRoute(page: SmartInputRoute.page, path: '/pets/:petId/smart-input'),
