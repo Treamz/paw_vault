@@ -172,6 +172,6 @@
   launches the extraction flow when the file is classified as a document.
 - [x] Wire AI extraction and the picker through `AppDependencies`/providers and
   register the extraction route.
-- [ ] Run a Phase 8 architecture boundary review: UI/Cubits use no Firebase/
+- [x] Run a Phase 8 architecture boundary review: UI/Cubits use no Firebase/
   Gemini SDKs, AI returns drafts only and never writes to Firestore, and a
   document is saved only after explicit user confirmation.
