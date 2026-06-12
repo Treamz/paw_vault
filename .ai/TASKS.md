@@ -187,7 +187,7 @@
 - [x] Implement create/update reminder Cubit methods with fake repository tests.
 - [x] Implement complete and delete reminder Cubit methods with fake repository
   tests.
-- [ ] Replace placeholder reminders screen with a list display (title,
+- [x] Replace placeholder reminders screen with a list display (title,
   date/time, repeat, completed state) sorted by due date.
 - [ ] Add create/edit reminder UI wired through the Cubit and repository.
 - [ ] Add complete and delete confirmation UI for reminders.

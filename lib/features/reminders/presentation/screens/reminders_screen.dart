@@ -147,7 +147,9 @@ class _RemindersContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final dateFormat = DateFormat.yMMMMd().add_jm();
+    final now = DateTime.now();
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
@@ -155,19 +157,70 @@ class _RemindersContent extends StatelessWidget {
       separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final reminder = reminders[index];
+        final due = reminder.dateTime.value;
+        final isOverdue = !reminder.isCompleted && due.isBefore(now);
+        final repeat = _formatRepeat(reminder.repeatType);
+
         return Card(
           child: ListTile(
             key: ValueKey('reminder-${reminder.id.value}'),
             leading: Icon(
               reminder.isCompleted
                   ? Icons.check_circle
-                  : Icons.notifications_active,
+                  : isOverdue
+                      ? Icons.warning_amber
+                      : Icons.notifications_active,
+              color: reminder.isCompleted
+                  ? theme.disabledColor
+                  : isOverdue
+                      ? theme.colorScheme.error
+                      : null,
             ),
-            title: Text(reminder.title),
-            subtitle: Text(dateFormat.format(reminder.dateTime.value)),
+            title: Text(
+              reminder.title,
+              style: reminder.isCompleted
+                  ? TextStyle(
+                      decoration: TextDecoration.lineThrough,
+                      color: theme.disabledColor,
+                    )
+                  : null,
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dateFormat.format(due),
+                  style: isOverdue
+                      ? TextStyle(color: theme.colorScheme.error)
+                      : null,
+                ),
+                if (repeat != null) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Icon(Icons.repeat, size: 14),
+                      const SizedBox(width: 4),
+                      Text(repeat, style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+            isThreeLine: repeat != null,
           ),
         );
       },
     );
+  }
+
+  String? _formatRepeat(ReminderRepeatType? type) {
+    return switch (type) {
+      null || ReminderRepeatType.none => null,
+      ReminderRepeatType.daily => 'Repeats daily',
+      ReminderRepeatType.weekly => 'Repeats weekly',
+      ReminderRepeatType.monthly => 'Repeats monthly',
+      ReminderRepeatType.yearly => 'Repeats yearly',
+      ReminderRepeatType.custom => 'Custom repeat',
+    };
   }
 }
