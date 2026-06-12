@@ -191,9 +191,10 @@
   date/time, repeat, completed state) sorted by due date.
 - [x] Add create/edit reminder UI wired through the Cubit and repository.
 - [x] Add complete and delete confirmation UI for reminders.
-- [ ] Add a local notification port and implementation that schedules a
-  notification when a reminder is saved and cancels it on complete/delete
-  (confirm the notifications package before adding a dependency).
+- [x] Add a local notification port and implementation that schedules a
+  notification when a reminder is saved and cancels it on complete/delete.
+  Uses `flutter_local_notifications` + `timezone` behind a
+  `ReminderNotificationScheduler` port; scheduling is best-effort in the cubit.
 - [ ] Wire the notification service and reminder form route through
   `AppDependencies`/providers.
 - [ ] Run a Phase 9 architecture boundary review to confirm widgets/Cubits use

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/reminders/presentation/cubit/reminder_form_cubit.dart';
 import 'package:paw_vault/features/reminders/presentation/models/reminder_form_state.dart';
 
@@ -26,6 +27,7 @@ class ReminderFormScreen extends StatelessWidget {
         final cubit = ReminderFormCubit(
           reminderRepository: context.read<ReminderRepository>(),
           authRepository: context.read<AuthRepository>(),
+          notificationScheduler: context.read<ReminderNotificationScheduler>(),
         );
         if (reminderId != null) {
           cubit.load(petId, reminderId!);

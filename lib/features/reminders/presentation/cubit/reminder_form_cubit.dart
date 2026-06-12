@@ -3,18 +3,22 @@ import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/reminders/presentation/models/reminder_form_state.dart';
 
 class ReminderFormCubit extends Cubit<ReminderFormCubitState> {
   ReminderFormCubit({
     required ReminderRepository reminderRepository,
     required AuthRepository authRepository,
+    required ReminderNotificationScheduler notificationScheduler,
   })  : _reminderRepository = reminderRepository,
         _authRepository = authRepository,
+        _notificationScheduler = notificationScheduler,
         super(const ReminderFormCubitState());
 
   final ReminderRepository _reminderRepository;
   final AuthRepository _authRepository;
+  final ReminderNotificationScheduler _notificationScheduler;
 
   Future<void> load(String petId, String reminderId) async {
     emit(ReminderFormCubitState(
@@ -91,6 +95,7 @@ class ReminderFormCubit extends Cubit<ReminderFormCubitState> {
       );
 
       await _reminderRepository.saveReminder(reminder);
+      await _scheduleQuietly(reminder);
 
       emit(
         ReminderFormCubitState(
@@ -150,6 +155,7 @@ class ReminderFormCubit extends Cubit<ReminderFormCubitState> {
       );
 
       await _reminderRepository.saveReminder(updated);
+      await _scheduleQuietly(updated);
 
       emit(
         state.copyWith(
@@ -188,6 +194,7 @@ class ReminderFormCubit extends Cubit<ReminderFormCubitState> {
         petId: current.petId,
         reminderId: current.id,
       );
+      await _cancelQuietly(current.id);
 
       emit(
         state.copyWith(
@@ -226,6 +233,7 @@ class ReminderFormCubit extends Cubit<ReminderFormCubitState> {
         petId: current.petId,
         reminderId: current.id,
       );
+      await _cancelQuietly(current.id);
 
       emit(
         ReminderFormCubitState(
@@ -242,6 +250,24 @@ class ReminderFormCubit extends Cubit<ReminderFormCubitState> {
           errorMessage: error.toString(),
         ),
       );
+    }
+  }
+
+  /// Scheduling notifications is best-effort: a failure here must not fail the
+  /// save the user just performed.
+  Future<void> _scheduleQuietly(Reminder reminder) async {
+    try {
+      await _notificationScheduler.schedule(reminder);
+    } catch (_) {
+      // Ignore notification scheduling errors.
+    }
+  }
+
+  Future<void> _cancelQuietly(EntityId reminderId) async {
+    try {
+      await _notificationScheduler.cancel(reminderId);
+    } catch (_) {
+      // Ignore notification cancellation errors.
     }
   }
 

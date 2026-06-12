@@ -5,14 +5,17 @@ import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/reminders/presentation/cubit/reminder_form_cubit.dart';
 import 'package:paw_vault/features/reminders/presentation/models/reminder_form_state.dart';
 
 void main() {
   group('ReminderFormCubit', () {
-    test('createReminder validates, saves, and emits ready', () async {
+    test('createReminder validates, saves, schedules, and emits ready',
+        () async {
       final repository = _FakeReminderRepository();
-      final cubit = _cubit(repository);
+      final scheduler = _FakeNotificationScheduler();
+      final cubit = _cubit(repository, scheduler: scheduler);
 
       await cubit.createReminder(
         'pet-1',
@@ -31,6 +34,7 @@ void main() {
       expect(saved.repeatType, ReminderRepeatType.yearly);
       expect(cubit.state.status, ReminderFormStatus.ready);
       expect(cubit.state.reminder, saved);
+      expect(scheduler.scheduledReminder?.id, saved.id);
 
       await cubit.close();
     });
@@ -121,9 +125,11 @@ void main() {
       await cubit.close();
     });
 
-    test('completeReminder marks the loaded reminder as completed', () async {
+    test('completeReminder marks complete and cancels the notification',
+        () async {
       final repository = _FakeReminderRepository(reminder: _reminder());
-      final cubit = _cubit(repository);
+      final scheduler = _FakeNotificationScheduler();
+      final cubit = _cubit(repository, scheduler: scheduler);
 
       await cubit.load('pet-1', 'r-1');
       await cubit.completeReminder();
@@ -132,6 +138,7 @@ void main() {
       expect(repository.completedReminderId, const EntityId('r-1'));
       expect(cubit.state.status, ReminderFormStatus.ready);
       expect(cubit.state.reminder?.isCompleted, isTrue);
+      expect(scheduler.cancelledId, const EntityId('r-1'));
 
       await cubit.close();
     });
@@ -148,10 +155,12 @@ void main() {
       await cubit.close();
     });
 
-    test('deleteReminder removes the reminder and clears it', () async {
+    test('deleteReminder removes the reminder, clears it, and cancels',
+        () async {
       final existing = _reminder();
       final repository = _FakeReminderRepository(reminder: existing);
-      final cubit = _cubit(repository);
+      final scheduler = _FakeNotificationScheduler();
+      final cubit = _cubit(repository, scheduler: scheduler);
 
       await cubit.load('pet-1', 'r-1');
       await cubit.deleteReminder();
@@ -160,6 +169,7 @@ void main() {
       expect(repository.deletedReminderId, existing.id);
       expect(cubit.state.status, ReminderFormStatus.ready);
       expect(cubit.state.reminder, isNull);
+      expect(scheduler.cancelledId, existing.id);
 
       await cubit.close();
     });
@@ -178,12 +188,16 @@ void main() {
   });
 }
 
-ReminderFormCubit _cubit(_FakeReminderRepository repository) {
+ReminderFormCubit _cubit(
+  _FakeReminderRepository repository, {
+  _FakeNotificationScheduler? scheduler,
+}) {
   return ReminderFormCubit(
     reminderRepository: repository,
     authRepository: _FakeAuthRepository(
       currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
     ),
+    notificationScheduler: scheduler ?? _FakeNotificationScheduler(),
   );
 }
 
@@ -279,5 +293,20 @@ class _FakeReminderRepository implements ReminderRepository {
   }) async {
     deleteCallCount++;
     deletedReminderId = reminderId;
+  }
+}
+
+class _FakeNotificationScheduler implements ReminderNotificationScheduler {
+  Reminder? scheduledReminder;
+  EntityId? cancelledId;
+
+  @override
+  Future<void> schedule(Reminder reminder) async {
+    scheduledReminder = reminder;
+  }
+
+  @override
+  Future<void> cancel(EntityId reminderId) async {
+    cancelledId = reminderId;
   }
 }
