@@ -218,7 +218,7 @@
   idle/generating/ready/sharing/failure states and fake tests.
 - [x] Add watched export history via `watchExports` with loading/empty/error/
   populated states.
-- [ ] Replace the placeholder vet summary screen with generate/preview/share UI
+- [x] Replace the placeholder vet summary screen with generate/preview/share UI
   and the export history list.
 - [ ] Wire the PDF builder, share service, and aggregation use case through
   `AppDependencies`/providers.
