@@ -208,7 +208,7 @@
   documents, and reminders for a summary.
 - [x] Add a summary aggregation use case that loads the data from the feature
   repositories for a pet, with fake-repository tests.
-- [ ] Add a PDF builder (pure Dart) that renders `VetSummaryData` to PDF bytes
+- [x] Add a PDF builder (pure Dart) that renders `VetSummaryData` to PDF bytes
   using the `pdf` package, with tests asserting non-empty output.
 - [ ] Add a share/print service port and implementation for sharing the
   generated PDF locally (confirm the package before adding a dependency).
