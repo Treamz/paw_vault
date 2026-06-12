@@ -224,3 +224,30 @@
   `AppDependencies`/providers.
 - [x] Run a Phase 10 architecture boundary review: UI/Cubits use ports/
   repositories, and PDF/share/Firebase SDKs stay in the data layer.
+
+## Phase 11: Account auth and cross-device sync
+
+- [x] Add Phase 11 actionable task checklist.
+- [ ] Extend the `AppUser` entity and `AuthRepository` contract with email and
+  credential-based sign-up/sign-in/link methods (email/password, Google,
+  Apple), without implementing Firebase behavior yet.
+- [ ] Implement Firebase email/password sign-up that links the credential to the
+  current anonymous user (falling back to sign-in when already registered) and
+  email/password sign-in, in the auth data source and repository, with
+  fake-data-source tests where feasible.
+- [ ] Add Google sign-in support (confirm the `google_sign_in` package) with
+  anonymous-account linking, behind the auth abstraction.
+- [ ] Add Apple sign-in support (confirm the `sign_in_with_apple` package) with
+  anonymous-account linking, behind the auth abstraction.
+- [ ] Implement an `AccountCubit` exposing the signed-in account state and
+  sign-up/sign-in/sign-out actions, with fake-repository tests.
+- [ ] Add a sign-in/sign-up UI (email/password form + Google/Apple buttons)
+  reachable from the profile, surfacing errors and linking outcomes.
+- [ ] Add signed-in account status and sign-out UI in the profile.
+- [ ] Wire the account route and any new auth providers through
+  `AppDependencies`/providers.
+- [ ] Document the required Firebase and Apple platform configuration for
+  Google/Apple sign-in.
+- [ ] Run a Phase 11 architecture boundary review to confirm widgets/Cubits use
+  the auth abstraction and do not access Firebase Auth or provider SDKs
+  directly.
