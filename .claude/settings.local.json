@@ -22,7 +22,10 @@
       "mcp__dart__hot_reload",
       "Bash(echo \"exit: $? \\(1=none\\)\")",
       "Bash(echo \"exit: $? \\(1=none — AI never writes\\)\")",
-      "Bash(echo \"rc: $?\")"
+      "Bash(echo \"rc: $?\")",
+      "mcp__dart__dtd",
+      "mcp__dart__flutter_driver_command",
+      "mcp__dart__widget_inspector"
     ]
   }
 }
