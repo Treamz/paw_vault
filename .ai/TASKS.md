@@ -242,7 +242,7 @@
 - [x] Add Apple sign-in support using the `sign_in_with_apple` package with
   anonymous-account linking, behind the auth abstraction. The Sign in with
   Apple capability/entitlement is tracked in the documentation task.
-- [ ] Implement an `AccountCubit` exposing the signed-in account state and
+- [x] Implement an `AccountCubit` exposing the signed-in account state and
   sign-up/sign-in/sign-out actions, with fake-repository tests.
 - [ ] Add a sign-in/sign-up UI (email/password form + Google/Apple buttons)
   reachable from the profile, surfacing errors and linking outcomes.
