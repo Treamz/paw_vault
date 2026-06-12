@@ -222,5 +222,5 @@
   and the export history list.
 - [x] Wire the PDF builder, share service, and aggregation use case through
   `AppDependencies`/providers.
-- [ ] Run a Phase 10 architecture boundary review: UI/Cubits use ports/
+- [x] Run a Phase 10 architecture boundary review: UI/Cubits use ports/
   repositories, and PDF/share/Firebase SDKs stay in the data layer.
