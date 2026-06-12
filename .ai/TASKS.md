@@ -244,7 +244,7 @@
   Apple capability/entitlement is tracked in the documentation task.
 - [x] Implement an `AccountCubit` exposing the signed-in account state and
   sign-up/sign-in/sign-out actions, with fake-repository tests.
-- [ ] Add a sign-in/sign-up UI (email/password form + Google/Apple buttons)
+- [x] Add a sign-in/sign-up UI (email/password form + Google/Apple buttons)
   reachable from the profile, surfacing errors and linking outcomes.
 - [ ] Add signed-in account status and sign-out UI in the profile.
 - [ ] Wire the account route and any new auth providers through
