@@ -1,7 +1,12 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:paw_vault/core/auth/data/datasources/firebase_auth_data_source.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class FlutterFireAuthDataSource implements FirebaseAuthDataSource {
   FlutterFireAuthDataSource(this._auth, {GoogleSignIn? googleSignIn})
@@ -81,9 +86,44 @@ class FlutterFireAuthDataSource implements FirebaseAuthDataSource {
   }
 
   @override
-  Future<AppUser> signInWithApple() {
-    throw UnimplementedError('Apple sign-in is not configured yet.');
+  Future<AppUser> signInWithApple() async {
+    final rawNonce = _generateNonce();
+    final appleCredential = await SignInWithApple.getAppleIDCredential(
+      scopes: const [
+        AppleIDAuthorizationScopes.email,
+        AppleIDAuthorizationScopes.fullName,
+      ],
+      nonce: _sha256(rawNonce),
+    );
+
+    final idToken = appleCredential.identityToken;
+    if (idToken == null) {
+      throw StateError('Apple sign-in did not return an identity token.');
+    }
+
+    final credential = OAuthProvider('apple.com').credential(
+      idToken: idToken,
+      rawNonce: rawNonce,
+    );
+    return _linkOrSignIn(
+      credential,
+      createAccount: () => _auth.signInWithCredential(credential),
+    );
   }
+
+  /// A random nonce; its SHA-256 hash is sent to Apple and the raw value to
+  /// Firebase, to protect against replay attacks.
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
+  }
+
+  String _sha256(String input) => sha256.convert(utf8.encode(input)).toString();
 
   /// Links [credential] to the current anonymous user to preserve its data;
   /// falls back to [createAccount]/sign-in when there is no anonymous user or

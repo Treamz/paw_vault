@@ -239,8 +239,9 @@
 - [x] Add Google sign-in support using the `google_sign_in` package with
   anonymous-account linking, behind the auth abstraction. Platform config
   (OAuth client IDs, iOS URL scheme) tracked in the documentation task.
-- [ ] Add Apple sign-in support (confirm the `sign_in_with_apple` package) with
-  anonymous-account linking, behind the auth abstraction.
+- [x] Add Apple sign-in support using the `sign_in_with_apple` package with
+  anonymous-account linking, behind the auth abstraction. The Sign in with
+  Apple capability/entitlement is tracked in the documentation task.
 - [ ] Implement an `AccountCubit` exposing the signed-in account state and
   sign-up/sign-in/sign-out actions, with fake-repository tests.
 - [ ] Add a sign-in/sign-up UI (email/password form + Google/Apple buttons)
