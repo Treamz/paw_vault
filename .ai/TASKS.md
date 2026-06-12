@@ -179,7 +179,7 @@
 ## Phase 9: Reminders and local notifications
 
 - [x] Add Phase 9 actionable task checklist.
-- [ ] Implement `RemindersCubit` watch/load behavior with fake repository tests,
+- [x] Implement `RemindersCubit` watch/load behavior with fake repository tests,
   emitting loading/empty/error/populated states.
 - [ ] Update the reminders screen to render the four repository-backed states.
 - [ ] Add a reminder form/input state model and validation rules (title,

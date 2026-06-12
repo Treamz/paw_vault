@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/presentation/widgets/placeholder_feature_screen.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
 import 'package:paw_vault/features/reminders/presentation/cubit/reminders_cubit.dart';
@@ -17,8 +18,10 @@ class RemindersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) =>
-          RemindersCubit(context.read<ReminderRepository>())..load(petId),
+      create: (context) => RemindersCubit(
+        reminderRepository: context.read<ReminderRepository>(),
+        authRepository: context.read<AuthRepository>(),
+      )..load(petId),
       child: PlaceholderFeatureScreen(
         title: 'Reminders',
         description: 'Reminder placeholder for pet $petId.',
