@@ -210,8 +210,9 @@
   repositories for a pet, with fake-repository tests.
 - [x] Add a PDF builder (pure Dart) that renders `VetSummaryData` to PDF bytes
   using the `pdf` package, with tests asserting non-empty output.
-- [ ] Add a share/print service port and implementation for sharing the
-  generated PDF locally (confirm the package before adding a dependency).
+- [x] Add a share/print service port and implementation for sharing the
+  generated PDF locally, using the `printing` package behind a
+  `PdfShareService` port.
 - [ ] Implement `VetSummaryExportCubit`: generate the PDF, share it, and
   optionally upload to storage and save an export record, with
   idle/generating/ready/sharing/failure states and fake tests.
