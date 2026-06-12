@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -34,12 +35,54 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
   final PdfShareService _shareService;
   final StorageRepository _storageRepository;
   final VetSummaryExportRepository _exportRepository;
+  StreamSubscription<List<VetSummaryExport>>? _exportsSubscription;
+
+  /// Subscribes to the pet's saved export history.
+  Future<void> load(String petId) async {
+    emit(state.copyWith(
+      petId: petId,
+      historyStatus: VetSummaryHistoryStatus.loading,
+    ));
+
+    try {
+      await _exportRepository.initialize();
+      final user = await _authRepository.currentUser() ??
+          await _authRepository.signInAnonymously();
+      final userId = EntityId(user.id);
+
+      await _exportsSubscription?.cancel();
+      _exportsSubscription = _exportRepository
+          .watchExports(userId: userId, petId: EntityId(petId))
+          .listen(
+        (exports) {
+          emit(state.copyWith(
+            userId: userId,
+            historyStatus: VetSummaryHistoryStatus.ready,
+            exports: exports,
+          ));
+        },
+        onError: (Object error) {
+          emit(state.copyWith(
+            historyStatus: VetSummaryHistoryStatus.failure,
+            historyError: error.toString(),
+          ));
+        },
+      );
+    } catch (error) {
+      emit(state.copyWith(
+        historyStatus: VetSummaryHistoryStatus.failure,
+        historyError: error.toString(),
+      ));
+    }
+  }
 
   /// Loads the pet's records and renders a PDF, held in state for review.
   Future<void> generate(String petId) async {
-    emit(VetSummaryExportState(
+    emit(state.copyWith(
       status: VetSummaryExportStatus.generating,
       petId: petId,
+      clearPdf: true,
+      clearError: true,
     ));
 
     try {
@@ -52,23 +95,21 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
       );
       final bytes = await _pdfGenerator.build(data);
 
-      emit(
-        VetSummaryExportState(
-          status: VetSummaryExportStatus.ready,
-          userId: userId,
-          petId: petId,
-          petName: data.pet.name,
-          pdfBytes: bytes,
-        ),
-      );
+      emit(state.copyWith(
+        status: VetSummaryExportStatus.ready,
+        userId: userId,
+        petId: petId,
+        petName: data.pet.name,
+        pdfBytes: bytes,
+        clearError: true,
+      ));
     } catch (error) {
-      emit(
-        VetSummaryExportState(
-          status: VetSummaryExportStatus.failure,
-          petId: petId,
-          errorMessage: error.toString(),
-        ),
-      );
+      emit(state.copyWith(
+        status: VetSummaryExportStatus.failure,
+        petId: petId,
+        errorMessage: error.toString(),
+        clearPdf: true,
+      ));
     }
   }
 
@@ -150,6 +191,12 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
     final name = (state.petName ?? 'pet').replaceAll(RegExp(r'\s+'), '_');
     return '${name}_vet_summary.pdf';
   }
+
+  @override
+  Future<void> close() async {
+    await _exportsSubscription?.cancel();
+    return super.close();
+  }
 }
 
 enum VetSummaryExportStatus {
@@ -162,6 +209,12 @@ enum VetSummaryExportStatus {
   failure,
 }
 
+enum VetSummaryHistoryStatus {
+  loading,
+  ready,
+  failure,
+}
+
 class VetSummaryExportState {
   const VetSummaryExportState({
     this.status = VetSummaryExportStatus.idle,
@@ -170,6 +223,9 @@ class VetSummaryExportState {
     this.petName,
     this.pdfBytes,
     this.errorMessage,
+    this.historyStatus = VetSummaryHistoryStatus.loading,
+    this.exports = const [],
+    this.historyError,
   });
 
   final VetSummaryExportStatus status;
@@ -178,6 +234,9 @@ class VetSummaryExportState {
   final String? petName;
   final Uint8List? pdfBytes;
   final String? errorMessage;
+  final VetSummaryHistoryStatus historyStatus;
+  final List<VetSummaryExport> exports;
+  final String? historyError;
 
   bool get hasPdf => pdfBytes != null;
 
@@ -188,14 +247,22 @@ class VetSummaryExportState {
     String? petName,
     Uint8List? pdfBytes,
     String? errorMessage,
+    VetSummaryHistoryStatus? historyStatus,
+    List<VetSummaryExport>? exports,
+    String? historyError,
+    bool clearPdf = false,
+    bool clearError = false,
   }) {
     return VetSummaryExportState(
       status: status ?? this.status,
       userId: userId ?? this.userId,
       petId: petId ?? this.petId,
       petName: petName ?? this.petName,
-      pdfBytes: pdfBytes ?? this.pdfBytes,
-      errorMessage: errorMessage ?? this.errorMessage,
+      pdfBytes: clearPdf ? null : (pdfBytes ?? this.pdfBytes),
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      historyStatus: historyStatus ?? this.historyStatus,
+      exports: exports ?? this.exports,
+      historyError: historyError ?? this.historyError,
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/core/storage/domain/entities/storage_file.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
@@ -96,8 +97,64 @@ void main() {
 
       await cubit.close();
     });
+
+    test('load emits the watched export history', () async {
+      final export = _export();
+      final cubit = _cubit(
+        exportRepository: _FakeExportRepository(watchedExports: [export]),
+        pet: _pet(),
+      );
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.historyStatus, VetSummaryHistoryStatus.ready);
+      expect(cubit.state.exports, [export]);
+
+      await cubit.close();
+    });
+
+    test('load emits history failure when the stream errors', () async {
+      final cubit = _cubit(
+        exportRepository: _FakeExportRepository(throwsOnWatch: true),
+        pet: _pet(),
+      );
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.historyStatus, VetSummaryHistoryStatus.failure);
+
+      await cubit.close();
+    });
+
+    test('generate preserves the loaded export history', () async {
+      final export = _export();
+      final cubit = _cubit(
+        exportRepository: _FakeExportRepository(watchedExports: [export]),
+        pet: _pet(),
+      );
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+      await cubit.generate('pet-1');
+
+      expect(cubit.state.status, VetSummaryExportStatus.ready);
+      expect(cubit.state.exports, [export]);
+
+      await cubit.close();
+    });
   });
 }
+
+VetSummaryExport _export() => VetSummaryExport(
+      id: const EntityId('export-1'),
+      userId: const EntityId('user-1'),
+      petId: const EntityId('pet-1'),
+      createdAt: UtcDateTime(DateTime.utc(2026, 6, 1)),
+      fileUrl: Uri.parse('https://storage.example.com/summary.pdf'),
+      storagePath: 'users/user-1/pets/pet-1/exports/vet_summary.pdf',
+    );
 
 VetSummaryExportCubit _cubit({
   required Pet? pet,
@@ -176,6 +233,14 @@ class _FakeStorageRepository implements StorageRepository {
 }
 
 class _FakeExportRepository implements VetSummaryExportRepository {
+  _FakeExportRepository({
+    this.watchedExports = const [],
+    this.throwsOnWatch = false,
+  });
+
+  final List<VetSummaryExport> watchedExports;
+  final bool throwsOnWatch;
+
   VetSummaryExport? savedExport;
 
   @override
@@ -190,8 +255,12 @@ class _FakeExportRepository implements VetSummaryExportRepository {
   Stream<List<VetSummaryExport>> watchExports({
     required EntityId userId,
     required EntityId petId,
-  }) =>
-      const Stream<List<VetSummaryExport>>.empty();
+  }) {
+    if (throwsOnWatch) {
+      return Stream<List<VetSummaryExport>>.error(StateError('watch failed'));
+    }
+    return Stream<List<VetSummaryExport>>.value(watchedExports);
+  }
 
   @override
   Future<VetSummaryExport?> getExport({
