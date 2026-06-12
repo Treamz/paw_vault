@@ -236,8 +236,9 @@
   current anonymous user (falling back to sign-in when already registered) and
   email/password sign-in, in the auth data source and repository, with
   fake-data-source tests where feasible.
-- [ ] Add Google sign-in support (confirm the `google_sign_in` package) with
-  anonymous-account linking, behind the auth abstraction.
+- [x] Add Google sign-in support using the `google_sign_in` package with
+  anonymous-account linking, behind the auth abstraction. Platform config
+  (OAuth client IDs, iOS URL scheme) tracked in the documentation task.
 - [ ] Add Apple sign-in support (confirm the `sign_in_with_apple` package) with
   anonymous-account linking, behind the auth abstraction.
 - [ ] Implement an `AccountCubit` exposing the signed-in account state and

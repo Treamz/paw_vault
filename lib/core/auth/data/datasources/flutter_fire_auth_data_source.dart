@@ -1,11 +1,15 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:paw_vault/core/auth/data/datasources/firebase_auth_data_source.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 
 class FlutterFireAuthDataSource implements FirebaseAuthDataSource {
-  FlutterFireAuthDataSource(this._auth);
+  FlutterFireAuthDataSource(this._auth, {GoogleSignIn? googleSignIn})
+      : _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
 
   final FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn;
+  bool _googleInitialized = false;
 
   @override
   Future<AppUser?> currentUser() async {
@@ -57,8 +61,23 @@ class FlutterFireAuthDataSource implements FirebaseAuthDataSource {
   }
 
   @override
-  Future<AppUser> signInWithGoogle() {
-    throw UnimplementedError('Google sign-in is not configured yet.');
+  Future<AppUser> signInWithGoogle() async {
+    if (!_googleInitialized) {
+      await _googleSignIn.initialize();
+      _googleInitialized = true;
+    }
+
+    final account = await _googleSignIn.authenticate();
+    final idToken = account.authentication.idToken;
+    if (idToken == null) {
+      throw StateError('Google sign-in did not return an ID token.');
+    }
+
+    final credential = GoogleAuthProvider.credential(idToken: idToken);
+    return _linkOrSignIn(
+      credential,
+      createAccount: () => _auth.signInWithCredential(credential),
+    );
   }
 
   @override
