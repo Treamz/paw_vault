@@ -40,10 +40,15 @@ import 'package:paw_vault/features/timeline/data/datasources/flutter_fire_timeli
 import 'package:paw_vault/features/timeline/data/repositories/firebase_timeline_repository.dart';
 import 'package:paw_vault/features/timeline/data/repositories/local_timeline_repository.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
+import 'package:paw_vault/features/vet_summary_export/application/load_vet_summary_data.dart';
 import 'package:paw_vault/features/vet_summary_export/data/datasources/flutter_fire_vet_summary_export_data_source.dart';
 import 'package:paw_vault/features/vet_summary_export/data/repositories/firebase_vet_summary_export_repository.dart';
 import 'package:paw_vault/features/vet_summary_export/data/repositories/local_vet_summary_export_repository.dart';
+import 'package:paw_vault/features/vet_summary_export/data/services/printing_pdf_share_service.dart';
+import 'package:paw_vault/features/vet_summary_export/data/services/vet_summary_pdf_builder.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/repositories/vet_summary_export_repository.dart';
+import 'package:paw_vault/features/vet_summary_export/domain/services/pdf_share_service.dart';
+import 'package:paw_vault/features/vet_summary_export/domain/services/vet_summary_pdf_generator.dart';
 
 class AppDependencies {
   const AppDependencies({
@@ -140,4 +145,16 @@ class AppDependencies {
   final DocumentExtractionAiRepository documentExtractionAiRepository;
   final DocumentSourcePicker documentSourcePicker;
   final ReminderNotificationScheduler reminderNotificationScheduler;
+
+  LoadVetSummaryData get loadVetSummaryData => LoadVetSummaryData(
+        petRepository: petRepository,
+        timelineRepository: timelineRepository,
+        documentRepository: documentRepository,
+        reminderRepository: reminderRepository,
+      );
+
+  VetSummaryPdfGenerator get vetSummaryPdfGenerator =>
+      const VetSummaryPdfBuilder();
+
+  PdfShareService get pdfShareService => const PrintingPdfShareService();
 }
