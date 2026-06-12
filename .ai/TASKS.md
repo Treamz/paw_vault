@@ -175,3 +175,28 @@
 - [x] Run a Phase 8 architecture boundary review: UI/Cubits use no Firebase/
   Gemini SDKs, AI returns drafts only and never writes to Firestore, and a
   document is saved only after explicit user confirmation.
+
+## Phase 9: Reminders and local notifications
+
+- [x] Add Phase 9 actionable task checklist.
+- [x] Implement `RemindersCubit` watch/load behavior with fake repository tests,
+  emitting loading/empty/error/populated states.
+- [x] Update the reminders screen to render the four repository-backed states.
+- [x] Add a reminder form/input state model and validation rules (title,
+  date/time, repeat type, optional description).
+- [x] Implement create/update reminder Cubit methods with fake repository tests.
+- [x] Implement complete and delete reminder Cubit methods with fake repository
+  tests.
+- [x] Replace placeholder reminders screen with a list display (title,
+  date/time, repeat, completed state) sorted by due date.
+- [x] Add create/edit reminder UI wired through the Cubit and repository.
+- [x] Add complete and delete confirmation UI for reminders.
+- [x] Add a local notification port and implementation that schedules a
+  notification when a reminder is saved and cancels it on complete/delete.
+  Uses `flutter_local_notifications` + `timezone` behind a
+  `ReminderNotificationScheduler` port; scheduling is best-effort in the cubit.
+- [x] Wire the notification service and reminder form route through
+  `AppDependencies`/providers.
+- [x] Run a Phase 9 architecture boundary review to confirm widgets/Cubits use
+  repositories/ports and do not access Firebase SDKs or the notifications
+  plugin directly.

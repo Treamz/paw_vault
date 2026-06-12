@@ -1,7 +1,10 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:paw_vault/core/presentation/widgets/placeholder_feature_screen.dart';
+import 'package:intl/intl.dart';
+import 'package:paw_vault/app/router/app_router.dart';
+import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
 import 'package:paw_vault/features/reminders/presentation/cubit/reminders_cubit.dart';
 
@@ -17,12 +20,231 @@ class RemindersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) =>
-          RemindersCubit(context.read<ReminderRepository>())..load(petId),
-      child: PlaceholderFeatureScreen(
-        title: 'Reminders',
-        description: 'Reminder placeholder for pet $petId.',
+      create: (context) => RemindersCubit(
+        reminderRepository: context.read<ReminderRepository>(),
+        authRepository: context.read<AuthRepository>(),
+      )..load(petId),
+      child: const _RemindersView(),
+    );
+  }
+}
+
+class _RemindersView extends StatelessWidget {
+  const _RemindersView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Reminders')),
+      body: SafeArea(
+        child: BlocBuilder<RemindersCubit, RemindersState>(
+          builder: (context, state) {
+            return switch (state.status) {
+              RemindersStatus.initial ||
+              RemindersStatus.loading =>
+                const _RemindersLoading(),
+              RemindersStatus.failure => _RemindersFailure(
+                  message: state.errorMessage,
+                ),
+              RemindersStatus.ready => state.reminders.isEmpty
+                  ? const _RemindersEmpty()
+                  : _RemindersContent(
+                      reminders: state.sortedReminders,
+                      petId: state.petId!,
+                    ),
+            };
+          },
+        ),
+      ),
+      floatingActionButton: BlocBuilder<RemindersCubit, RemindersState>(
+        builder: (context, state) {
+          if (state.petId == null) return const SizedBox.shrink();
+
+          return FloatingActionButton.extended(
+            onPressed: () => context.router.push(
+              ReminderFormRoute(petId: state.petId!),
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text('Add reminder'),
+          );
+        },
       ),
     );
+  }
+}
+
+class _RemindersLoading extends StatelessWidget {
+  const _RemindersLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: CircularProgressIndicator());
+  }
+}
+
+class _RemindersEmpty extends StatelessWidget {
+  const _RemindersEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.notifications_none,
+              size: 48,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No reminders yet',
+              style: Theme.of(context).textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Add reminders for vaccinations, medications, and check-ups '
+              'so nothing slips through.',
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RemindersFailure extends StatelessWidget {
+  const _RemindersFailure({required this.message});
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Could not load reminders',
+              style: Theme.of(context).textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            if (message != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                message!,
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RemindersContent extends StatelessWidget {
+  const _RemindersContent({
+    required this.reminders,
+    required this.petId,
+  });
+
+  final List<Reminder> reminders;
+  final String petId;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dateFormat = DateFormat.yMMMMd().add_jm();
+    final now = DateTime.now();
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: reminders.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final reminder = reminders[index];
+        final due = reminder.dateTime.value;
+        final isOverdue = !reminder.isCompleted && due.isBefore(now);
+        final repeat = _formatRepeat(reminder.repeatType);
+
+        return Card(
+          child: ListTile(
+            key: ValueKey('reminder-${reminder.id.value}'),
+            leading: Icon(
+              reminder.isCompleted
+                  ? Icons.check_circle
+                  : isOverdue
+                      ? Icons.warning_amber
+                      : Icons.notifications_active,
+              color: reminder.isCompleted
+                  ? theme.disabledColor
+                  : isOverdue
+                      ? theme.colorScheme.error
+                      : null,
+            ),
+            title: Text(
+              reminder.title,
+              style: reminder.isCompleted
+                  ? TextStyle(
+                      decoration: TextDecoration.lineThrough,
+                      color: theme.disabledColor,
+                    )
+                  : null,
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dateFormat.format(due),
+                  style: isOverdue
+                      ? TextStyle(color: theme.colorScheme.error)
+                      : null,
+                ),
+                if (repeat != null) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Icon(Icons.repeat, size: 14),
+                      const SizedBox(width: 4),
+                      Text(repeat, style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+            isThreeLine: repeat != null,
+            onTap: () => context.router.push(
+              ReminderFormRoute(petId: petId, reminderId: reminder.id.value),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String? _formatRepeat(ReminderRepeatType? type) {
+    return switch (type) {
+      null || ReminderRepeatType.none => null,
+      ReminderRepeatType.daily => 'Repeats daily',
+      ReminderRepeatType.weekly => 'Repeats weekly',
+      ReminderRepeatType.monthly => 'Repeats monthly',
+      ReminderRepeatType.yearly => 'Repeats yearly',
+      ReminderRepeatType.custom => 'Custom repeat',
+    };
   }
 }

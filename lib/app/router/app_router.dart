@@ -6,6 +6,7 @@ import 'package:paw_vault/features/documents/presentation/screens/documents_scre
 import 'package:paw_vault/features/pets/presentation/screens/pet_form_screen.dart';
 import 'package:paw_vault/features/pets/presentation/screens/pet_list_screen.dart';
 import 'package:paw_vault/features/pets/presentation/screens/pet_profile_screen.dart';
+import 'package:paw_vault/features/reminders/presentation/screens/reminder_form_screen.dart';
 import 'package:paw_vault/features/reminders/presentation/screens/reminders_screen.dart';
 import 'package:paw_vault/features/smart_input/presentation/screens/smart_input_screen.dart';
 import 'package:paw_vault/features/timeline/presentation/screens/timeline_event_form_screen.dart';
@@ -36,6 +37,10 @@ class AppRouter extends RootStackRouter {
           path: '/pets/:petId/documents/scan',
         ),
         AutoRoute(page: RemindersRoute.page, path: '/pets/:petId/reminders'),
+        AutoRoute(
+          page: ReminderFormRoute.page,
+          path: '/pets/:petId/reminders/form',
+        ),
         AutoRoute(page: SmartInputRoute.page, path: '/pets/:petId/smart-input'),
         AutoRoute(
           page: VetSummaryExportRoute.page,
