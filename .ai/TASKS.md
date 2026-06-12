@@ -213,7 +213,7 @@
 - [x] Add a share/print service port and implementation for sharing the
   generated PDF locally, using the `printing` package behind a
   `PdfShareService` port.
-- [ ] Implement `VetSummaryExportCubit`: generate the PDF, share it, and
+- [x] Implement `VetSummaryExportCubit`: generate the PDF, share it, and
   optionally upload to storage and save an export record, with
   idle/generating/ready/sharing/failure states and fake tests.
 - [ ] Add watched export history via `watchExports` with loading/empty/error/
