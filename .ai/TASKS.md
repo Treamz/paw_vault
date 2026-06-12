@@ -204,7 +204,7 @@
 ## Phase 10: Vet summary PDF export
 
 - [x] Add Phase 10 actionable task checklist.
-- [ ] Add a `VetSummaryData` model aggregating the pet profile, timeline events,
+- [x] Add a `VetSummaryData` model aggregating the pet profile, timeline events,
   documents, and reminders for a summary.
 - [ ] Add a summary aggregation use case that loads the data from the feature
   repositories for a pet, with fake-repository tests.
