@@ -232,7 +232,7 @@
   credential-based sign-up/sign-in/link methods (email/password, Google,
   Apple), without implementing Firebase behavior yet. Added via an
   `AccountAuthRepository` sub-interface to avoid breaking existing fakes.
-- [ ] Implement Firebase email/password sign-up that links the credential to the
+- [x] Implement Firebase email/password sign-up that links the credential to the
   current anonymous user (falling back to sign-in when already registered) and
   email/password sign-in, in the auth data source and repository, with
   fake-data-source tests where feasible.
