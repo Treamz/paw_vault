@@ -190,7 +190,7 @@
 - [x] Replace placeholder reminders screen with a list display (title,
   date/time, repeat, completed state) sorted by due date.
 - [x] Add create/edit reminder UI wired through the Cubit and repository.
-- [ ] Add complete and delete confirmation UI for reminders.
+- [x] Add complete and delete confirmation UI for reminders.
 - [ ] Add a local notification port and implementation that schedules a
   notification when a reminder is saved and cancels it on complete/delete
   (confirm the notifications package before adding a dependency).

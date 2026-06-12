@@ -58,6 +58,8 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
   ReminderRepeatType _repeatType = ReminderRepeatType.none;
   bool _populated = false;
   bool _submitted = false;
+  bool _deleteRequested = false;
+  bool _completeRequested = false;
 
   @override
   void dispose() {
@@ -81,8 +83,9 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
       title: _titleController.text,
       dateTime: _dateTime,
       repeatType: _repeatType,
-      description:
-          _descriptionController.text.isEmpty ? null : _descriptionController.text,
+      description: _descriptionController.text.isEmpty
+          ? null
+          : _descriptionController.text,
     );
   }
 
@@ -126,11 +129,70 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
     }
   }
 
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Reminder'),
+        content: const Text(
+          'Are you sure you want to delete this reminder? '
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      setState(() => _deleteRequested = true);
+      context.read<ReminderFormCubit>().deleteReminder();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.isEditMode ? 'Edit Reminder' : 'Add Reminder'),
+        actions: [
+          if (widget.isEditMode)
+            BlocBuilder<ReminderFormCubit, ReminderFormCubitState>(
+              builder: (context, state) {
+                final reminder = state.reminder;
+                if (state.status != ReminderFormStatus.ready ||
+                    reminder == null) {
+                  return const SizedBox.shrink();
+                }
+                return Row(
+                  children: [
+                    if (!reminder.isCompleted)
+                      IconButton(
+                        icon: const Icon(Icons.check_circle_outline),
+                        tooltip: 'Mark complete',
+                        onPressed: () {
+                          setState(() => _completeRequested = true);
+                          context.read<ReminderFormCubit>().completeReminder();
+                        },
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: 'Delete reminder',
+                      onPressed: () => _confirmDelete(context),
+                    ),
+                  ],
+                );
+              },
+            ),
+        ],
       ),
       body: SafeArea(
         child: BlocConsumer<ReminderFormCubit, ReminderFormCubitState>(
@@ -142,6 +204,28 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
               _populateFrom(state.reminder!);
             }
 
+            // A delete the user confirmed has completed.
+            if (_deleteRequested &&
+                state.status == ReminderFormStatus.ready &&
+                state.reminder == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Reminder deleted')),
+              );
+              context.router.maybePop();
+              return;
+            }
+
+            // A "mark complete" the user requested has completed.
+            if (_completeRequested &&
+                state.status == ReminderFormStatus.ready &&
+                state.reminder?.isCompleted == true) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Reminder marked complete')),
+              );
+              context.router.maybePop();
+              return;
+            }
+
             if (_submitted && state.status == ReminderFormStatus.ready) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Reminder saved')),
@@ -150,7 +234,11 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
             }
 
             if (state.status == ReminderFormStatus.failure) {
-              setState(() => _submitted = false);
+              setState(() {
+                _submitted = false;
+                _deleteRequested = false;
+                _completeRequested = false;
+              });
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.errorMessage ?? 'Something went wrong'),
@@ -167,10 +255,12 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
             }
 
             final isSaving = state.status == ReminderFormStatus.saving;
+            final isBusy =
+                isSaving || state.status == ReminderFormStatus.deleting;
             final dateFormat = DateFormat.yMMMMd().add_jm();
 
             return AbsorbPointer(
-              absorbing: isSaving,
+              absorbing: isBusy,
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
