@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
@@ -47,10 +48,26 @@ class _RemindersView extends StatelessWidget {
                 ),
               RemindersStatus.ready => state.reminders.isEmpty
                   ? const _RemindersEmpty()
-                  : _RemindersContent(reminders: state.sortedReminders),
+                  : _RemindersContent(
+                      reminders: state.sortedReminders,
+                      petId: state.petId!,
+                    ),
             };
           },
         ),
+      ),
+      floatingActionButton: BlocBuilder<RemindersCubit, RemindersState>(
+        builder: (context, state) {
+          if (state.petId == null) return const SizedBox.shrink();
+
+          return FloatingActionButton.extended(
+            onPressed: () => context.router.push(
+              ReminderFormRoute(petId: state.petId!),
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text('Add reminder'),
+          );
+        },
       ),
     );
   }
@@ -141,9 +158,13 @@ class _RemindersFailure extends StatelessWidget {
 }
 
 class _RemindersContent extends StatelessWidget {
-  const _RemindersContent({required this.reminders});
+  const _RemindersContent({
+    required this.reminders,
+    required this.petId,
+  });
 
   final List<Reminder> reminders;
+  final String petId;
 
   @override
   Widget build(BuildContext context) {
@@ -207,6 +228,9 @@ class _RemindersContent extends StatelessWidget {
               ],
             ),
             isThreeLine: repeat != null,
+            onTap: () => context.router.push(
+              ReminderFormRoute(petId: petId, reminderId: reminder.id.value),
+            ),
           ),
         );
       },

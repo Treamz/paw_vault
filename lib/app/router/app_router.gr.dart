@@ -302,6 +302,76 @@ class PetProfileRouteArgs {
 }
 
 /// generated route for
+/// [ReminderFormScreen]
+class ReminderFormRoute extends PageRouteInfo<ReminderFormRouteArgs> {
+  ReminderFormRoute({
+    required String petId,
+    String? reminderId,
+    Key? key,
+    List<PageRouteInfo>? children,
+  }) : super(
+         ReminderFormRoute.name,
+         args: ReminderFormRouteArgs(
+           petId: petId,
+           reminderId: reminderId,
+           key: key,
+         ),
+         rawPathParams: {'petId': petId},
+         rawQueryParams: {'reminderId': reminderId},
+         initialChildren: children,
+       );
+
+  static const String name = 'ReminderFormRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final queryParams = data.queryParams;
+      final args = data.argsAs<ReminderFormRouteArgs>(
+        orElse:
+            () => ReminderFormRouteArgs(
+              petId: pathParams.getString('petId'),
+              reminderId: queryParams.optString('reminderId'),
+            ),
+      );
+      return ReminderFormScreen(
+        petId: args.petId,
+        reminderId: args.reminderId,
+        key: args.key,
+      );
+    },
+  );
+}
+
+class ReminderFormRouteArgs {
+  const ReminderFormRouteArgs({required this.petId, this.reminderId, this.key});
+
+  final String petId;
+
+  final String? reminderId;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'ReminderFormRouteArgs{petId: $petId, reminderId: $reminderId, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! ReminderFormRouteArgs) return false;
+    return petId == other.petId &&
+        reminderId == other.reminderId &&
+        key == other.key;
+  }
+
+  @override
+  int get hashCode => petId.hashCode ^ reminderId.hashCode ^ key.hashCode;
+}
+
+/// generated route for
 /// [RemindersScreen]
 class RemindersRoute extends PageRouteInfo<RemindersRouteArgs> {
   RemindersRoute({
