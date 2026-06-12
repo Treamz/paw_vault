@@ -200,3 +200,27 @@
 - [x] Run a Phase 9 architecture boundary review to confirm widgets/Cubits use
   repositories/ports and do not access Firebase SDKs or the notifications
   plugin directly.
+
+## Phase 10: Vet summary PDF export
+
+- [x] Add Phase 10 actionable task checklist.
+- [x] Add a `VetSummaryData` model aggregating the pet profile, timeline events,
+  documents, and reminders for a summary.
+- [x] Add a summary aggregation use case that loads the data from the feature
+  repositories for a pet, with fake-repository tests.
+- [x] Add a PDF builder (pure Dart) that renders `VetSummaryData` to PDF bytes
+  using the `pdf` package, with tests asserting non-empty output.
+- [x] Add a share/print service port and implementation for sharing the
+  generated PDF locally, using the `printing` package behind a
+  `PdfShareService` port.
+- [x] Implement `VetSummaryExportCubit`: generate the PDF, share it, and
+  optionally upload to storage and save an export record, with
+  idle/generating/ready/sharing/failure states and fake tests.
+- [x] Add watched export history via `watchExports` with loading/empty/error/
+  populated states.
+- [x] Replace the placeholder vet summary screen with generate/preview/share UI
+  and the export history list.
+- [x] Wire the PDF builder, share service, and aggregation use case through
+  `AppDependencies`/providers.
+- [x] Run a Phase 10 architecture boundary review: UI/Cubits use ports/
+  repositories, and PDF/share/Firebase SDKs stay in the data layer.

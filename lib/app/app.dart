@@ -15,7 +15,10 @@ import 'package:paw_vault/features/reminders/domain/repositories/reminder_reposi
 import 'package:paw_vault/features/smart_input/domain/repositories/ai_repository.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
+import 'package:paw_vault/features/vet_summary_export/application/load_vet_summary_data.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/repositories/vet_summary_export_repository.dart';
+import 'package:paw_vault/features/vet_summary_export/domain/services/pdf_share_service.dart';
+import 'package:paw_vault/features/vet_summary_export/domain/services/vet_summary_pdf_generator.dart';
 
 class PawVaultApp extends StatefulWidget {
   const PawVaultApp({
@@ -80,6 +83,15 @@ class _PawVaultAppState extends State<PawVaultApp> {
         ),
         RepositoryProvider<VetSummaryExportRepository>.value(
           value: widget.dependencies.vetSummaryExportRepository,
+        ),
+        RepositoryProvider<LoadVetSummaryData>.value(
+          value: widget.dependencies.loadVetSummaryData,
+        ),
+        RepositoryProvider<VetSummaryPdfGenerator>.value(
+          value: widget.dependencies.vetSummaryPdfGenerator,
+        ),
+        RepositoryProvider<PdfShareService>.value(
+          value: widget.dependencies.pdfShareService,
         ),
       ],
       child: MaterialApp.router(
