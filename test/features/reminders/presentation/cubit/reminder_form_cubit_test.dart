@@ -120,6 +120,61 @@ void main() {
 
       await cubit.close();
     });
+
+    test('completeReminder marks the loaded reminder as completed', () async {
+      final repository = _FakeReminderRepository(reminder: _reminder());
+      final cubit = _cubit(repository);
+
+      await cubit.load('pet-1', 'r-1');
+      await cubit.completeReminder();
+
+      expect(repository.completeCallCount, 1);
+      expect(repository.completedReminderId, const EntityId('r-1'));
+      expect(cubit.state.status, ReminderFormStatus.ready);
+      expect(cubit.state.reminder?.isCompleted, isTrue);
+
+      await cubit.close();
+    });
+
+    test('completeReminder fails when no reminder is loaded', () async {
+      final repository = _FakeReminderRepository();
+      final cubit = _cubit(repository);
+
+      await cubit.completeReminder();
+
+      expect(cubit.state.status, ReminderFormStatus.failure);
+      expect(repository.completeCallCount, isZero);
+
+      await cubit.close();
+    });
+
+    test('deleteReminder removes the reminder and clears it', () async {
+      final existing = _reminder();
+      final repository = _FakeReminderRepository(reminder: existing);
+      final cubit = _cubit(repository);
+
+      await cubit.load('pet-1', 'r-1');
+      await cubit.deleteReminder();
+
+      expect(repository.deleteCallCount, 1);
+      expect(repository.deletedReminderId, existing.id);
+      expect(cubit.state.status, ReminderFormStatus.ready);
+      expect(cubit.state.reminder, isNull);
+
+      await cubit.close();
+    });
+
+    test('deleteReminder fails when no reminder is loaded', () async {
+      final repository = _FakeReminderRepository();
+      final cubit = _cubit(repository);
+
+      await cubit.deleteReminder();
+
+      expect(cubit.state.status, ReminderFormStatus.failure);
+      expect(repository.deleteCallCount, isZero);
+
+      await cubit.close();
+    });
   });
 }
 
@@ -174,6 +229,10 @@ class _FakeReminderRepository implements ReminderRepository {
 
   int saveCallCount = 0;
   Reminder? savedReminder;
+  int completeCallCount = 0;
+  EntityId? completedReminderId;
+  int deleteCallCount = 0;
+  EntityId? deletedReminderId;
 
   @override
   Future<void> initialize() async {}
@@ -207,12 +266,18 @@ class _FakeReminderRepository implements ReminderRepository {
     required EntityId userId,
     required EntityId petId,
     required EntityId reminderId,
-  }) async {}
+  }) async {
+    completeCallCount++;
+    completedReminderId = reminderId;
+  }
 
   @override
   Future<void> deleteReminder({
     required EntityId userId,
     required EntityId petId,
     required EntityId reminderId,
-  }) async {}
+  }) async {
+    deleteCallCount++;
+    deletedReminderId = reminderId;
+  }
 }

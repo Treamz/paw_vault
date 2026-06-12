@@ -166,6 +166,100 @@ class ReminderFormCubit extends Cubit<ReminderFormCubitState> {
       );
     }
   }
+
+  Future<void> completeReminder() async {
+    final current = state.reminder;
+    if (current == null) {
+      emit(
+        state.copyWith(
+          status: ReminderFormStatus.failure,
+          errorMessage: 'Cannot complete: no reminder loaded',
+        ),
+      );
+      return;
+    }
+
+    emit(state.copyWith(status: ReminderFormStatus.saving));
+
+    try {
+      await _reminderRepository.initialize();
+      await _reminderRepository.completeReminder(
+        userId: current.userId,
+        petId: current.petId,
+        reminderId: current.id,
+      );
+
+      emit(
+        state.copyWith(
+          status: ReminderFormStatus.ready,
+          reminder: _completed(current),
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: ReminderFormStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  Future<void> deleteReminder() async {
+    final current = state.reminder;
+    if (current == null) {
+      emit(
+        state.copyWith(
+          status: ReminderFormStatus.failure,
+          errorMessage: 'Cannot delete: no reminder loaded',
+        ),
+      );
+      return;
+    }
+
+    emit(state.copyWith(status: ReminderFormStatus.deleting));
+
+    try {
+      await _reminderRepository.initialize();
+      await _reminderRepository.deleteReminder(
+        userId: current.userId,
+        petId: current.petId,
+        reminderId: current.id,
+      );
+
+      emit(
+        ReminderFormCubitState(
+          status: ReminderFormStatus.ready,
+          userId: state.userId,
+          petId: state.petId,
+          reminderId: state.reminderId,
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: ReminderFormStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  Reminder _completed(Reminder reminder) {
+    return Reminder(
+      id: reminder.id,
+      userId: reminder.userId,
+      petId: reminder.petId,
+      title: reminder.title,
+      description: reminder.description,
+      dateTime: reminder.dateTime,
+      repeatType: reminder.repeatType,
+      relatedEventId: reminder.relatedEventId,
+      isCompleted: true,
+      createdAt: reminder.createdAt,
+      updatedAt: reminder.updatedAt,
+    );
+  }
 }
 
 enum ReminderFormStatus {

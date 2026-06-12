@@ -185,7 +185,7 @@
 - [x] Add a reminder form/input state model and validation rules (title,
   date/time, repeat type, optional description).
 - [x] Implement create/update reminder Cubit methods with fake repository tests.
-- [ ] Implement complete and delete reminder Cubit methods with fake repository
+- [x] Implement complete and delete reminder Cubit methods with fake repository
   tests.
 - [ ] Replace placeholder reminders screen with a list display (title,
   date/time, repeat, completed state) sorted by due date.
