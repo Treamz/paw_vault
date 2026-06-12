@@ -195,7 +195,7 @@
   notification when a reminder is saved and cancels it on complete/delete.
   Uses `flutter_local_notifications` + `timezone` behind a
   `ReminderNotificationScheduler` port; scheduling is best-effort in the cubit.
-- [ ] Wire the notification service and reminder form route through
+- [x] Wire the notification service and reminder form route through
   `AppDependencies`/providers.
 - [ ] Run a Phase 9 architecture boundary review to confirm widgets/Cubits use
   repositories/ports and do not access Firebase SDKs or the notifications

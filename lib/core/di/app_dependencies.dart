@@ -23,10 +23,13 @@ import 'package:paw_vault/features/pets/data/datasources/flutter_fire_pet_data_s
 import 'package:paw_vault/features/pets/data/repositories/firebase_pet_repository.dart';
 import 'package:paw_vault/features/pets/data/repositories/local_pet_repository.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:paw_vault/features/reminders/data/datasources/flutter_fire_reminder_data_source.dart';
 import 'package:paw_vault/features/reminders/data/repositories/firebase_reminder_repository.dart';
 import 'package:paw_vault/features/reminders/data/repositories/local_reminder_repository.dart';
+import 'package:paw_vault/features/reminders/data/services/local_reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/smart_input/data/datasources/flutter_fire_smart_input_data_source.dart';
 import 'package:paw_vault/features/smart_input/data/repositories/firebase_ready_ai_repository.dart';
 import 'package:paw_vault/features/smart_input/data/repositories/firebase_smart_input_repository.dart';
@@ -56,6 +59,7 @@ class AppDependencies {
     required this.filePicker,
     required this.documentExtractionAiRepository,
     required this.documentSourcePicker,
+    required this.reminderNotificationScheduler,
   });
 
   factory AppDependencies.localFirst() {
@@ -78,6 +82,8 @@ class AppDependencies {
       documentExtractionAiRepository:
           FirebaseReadyDocumentExtractionAiRepository(aiDataSource),
       documentSourcePicker: DocumentSourcePickerImpl(),
+      reminderNotificationScheduler:
+          LocalReminderNotificationScheduler(FlutterLocalNotificationsPlugin()),
     );
   }
 
@@ -116,6 +122,8 @@ class AppDependencies {
       documentExtractionAiRepository:
           FirebaseReadyDocumentExtractionAiRepository(aiDataSource),
       documentSourcePicker: DocumentSourcePickerImpl(),
+      reminderNotificationScheduler:
+          LocalReminderNotificationScheduler(FlutterLocalNotificationsPlugin()),
     );
   }
 
@@ -131,4 +139,5 @@ class AppDependencies {
   final FilePicker filePicker;
   final DocumentExtractionAiRepository documentExtractionAiRepository;
   final DocumentSourcePicker documentSourcePicker;
+  final ReminderNotificationScheduler reminderNotificationScheduler;
 }

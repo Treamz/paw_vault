@@ -9,6 +9,7 @@ import 'package:paw_vault/features/document_extraction/domain/repositories/docum
 import 'package:paw_vault/features/document_extraction/domain/services/document_source_picker.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
+import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/ai_repository.dart';
@@ -64,6 +65,9 @@ class _PawVaultAppState extends State<PawVaultApp> {
         ),
         RepositoryProvider<DocumentSourcePicker>.value(
           value: widget.dependencies.documentSourcePicker,
+        ),
+        RepositoryProvider<ReminderNotificationScheduler>.value(
+          value: widget.dependencies.reminderNotificationScheduler,
         ),
         RepositoryProvider<ReminderRepository>.value(
           value: widget.dependencies.reminderRepository,
