@@ -42,6 +42,16 @@ export const RemotionRoot: React.FC = () => {
         height={1080}
         defaultProps={{square: true as boolean}}
       />
+      {/* Same ad, sized for the App Store App Preview slot (iPhone 886x1920). */}
+      <Composition
+        id="AdPreview"
+        component={Ad}
+        durationInFrames={AD_TOTAL_FRAMES}
+        fps={30}
+        width={886}
+        height={1920}
+        defaultProps={{square: false as boolean}}
+      />
     </>
   );
 };
