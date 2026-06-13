@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>70756738260-0h6apq6uau16rut6242q4m60t4vjs8rq.apps.googleusercontent.com</string>
+	<string>70756738260-517538s2u9i9hhng41ne1nr51e6jkmfn.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.70756738260-0h6apq6uau16rut6242q4m60t4vjs8rq</string>
+	<string>com.googleusercontent.apps.70756738260-517538s2u9i9hhng41ne1nr51e6jkmfn</string>
 	<key>API_KEY</key>
 	<string>AIzaSyCfewE7NY0xThytX2ejHwZZrh4EP7u21Wk</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.pawVault</string>
+	<string>com.treamz.pawVault</string>
 	<key>PROJECT_ID</key>
 	<string>pawvault-e0cc5</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:70756738260:ios:6cb7a40554b8337d778741</string>
+	<string>1:70756738260:ios:de85927129f4db55778741</string>
 </dict>
 </plist>

@@ -17,7 +17,10 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      return web;
+      throw UnsupportedError(
+        'DefaultFirebaseOptions have not been configured for web - '
+        'you can reconfigure this by running the FlutterFire CLI again.',
+      );
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -25,9 +28,15 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        return macos;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for macos - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.windows:
-        return windows;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for windows - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -40,19 +49,9 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCX3ILYUYvYT6URkBPOVIS74io5ET0cOOQ',
-    appId: '1:70756738260:web:a1fd7ba8be847dd8778741',
-    messagingSenderId: '70756738260',
-    projectId: 'pawvault-e0cc5',
-    authDomain: 'pawvault-e0cc5.firebaseapp.com',
-    storageBucket: 'pawvault-e0cc5.firebasestorage.app',
-    measurementId: 'G-6P3CBX2P67',
-  );
-
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCnq9sx2OYrF-KDJU4I_lbLrIxBM-u8mZI',
-    appId: '1:70756738260:android:495fdafa3fee8749778741',
+    appId: '1:70756738260:android:76868e47900c422c778741',
     messagingSenderId: '70756738260',
     projectId: 'pawvault-e0cc5',
     storageBucket: 'pawvault-e0cc5.firebasestorage.app',
@@ -60,33 +59,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCfewE7NY0xThytX2ejHwZZrh4EP7u21Wk',
-    appId: '1:70756738260:ios:6cb7a40554b8337d778741',
+    appId: '1:70756738260:ios:de85927129f4db55778741',
     messagingSenderId: '70756738260',
     projectId: 'pawvault-e0cc5',
     storageBucket: 'pawvault-e0cc5.firebasestorage.app',
-    iosClientId:
-        '70756738260-0h6apq6uau16rut6242q4m60t4vjs8rq.apps.googleusercontent.com',
-    iosBundleId: 'com.example.pawVault',
-  );
-
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyCfewE7NY0xThytX2ejHwZZrh4EP7u21Wk',
-    appId: '1:70756738260:ios:6cb7a40554b8337d778741',
-    messagingSenderId: '70756738260',
-    projectId: 'pawvault-e0cc5',
-    storageBucket: 'pawvault-e0cc5.firebasestorage.app',
-    iosClientId:
-        '70756738260-0h6apq6uau16rut6242q4m60t4vjs8rq.apps.googleusercontent.com',
-    iosBundleId: 'com.example.pawVault',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyCX3ILYUYvYT6URkBPOVIS74io5ET0cOOQ',
-    appId: '1:70756738260:web:240dd32429993d5d778741',
-    messagingSenderId: '70756738260',
-    projectId: 'pawvault-e0cc5',
-    authDomain: 'pawvault-e0cc5.firebaseapp.com',
-    storageBucket: 'pawvault-e0cc5.firebasestorage.app',
-    measurementId: 'G-BDF4432S0G',
+    iosClientId: '70756738260-517538s2u9i9hhng41ne1nr51e6jkmfn.apps.googleusercontent.com',
+    iosBundleId: 'com.treamz.pawVault',
   );
 }
