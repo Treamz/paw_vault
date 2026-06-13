@@ -108,6 +108,7 @@ class FlutterFireAuthDataSource implements FirebaseAuthDataSource {
     final credential = OAuthProvider('apple.com').credential(
       idToken: idToken,
       rawNonce: rawNonce,
+      accessToken: appleCredential.authorizationCode,
     );
     return _linkOrSignIn(
       credential,
