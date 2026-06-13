@@ -104,6 +104,8 @@ user for confirmation before saving.
   sign-in.
 - `docs/PLATFORM_CONFIG.md` — app metadata, identifiers, icons, SDK levels, and
   permissions, with release gaps.
+- `docs/CICD.md` — GitHub Actions → TestFlight deployment and the required
+  App Store Connect API key secrets.
 - `.ai/ROADMAP.md` and `.ai/TASKS.md` — the phased build plan (all phases
   complete) and task history.
 
