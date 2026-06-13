@@ -262,7 +262,7 @@
 - [x] Add Phase 12 actionable task checklist.
 - [x] Extract shared loading/empty/error state widgets and adopt them across the
   feature screens for consistent UX.
-- [ ] Accessibility pass: add semantic labels/tooltips to icon-only buttons and
+- [x] Accessibility pass: add semantic labels/tooltips to icon-only buttons and
   ensure interactive elements meet minimum tap-target sizes.
 - [ ] Add widget tests for key screens (documents, reminders, smart input, vet
   summary) covering their empty and populated states.

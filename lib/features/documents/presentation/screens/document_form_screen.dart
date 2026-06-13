@@ -372,6 +372,7 @@ class _DateField extends StatelessWidget {
           suffixIcon: onClear != null
               ? IconButton(
                   icon: const Icon(Icons.clear),
+                  tooltip: 'Clear date',
                   onPressed: onClear,
                 )
               : const Icon(Icons.calendar_today),

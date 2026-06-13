@@ -365,6 +365,7 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
                           if (_selectedReminderDate != null)
                             IconButton(
                               icon: const Icon(Icons.clear),
+                              tooltip: 'Clear reminder date',
                               onPressed: isSaving ? null : _clearReminderDate,
                             ),
                           const Icon(Icons.calendar_today),

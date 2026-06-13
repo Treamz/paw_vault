@@ -68,6 +68,7 @@ class _TimelineView extends StatelessWidget {
           if (state.petId == null) return const SizedBox.shrink();
 
           return FloatingActionButton(
+            tooltip: 'Add event',
             onPressed: () {
               context.router.push(
                 TimelineEventFormRoute(petId: state.petId!),
