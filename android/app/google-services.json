@@ -12,7 +12,12 @@
           "package_name": "com.example.paw_vault"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "70756738260-kq4m1nanktt0lvdk37og56plbp9eu6jd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCnq9sx2OYrF-KDJU4I_lbLrIxBM-u8mZI"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "70756738260-kq4m1nanktt0lvdk37og56plbp9eu6jd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "70756738260-0h6apq6uau16rut6242q4m60t4vjs8rq.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.pawVault"
+              }
+            }
+          ]
         }
       }
     }
