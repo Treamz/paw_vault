@@ -60,7 +60,9 @@ void main() {
       expect(authRepository.currentUserCallCount, 1);
       expect(authRepository.signInAnonymouslyCallCount, 1);
       expect(
-          timelineRepository.requestedUserId, const EntityId('anonymous-user'));
+        timelineRepository.requestedUserId,
+        const EntityId('anonymous-user'),
+      );
       expect(cubit.state.status, TimelineEventStatus.ready);
 
       await cubit.close();
@@ -261,7 +263,9 @@ void main() {
 
       expect(cubit.state.status, TimelineEventStatus.failure);
       expect(
-          cubit.state.errorMessage, contains('Cannot update: no event loaded'));
+        cubit.state.errorMessage,
+        contains('Cannot update: no event loaded'),
+      );
       expect(timelineRepository.saveEventCallCount, isZero);
 
       await cubit.close();
@@ -358,7 +362,9 @@ void main() {
 
       expect(cubit.state.status, TimelineEventStatus.failure);
       expect(
-          cubit.state.errorMessage, contains('Cannot delete: no event loaded'));
+        cubit.state.errorMessage,
+        contains('Cannot delete: no event loaded'),
+      );
       expect(timelineRepository.deleteEventCallCount, isZero);
 
       await cubit.close();

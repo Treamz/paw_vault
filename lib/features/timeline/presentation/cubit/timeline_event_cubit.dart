@@ -17,11 +17,13 @@ class TimelineEventCubit extends Cubit<TimelineEventState> {
   final AuthRepository _authRepository;
 
   Future<void> load(String petId, String eventId) async {
-    emit(TimelineEventState(
-      status: TimelineEventStatus.loading,
-      petId: petId,
-      eventId: eventId,
-    ));
+    emit(
+      TimelineEventState(
+        status: TimelineEventStatus.loading,
+        petId: petId,
+        eventId: eventId,
+      ),
+    );
 
     try {
       await _timelineRepository.initialize();
@@ -172,7 +174,6 @@ class TimelineEventCubit extends Cubit<TimelineEventState> {
           userId: state.userId,
           petId: state.petId,
           eventId: state.eventId,
-          event: null,
         ),
       );
     } catch (error) {

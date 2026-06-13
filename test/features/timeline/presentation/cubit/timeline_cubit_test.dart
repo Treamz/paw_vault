@@ -59,7 +59,9 @@ void main() {
       expect(authRepository.currentUserCallCount, 1);
       expect(authRepository.signInAnonymouslyCallCount, 1);
       expect(
-          timelineRepository.watchedUserId, const EntityId('anonymous-user'));
+        timelineRepository.watchedUserId,
+        const EntityId('anonymous-user'),
+      );
       expect(timelineRepository.watchedPetId, const EntityId('pet-1'));
       expect(cubit.state.status, TimelineStatus.ready);
 
@@ -126,9 +128,9 @@ void main() {
     });
 
     test('filters events by event type', () async {
-      final event1 = _event(type: PetEventType.vaccination);
+      final event1 = _event();
       final event2 = _event(type: PetEventType.vetVisit);
-      final event3 = _event(type: PetEventType.vaccination);
+      final event3 = _event();
       final authRepository = _FakeAuthRepository(
         currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
       );
@@ -149,15 +151,16 @@ void main() {
 
       expect(cubit.state.filteredEvents.length, 2);
       expect(
-          cubit.state.filteredEvents
-              .every((e) => e.type == PetEventType.vaccination),
-          isTrue);
+        cubit.state.filteredEvents
+            .every((e) => e.type == PetEventType.vaccination),
+        isTrue,
+      );
 
       await cubit.close();
     });
 
     test('filters events by date range', () async {
-      final event1 = _event(date: UtcDateTime(DateTime(2024, 1, 1)));
+      final event1 = _event(date: UtcDateTime(DateTime(2024)));
       final event2 = _event(date: UtcDateTime(DateTime(2024, 2, 15)));
       final event3 = _event(date: UtcDateTime(DateTime(2024, 3, 30)));
       final authRepository = _FakeAuthRepository(
@@ -177,8 +180,8 @@ void main() {
       expect(cubit.state.filteredEvents.length, 3);
 
       cubit.setDateRangeFilter(
-        startDate: DateTime(2024, 2, 1),
-        endDate: DateTime(2024, 3, 1),
+        startDate: DateTime(2024, 2),
+        endDate: DateTime(2024, 3),
       );
 
       expect(cubit.state.filteredEvents.length, 1);
@@ -189,7 +192,6 @@ void main() {
 
     test('filters events by both type and date range', () async {
       final event1 = _event(
-        type: PetEventType.vaccination,
         date: UtcDateTime(DateTime(2024, 1, 15)),
       );
       final event2 = _event(
@@ -197,7 +199,6 @@ void main() {
         date: UtcDateTime(DateTime(2024, 2, 15)),
       );
       final event3 = _event(
-        type: PetEventType.vaccination,
         date: UtcDateTime(DateTime(2024, 2, 20)),
       );
       final authRepository = _FakeAuthRepository(
@@ -215,8 +216,8 @@ void main() {
 
       cubit.setEventTypeFilter(PetEventType.vaccination);
       cubit.setDateRangeFilter(
-        startDate: DateTime(2024, 2, 1),
-        endDate: DateTime(2024, 3, 1),
+        startDate: DateTime(2024, 2),
+        endDate: DateTime(2024, 3),
       );
 
       expect(cubit.state.filteredEvents.length, 1);
@@ -226,7 +227,7 @@ void main() {
     });
 
     test('clears all filters', () async {
-      final event1 = _event(type: PetEventType.vaccination);
+      final event1 = _event();
       final event2 = _event(type: PetEventType.vetVisit);
       final authRepository = _FakeAuthRepository(
         currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
@@ -243,7 +244,7 @@ void main() {
 
       cubit.setEventTypeFilter(PetEventType.vaccination);
       cubit.setDateRangeFilter(
-        startDate: DateTime(2024, 1, 1),
+        startDate: DateTime(2024),
         endDate: DateTime(2024, 12, 31),
       );
 

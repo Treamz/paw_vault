@@ -81,14 +81,18 @@ void main() {
       expect(roundTripped.detectedIntent, original.detectedIntent);
       expect(roundTripped.extractedData, original.extractedData);
       expect(roundTripped.suggestedActions, hasLength(2));
-      expect(roundTripped.suggestedActions.first.type,
-          original.suggestedActions.first.type);
+      expect(
+        roundTripped.suggestedActions.first.type,
+        original.suggestedActions.first.type,
+      );
       expect(
         roundTripped.suggestedActions.first.payload,
         original.suggestedActions.first.payload,
       );
-      expect(roundTripped.suggestedActions.last.type,
-          original.suggestedActions.last.type);
+      expect(
+        roundTripped.suggestedActions.last.type,
+        original.suggestedActions.last.type,
+      );
       expect(
         roundTripped.suggestedActions.last.payload,
         original.suggestedActions.last.payload,

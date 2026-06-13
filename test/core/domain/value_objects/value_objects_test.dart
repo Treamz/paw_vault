@@ -37,8 +37,8 @@ void main() {
     });
 
     test('compares by calendar date', () {
-      final earlier = const DateOnly(year: 2026, month: 6, day: 5);
-      final later = const DateOnly(year: 2026, month: 6, day: 6);
+      const earlier = DateOnly(year: 2026, month: 6, day: 5);
+      const later = DateOnly(year: 2026, month: 6, day: 6);
 
       expect(earlier.compareTo(later), isNegative);
       expect(later.compareTo(earlier), isPositive);

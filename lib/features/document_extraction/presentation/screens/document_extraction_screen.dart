@@ -310,8 +310,11 @@ class _ReviewForm extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.warning_amber,
-                      size: 18, color: Theme.of(context).colorScheme.error),
+                  Icon(
+                    Icons.warning_amber,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(

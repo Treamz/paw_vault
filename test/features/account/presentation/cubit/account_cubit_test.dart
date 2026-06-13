@@ -44,7 +44,9 @@ void main() {
 
       expect(repository.registeredEmail, 'a@b.com');
       expect(
-          states.any((s) => s.status == AccountStatus.authenticating), isTrue);
+        states.any((s) => s.status == AccountStatus.authenticating),
+        isTrue,
+      );
       expect(cubit.state.status, AccountStatus.idle);
       expect(cubit.state.user?.email, 'a@b.com');
 

@@ -36,7 +36,7 @@ void main() {
 
     test('throws when the pet does not exist', () async {
       final loader = LoadVetSummaryData(
-        petRepository: _FakePetRepository(pet: null),
+        petRepository: _FakePetRepository(),
         timelineRepository: _FakeTimelineRepository(),
         documentRepository: _FakeDocumentRepository(),
         reminderRepository: _FakeReminderRepository(),
@@ -65,7 +65,7 @@ PetEvent _event() => PetEvent(
       petId: const EntityId('pet-1'),
       type: PetEventType.vaccination,
       title: 'Rabies',
-      date: UtcDateTime(DateTime.utc(2026, 1, 1)),
+      date: UtcDateTime(DateTime.utc(2026)),
       source: PetEventSource.manual,
     );
 
@@ -84,7 +84,7 @@ Reminder _reminder() => Reminder(
       userId: const EntityId('user-1'),
       petId: const EntityId('pet-1'),
       title: 'Check-up',
-      dateTime: UtcDateTime(DateTime.utc(2026, 2, 1)),
+      dateTime: UtcDateTime(DateTime.utc(2026, 2)),
     );
 
 class _FakePetRepository implements PetRepository {

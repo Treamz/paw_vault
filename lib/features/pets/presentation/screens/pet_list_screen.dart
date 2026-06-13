@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/features/account/presentation/widgets/account_action.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
@@ -40,12 +41,18 @@ class _PetListView extends StatelessWidget {
             return switch (state.status) {
               PetListStatus.initial ||
               PetListStatus.loading =>
-                const _PetListLoading(),
-              PetListStatus.failure => _PetListFailure(
+                const LoadingView(),
+              PetListStatus.failure => ErrorStateView(
+                  title: 'Could not load pets',
                   message: state.errorMessage,
                 ),
               PetListStatus.ready => state.pets.isEmpty
-                  ? const _PetListEmpty()
+                  ? const EmptyStateView(
+                      icon: Icons.pets,
+                      title: 'No pets yet',
+                      message: 'Add your first pet profile to start building '
+                          'a health archive.',
+                    )
                   : _PetListContent(pets: state.pets),
             };
           },
@@ -55,91 +62,6 @@ class _PetListView extends StatelessWidget {
         onPressed: () => context.router.push(PetFormRoute()),
         icon: const Icon(Icons.add),
         label: const Text('Add pet'),
-      ),
-    );
-  }
-}
-
-class _PetListLoading extends StatelessWidget {
-  const _PetListLoading();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(),
-    );
-  }
-}
-
-class _PetListEmpty extends StatelessWidget {
-  const _PetListEmpty();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.pets,
-              size: 48,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No pets yet',
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Add your first pet profile to start building a health archive.',
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PetListFailure extends StatelessWidget {
-  const _PetListFailure({required this.message});
-
-  final String? message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Could not load pets',
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            if (message != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                message!,
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }

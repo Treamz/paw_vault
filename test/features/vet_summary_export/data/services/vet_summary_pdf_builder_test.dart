@@ -49,6 +49,6 @@ PetEvent _event() => PetEvent(
       petId: const EntityId('pet-1'),
       type: PetEventType.vaccination,
       title: 'Rabies',
-      date: UtcDateTime(DateTime.utc(2026, 1, 1)),
+      date: UtcDateTime(DateTime.utc(2026)),
       source: PetEventSource.manual,
     );

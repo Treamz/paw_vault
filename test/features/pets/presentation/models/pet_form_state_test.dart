@@ -16,7 +16,7 @@ void main() {
         breed: 'Persian',
         birthDate: const DateOnly(year: 2020, month: 5, day: 15),
         gender: PetGender.female,
-        weight: const PetWeight(value: 4.5, unit: PetWeightUnit.kilogram),
+        weight: const PetWeight(value: 4.5),
         microchipNumber: 'MC123456',
         photoUrl: Uri.parse('https://example.com/fluffy.jpg'),
         allergies: const ['Chicken'],
@@ -30,7 +30,9 @@ void main() {
       expect(formState.species, 'Cat');
       expect(formState.breed, 'Persian');
       expect(
-          formState.birthDate, const DateOnly(year: 2020, month: 5, day: 15));
+        formState.birthDate,
+        const DateOnly(year: 2020, month: 5, day: 15),
+      );
       expect(formState.gender, PetGender.female);
       expect(formState.weightValue, 4.5);
       expect(formState.weightUnit, PetWeightUnit.kilogram);
@@ -65,7 +67,7 @@ void main() {
       });
 
       test('returns error when name is empty', () {
-        const formState = PetFormState(name: '');
+        const formState = PetFormState();
 
         final validation = formState.validate();
 
@@ -89,8 +91,10 @@ void main() {
         final validation = formState.validate();
 
         expect(validation.isValid, false);
-        expect(validation.errorFor('name'),
-            'Pet name must be 100 characters or less');
+        expect(
+          validation.errorFor('name'),
+          'Pet name must be 100 characters or less',
+        );
       });
 
       test('returns error when species exceeds 50 characters', () {
@@ -100,8 +104,10 @@ void main() {
         final validation = formState.validate();
 
         expect(validation.isValid, false);
-        expect(validation.errorFor('species'),
-            'Species must be 50 characters or less');
+        expect(
+          validation.errorFor('species'),
+          'Species must be 50 characters or less',
+        );
       });
 
       test('returns error when breed exceeds 50 characters', () {
@@ -111,8 +117,10 @@ void main() {
         final validation = formState.validate();
 
         expect(validation.isValid, false);
-        expect(validation.errorFor('breed'),
-            'Breed must be 50 characters or less');
+        expect(
+          validation.errorFor('breed'),
+          'Breed must be 50 characters or less',
+        );
       });
 
       test('returns error when birth date is in the future', () {
@@ -125,12 +133,14 @@ void main() {
         final validation = formState.validate();
 
         expect(validation.isValid, false);
-        expect(validation.errorFor('birthDate'),
-            'Birth date cannot be in the future');
+        expect(
+          validation.errorFor('birthDate'),
+          'Birth date cannot be in the future',
+        );
       });
 
       test('returns error when birth date is too old', () {
-        final tooOld = DateTime(1900, 1, 1);
+        final tooOld = DateTime(1900);
         final formState = PetFormState(
           name: 'Fluffy',
           birthDate: DateOnly.fromDateTime(tooOld),
@@ -168,8 +178,10 @@ void main() {
         final validation = formState.validate();
 
         expect(validation.isValid, false);
-        expect(validation.errorFor('microchipNumber'),
-            'Microchip number must be 50 characters or less');
+        expect(
+          validation.errorFor('microchipNumber'),
+          'Microchip number must be 50 characters or less',
+        );
       });
 
       test('returns error when photo URL is invalid', () {
@@ -178,8 +190,10 @@ void main() {
         final validation = formState.validate();
 
         expect(validation.isValid, false);
-        expect(validation.errorFor('photoUrl'),
-            'Photo URL must be a valid HTTP or HTTPS URL');
+        expect(
+          validation.errorFor('photoUrl'),
+          'Photo URL must be a valid HTTP or HTTPS URL',
+        );
       });
 
       test('accepts valid HTTP URL', () {
@@ -211,13 +225,14 @@ void main() {
         final validation = formState.validate();
 
         expect(validation.isValid, false);
-        expect(validation.errorFor('notes'),
-            'Notes must be 5000 characters or less');
+        expect(
+          validation.errorFor('notes'),
+          'Notes must be 5000 characters or less',
+        );
       });
 
       test('allows multiple validation errors', () {
         const formState = PetFormState(
-          name: '',
           weightValue: -5,
         );
 
@@ -232,18 +247,17 @@ void main() {
 
     group('toPet', () {
       test('converts valid form state to pet entity', () {
-        final formState = PetFormState(
+        const formState = PetFormState(
           name: 'Fluffy',
           species: 'Cat',
           breed: 'Persian',
-          birthDate: const DateOnly(year: 2020, month: 5, day: 15),
+          birthDate: DateOnly(year: 2020, month: 5, day: 15),
           gender: PetGender.female,
           weightValue: 4.5,
-          weightUnit: PetWeightUnit.kilogram,
           microchipNumber: 'MC123456',
           photoUrl: 'https://example.com/fluffy.jpg',
-          allergies: const ['Chicken'],
-          chronicConditions: const ['Diabetes'],
+          allergies: ['Chicken'],
+          chronicConditions: ['Diabetes'],
           notes: 'Loves catnip',
         );
 
@@ -310,7 +324,7 @@ void main() {
       });
 
       test('throws PetFormValidationException when form is invalid', () {
-        const formState = PetFormState(name: '');
+        const formState = PetFormState();
 
         expect(
           () => formState.toPet(

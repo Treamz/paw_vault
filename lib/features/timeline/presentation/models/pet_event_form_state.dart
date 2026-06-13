@@ -85,7 +85,10 @@ class PetEventFormState {
             'Reminder date cannot be before event date';
       }
       final twoYearsFromNow = DateTime(
-          DateTime.now().year + 2, DateTime.now().month, DateTime.now().day);
+        DateTime.now().year + 2,
+        DateTime.now().month,
+        DateTime.now().day,
+      );
       if (nextReminderDate!.isAfter(twoYearsFromNow)) {
         errors['nextReminderDate'] =
             'Reminder date cannot be more than 2 years in the future';
@@ -126,7 +129,7 @@ class PetEventFormState {
     final validAttachments = attachments
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
-        .map((s) => Uri.parse(s))
+        .map(Uri.parse)
         .toList();
 
     return PetEvent(

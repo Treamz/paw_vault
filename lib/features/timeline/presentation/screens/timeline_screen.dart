@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
 import 'package:paw_vault/features/timeline/presentation/cubit/timeline_cubit.dart';
@@ -42,12 +43,18 @@ class _TimelineView extends StatelessWidget {
             return switch (state.status) {
               TimelineStatus.initial ||
               TimelineStatus.loading =>
-                const _TimelineLoading(),
-              TimelineStatus.failure => _TimelineFailure(
+                const LoadingView(),
+              TimelineStatus.failure => ErrorStateView(
+                  title: 'Could not load timeline',
                   message: state.errorMessage,
                 ),
               TimelineStatus.ready => state.filteredEvents.isEmpty
-                  ? const _TimelineEmpty()
+                  ? const EmptyStateView(
+                      icon: Icons.timeline,
+                      title: 'No events yet',
+                      message: "Add health events to track your pet's "
+                          'medical history.',
+                    )
                   : _TimelineContent(
                       events: state.filteredEvents,
                       petId: state.petId!,
@@ -61,6 +68,7 @@ class _TimelineView extends StatelessWidget {
           if (state.petId == null) return const SizedBox.shrink();
 
           return FloatingActionButton(
+            tooltip: 'Add event',
             onPressed: () {
               context.router.push(
                 TimelineEventFormRoute(petId: state.petId!),
@@ -69,91 +77,6 @@ class _TimelineView extends StatelessWidget {
             child: const Icon(Icons.add),
           );
         },
-      ),
-    );
-  }
-}
-
-class _TimelineLoading extends StatelessWidget {
-  const _TimelineLoading();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(),
-    );
-  }
-}
-
-class _TimelineEmpty extends StatelessWidget {
-  const _TimelineEmpty();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.timeline,
-              size: 48,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No events yet',
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Add health events to track your pet\'s medical history.',
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TimelineFailure extends StatelessWidget {
-  const _TimelineFailure({required this.message});
-
-  final String? message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Could not load timeline',
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            if (message != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                message!,
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }

@@ -67,11 +67,15 @@ abstract final class PetDocumentFirestoreMapper {
       createdAt: data['createdAt'] == null
           ? null
           : FirestoreMapping.utcDateTimeFromJson(
-              data['createdAt'], 'createdAt'),
+              data['createdAt'],
+              'createdAt',
+            ),
       updatedAt: data['updatedAt'] == null
           ? null
           : FirestoreMapping.utcDateTimeFromJson(
-              data['updatedAt'], 'updatedAt'),
+              data['updatedAt'],
+              'updatedAt',
+            ),
     );
   }
 

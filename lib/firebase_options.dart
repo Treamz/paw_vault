@@ -64,7 +64,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '70756738260',
     projectId: 'pawvault-e0cc5',
     storageBucket: 'pawvault-e0cc5.firebasestorage.app',
-    iosClientId: '70756738260-0h6apq6uau16rut6242q4m60t4vjs8rq.apps.googleusercontent.com',
+    iosClientId:
+        '70756738260-0h6apq6uau16rut6242q4m60t4vjs8rq.apps.googleusercontent.com',
     iosBundleId: 'com.example.pawVault',
   );
 
@@ -74,7 +75,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '70756738260',
     projectId: 'pawvault-e0cc5',
     storageBucket: 'pawvault-e0cc5.firebasestorage.app',
-    iosClientId: '70756738260-0h6apq6uau16rut6242q4m60t4vjs8rq.apps.googleusercontent.com',
+    iosClientId:
+        '70756738260-0h6apq6uau16rut6242q4m60t4vjs8rq.apps.googleusercontent.com',
     iosBundleId: 'com.example.pawVault',
   );
 
@@ -87,5 +89,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'pawvault-e0cc5.firebasestorage.app',
     measurementId: 'G-BDF4432S0G',
   );
-
 }

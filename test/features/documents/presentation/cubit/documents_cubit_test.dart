@@ -57,7 +57,9 @@ void main() {
       expect(authRepository.currentUserCallCount, 1);
       expect(authRepository.signInAnonymouslyCallCount, 1);
       expect(
-          documentRepository.watchedUserId, const EntityId('anonymous-user'));
+        documentRepository.watchedUserId,
+        const EntityId('anonymous-user'),
+      );
       expect(documentRepository.watchedPetId, const EntityId('pet-1'));
       expect(cubit.state.status, DocumentsStatus.ready);
 
@@ -156,7 +158,7 @@ void main() {
       await cubit.load('pet-1');
       await Future<void>.delayed(Duration.zero);
 
-      cubit.setExpiringBeforeFilter(DateTime(2026, 7, 1));
+      cubit.setExpiringBeforeFilter(DateTime(2026, 7));
 
       expect(cubit.state.filteredDocuments, [expiringSoon]);
 
@@ -173,7 +175,7 @@ void main() {
       await cubit.load('pet-1');
       await Future<void>.delayed(Duration.zero);
 
-      cubit.setExpiringBeforeFilter(DateTime(2026, 7, 1));
+      cubit.setExpiringBeforeFilter(DateTime(2026, 7));
 
       expect(cubit.state.filteredDocuments, [onCutoff]);
 
@@ -202,7 +204,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       cubit.setTypeFilter(PetDocumentType.insurance);
-      cubit.setExpiringBeforeFilter(DateTime(2026, 7, 1));
+      cubit.setExpiringBeforeFilter(DateTime(2026, 7));
 
       expect(cubit.state.filteredDocuments, [match]);
 
@@ -218,7 +220,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       cubit.setTypeFilter(PetDocumentType.passport);
-      cubit.setExpiringBeforeFilter(DateTime(2026, 7, 1));
+      cubit.setExpiringBeforeFilter(DateTime(2026, 7));
 
       expect(cubit.state.filterType, PetDocumentType.passport);
       expect(cubit.state.expiringBefore, isNotNull);

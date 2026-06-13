@@ -151,7 +151,7 @@ VetSummaryExport _export() => VetSummaryExport(
       id: const EntityId('export-1'),
       userId: const EntityId('user-1'),
       petId: const EntityId('pet-1'),
-      createdAt: UtcDateTime(DateTime.utc(2026, 6, 1)),
+      createdAt: UtcDateTime(DateTime.utc(2026, 6)),
       fileUrl: Uri.parse('https://storage.example.com/summary.pdf'),
       storagePath: 'users/user-1/pets/pet-1/exports/vet_summary.pdf',
     );

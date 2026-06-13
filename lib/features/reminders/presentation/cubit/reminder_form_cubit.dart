@@ -21,11 +21,13 @@ class ReminderFormCubit extends Cubit<ReminderFormCubitState> {
   final ReminderNotificationScheduler _notificationScheduler;
 
   Future<void> load(String petId, String reminderId) async {
-    emit(ReminderFormCubitState(
-      status: ReminderFormStatus.loading,
-      petId: petId,
-      reminderId: reminderId,
-    ));
+    emit(
+      ReminderFormCubitState(
+        status: ReminderFormStatus.loading,
+        petId: petId,
+        reminderId: reminderId,
+      ),
+    );
 
     try {
       await _reminderRepository.initialize();

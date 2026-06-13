@@ -25,8 +25,10 @@ void main() {
 
       expect(result.path, 'users/user-1/pets/pet-1/photos/profile.jpg');
       expect(result.downloadUrl, Uri.parse('https://example.com/profile.jpg'));
-      expect(dataSource.uploadedPath,
-          'users/user-1/pets/pet-1/photos/profile.jpg');
+      expect(
+        dataSource.uploadedPath,
+        'users/user-1/pets/pet-1/photos/profile.jpg',
+      );
       expect(dataSource.uploadedBytes, bytes);
       expect(dataSource.uploadedContentType, 'image/jpeg');
     });

@@ -44,7 +44,7 @@ void main() {
 
     test('returns null and does not upload when the picker is cancelled',
         () async {
-      final filePicker = _FakeFilePicker(picked: null);
+      final filePicker = _FakeFilePicker();
       final storageRepository = _FakeStorageRepository();
       final service = DocumentUploadService(
         filePicker: filePicker,

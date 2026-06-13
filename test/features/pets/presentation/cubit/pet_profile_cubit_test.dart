@@ -177,9 +177,9 @@ void main() {
     });
 
     test('updates an existing pet from form state', () async {
-      final existingPet = Pet(
-        id: const EntityId('pet-1'),
-        userId: const EntityId('user-1'),
+      const existingPet = Pet(
+        id: EntityId('pet-1'),
+        userId: EntityId('user-1'),
         name: 'OldName',
         species: 'Dog',
       );
@@ -234,16 +234,18 @@ void main() {
 
       expect(cubit.state.status, PetProfileStatus.failure);
       expect(
-          cubit.state.errorMessage, contains('Cannot update: no pet loaded'));
+        cubit.state.errorMessage,
+        contains('Cannot update: no pet loaded'),
+      );
       expect(petRepository.savePetCallCount, isZero);
 
       await cubit.close();
     });
 
     test('emits failure when update throws', () async {
-      final existingPet = Pet(
-        id: const EntityId('pet-1'),
-        userId: const EntityId('user-1'),
+      const existingPet = Pet(
+        id: EntityId('pet-1'),
+        userId: EntityId('user-1'),
         name: 'OldName',
       );
       final authRepository = _FakeAuthRepository(
@@ -271,9 +273,9 @@ void main() {
     });
 
     test('deletes a loaded pet', () async {
-      final existingPet = Pet(
-        id: const EntityId('pet-1'),
-        userId: const EntityId('user-1'),
+      const existingPet = Pet(
+        id: EntityId('pet-1'),
+        userId: EntityId('user-1'),
         name: 'ToDelete',
       );
       final authRepository = _FakeAuthRepository(
@@ -319,16 +321,18 @@ void main() {
 
       expect(cubit.state.status, PetProfileStatus.failure);
       expect(
-          cubit.state.errorMessage, contains('Cannot delete: no pet loaded'));
+        cubit.state.errorMessage,
+        contains('Cannot delete: no pet loaded'),
+      );
       expect(petRepository.deletePetCallCount, isZero);
 
       await cubit.close();
     });
 
     test('emits failure when delete throws', () async {
-      final existingPet = Pet(
-        id: const EntityId('pet-1'),
-        userId: const EntityId('user-1'),
+      const existingPet = Pet(
+        id: EntityId('pet-1'),
+        userId: EntityId('user-1'),
         name: 'ToDelete',
       );
       final authRepository = _FakeAuthRepository(

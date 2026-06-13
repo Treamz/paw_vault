@@ -45,7 +45,7 @@ void main() {
 
       await cubit.createReminder(
         'pet-1',
-        const ReminderFormState(title: ''),
+        const ReminderFormState(),
       );
 
       expect(cubit.state.status, ReminderFormStatus.failure);
@@ -104,7 +104,7 @@ void main() {
       await cubit.updateReminder(
         ReminderFormState(
           title: 'Updated title',
-          dateTime: DateTime(2027, 2, 1),
+          dateTime: DateTime(2027, 2),
         ),
       );
 
@@ -208,7 +208,7 @@ Reminder _reminder() {
     petId: const EntityId('pet-1'),
     title: 'Original',
     dateTime: UtcDateTime(DateTime(2027, 1, 10, 9)),
-    createdAt: UtcDateTime(DateTime(2026, 1, 1)),
+    createdAt: UtcDateTime(DateTime(2026)),
   );
 }
 

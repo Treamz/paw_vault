@@ -9,9 +9,11 @@ void main() {
   group('FirebaseReminderRepository', () {
     test('watches reminders through the Firestore data source', () async {
       final reminder = _reminder();
-      final dataSource = _FakeFirestoreReminderDataSource(watchedReminders: [
-        reminder,
-      ]);
+      final dataSource = _FakeFirestoreReminderDataSource(
+        watchedReminders: [
+          reminder,
+        ],
+      );
       final repository = FirebaseReminderRepository(dataSource);
 
       final reminders = await repository

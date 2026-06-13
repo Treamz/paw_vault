@@ -33,8 +33,10 @@ class VetSummaryPdfBuilder implements VetSummaryPdfGenerator {
             _section(
               'Timeline events',
               data.events
-                  .map((e) =>
-                      '${dateFormat.format(e.date.value)} - ${_label(e.type.name)}: ${e.title}')
+                  .map(
+                    (e) =>
+                        '${dateFormat.format(e.date.value)} - ${_label(e.type.name)}: ${e.title}',
+                  )
                   .toList(),
             ),
           if (data.documents.isNotEmpty)

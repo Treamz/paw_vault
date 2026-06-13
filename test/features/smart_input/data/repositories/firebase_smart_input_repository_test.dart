@@ -26,9 +26,11 @@ void main() {
 
     test('watches messages through the Firestore data source', () async {
       final message = _message();
-      final dataSource = _FakeFirestoreSmartInputDataSource(watchedMessages: [
-        message,
-      ]);
+      final dataSource = _FakeFirestoreSmartInputDataSource(
+        watchedMessages: [
+          message,
+        ],
+      );
       final repository = FirebaseSmartInputRepository(
         aiRepository: _FakeAiRepository(),
         dataSource: dataSource,

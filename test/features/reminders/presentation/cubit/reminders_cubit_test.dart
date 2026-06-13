@@ -87,15 +87,15 @@ void main() {
     test('sortedReminders orders pending by due date then completed last', () {
       final pendingLater = _reminder(
         id: 'r1',
-        dateTime: UtcDateTime(DateTime.utc(2026, 3, 1)),
+        dateTime: UtcDateTime(DateTime.utc(2026, 3)),
       );
       final pendingSooner = _reminder(
         id: 'r2',
-        dateTime: UtcDateTime(DateTime.utc(2026, 1, 1)),
+        dateTime: UtcDateTime(DateTime.utc(2026)),
       );
       final done = _reminder(
         id: 'r3',
-        dateTime: UtcDateTime(DateTime.utc(2026, 2, 1)),
+        dateTime: UtcDateTime(DateTime.utc(2026, 2)),
         isCompleted: true,
       );
       const state = RemindersState(
