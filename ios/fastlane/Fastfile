@@ -45,8 +45,11 @@ platform :ios do
       scheme: "Runner",
       configuration: "Release",
       export_method: "app-store",
+      # Auth flags are needed on the archive command (gym does not add them
+      # there). gym adds them to the export command itself from the API key in
+      # lane context, so passing export_xcargs would duplicate
+      # `-authenticationKeyPath` and xcodebuild errors out.
       xcargs: auth_args,
-      export_xcargs: auth_args,
       export_options: {
         signingStyle: "automatic",
         teamID: TEAM_ID,
