@@ -1,0 +1,89 @@
+name: TestFlight
+
+# Builds the iOS app and ships it to TestFlight.
+# Triggered by pushing a version tag (e.g. v1.0.0) or manually from the Actions
+# tab. Signing is handled by App Store Connect automatic (cloud) signing using
+# an API key — see docs/CICD.md for the required repository secrets.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      build_name:
+        description: "Marketing version, e.g. 1.0.0 (defaults to the tag)"
+        required: false
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build & upload to TestFlight
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.1"
+          channel: stable
+          cache: true
+
+      - name: Set up Ruby & fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: ios
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Resolve build name
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.build_name }}" ]; then
+            BUILD_NAME="${{ github.event.inputs.build_name }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            BUILD_NAME="${GITHUB_REF_NAME#v}"
+          else
+            BUILD_NAME="1.0.0"
+          fi
+          echo "build_name=${BUILD_NAME}" >> "$GITHUB_OUTPUT"
+          echo "Building PawVault ${BUILD_NAME} (build ${{ github.run_number }})"
+
+      - name: Build Flutter iOS (no codesign)
+        run: |
+          flutter build ios --release --no-codesign \
+            --build-name=${{ steps.version.outputs.build_name }} \
+            --build-number=${{ github.run_number }}
+
+      - name: Build signed IPA & upload to TestFlight
+        working-directory: ios
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+        run: bundle exec fastlane beta
+
+      - name: Upload IPA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PawVault-ipa
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: ignore
+          retention-days: 7

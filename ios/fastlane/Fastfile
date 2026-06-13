@@ -1,0 +1,47 @@
+default_platform(:ios)
+
+# Build identifiers for PawVault. These mirror ios/Runner.xcodeproj so signing
+# happens with the App Store Connect API key (automatic cloud signing) — no
+# certificates or provisioning profiles are stored in the repo or CI secrets.
+APP_IDENTIFIER = "com.treamz.pawVault".freeze
+TEAM_ID = "64QDKH3589".freeze
+
+platform :ios do
+  desc "Build the signed app and upload it to TestFlight"
+  lane :beta do
+    # Authenticate with App Store Connect using an API key (.p8). gym picks the
+    # key up from the lane context to authorise `-allowProvisioningUpdates`, and
+    # pilot reuses it for the upload — so no Apple ID / 2FA is needed in CI.
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_content: ENV.fetch("ASC_KEY_CONTENT"),
+      is_key_content_base64: true,
+      in_house: false,
+    )
+
+    # The Flutter artefacts are precompiled by the workflow
+    # (`flutter build ios --release --no-codesign`) so this archive step reuses
+    # them and only handles signing + export.
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      configuration: "Release",
+      export_method: "app-store",
+      xcargs: "-allowProvisioningUpdates",
+      export_options: {
+        signingStyle: "automatic",
+        teamID: TEAM_ID,
+      },
+      output_directory: "build/ios/ipa",
+      output_name: "PawVault.ipa",
+      clean: true,
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: APP_IDENTIFIER,
+      skip_waiting_for_build_processing: true,
+    )
+  end
+end
