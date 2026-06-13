@@ -246,7 +246,8 @@
   sign-up/sign-in/sign-out actions, with fake-repository tests.
 - [x] Add a sign-in/sign-up UI (email/password form + Google/Apple buttons)
   reachable from the profile, surfacing errors and linking outcomes.
-- [ ] Add signed-in account status and sign-out UI in the profile.
+- [x] Add signed-in account status and sign-out UI (an AccountAction in the pet
+  list app bar showing signed-in state, with a sign-out sheet).
 - [ ] Wire the account route and any new auth providers through
   `AppDependencies`/providers.
 - [ ] Document the required Firebase and Apple platform configuration for

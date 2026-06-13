@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/app/theme/app_theme.dart';
+import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/di/app_dependencies.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
@@ -47,6 +48,9 @@ class _PawVaultAppState extends State<PawVaultApp> {
       providers: [
         RepositoryProvider<AuthRepository>.value(
           value: widget.dependencies.authRepository,
+        ),
+        RepositoryProvider<AccountAuthRepository>.value(
+          value: widget.dependencies.accountAuthRepository,
         ),
         RepositoryProvider<StorageRepository>.value(
           value: widget.dependencies.storageRepository,

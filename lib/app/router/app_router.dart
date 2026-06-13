@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/foundation.dart';
+import 'package:paw_vault/features/account/presentation/screens/account_screen.dart';
 import 'package:paw_vault/features/document_extraction/presentation/screens/document_extraction_screen.dart';
 import 'package:paw_vault/features/documents/presentation/screens/document_form_screen.dart';
 import 'package:paw_vault/features/documents/presentation/screens/documents_screen.dart';
@@ -20,6 +21,7 @@ class AppRouter extends RootStackRouter {
   @override
   List<AutoRoute> get routes => [
         AutoRoute(page: PetListRoute.page, initial: true, path: '/'),
+        AutoRoute(page: AccountRoute.page, path: '/account'),
         AutoRoute(page: PetFormRoute.page, path: '/pets/form'),
         AutoRoute(page: PetProfileRoute.page, path: '/pets/:petId'),
         AutoRoute(page: TimelineRoute.page, path: '/pets/:petId/timeline'),

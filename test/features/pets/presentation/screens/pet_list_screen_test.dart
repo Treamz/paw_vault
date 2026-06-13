@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
+import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
@@ -98,17 +99,18 @@ void main() {
 class _TestApp extends StatelessWidget {
   const _TestApp({
     required this.petRepository,
-    AuthRepository? authRepository,
+    AccountAuthRepository? authRepository,
   }) : authRepository = authRepository ?? const _FakeAuthRepository();
 
   final PetRepository petRepository;
-  final AuthRepository authRepository;
+  final AccountAuthRepository authRepository;
 
   @override
   Widget build(BuildContext context) {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<AuthRepository>.value(value: authRepository),
+        RepositoryProvider<AccountAuthRepository>.value(value: authRepository),
         RepositoryProvider<PetRepository>.value(value: petRepository),
       ],
       child: const MaterialApp(
@@ -118,7 +120,7 @@ class _TestApp extends StatelessWidget {
   }
 }
 
-class _FakeAuthRepository implements AuthRepository {
+class _FakeAuthRepository implements AccountAuthRepository {
   const _FakeAuthRepository();
 
   @override
@@ -140,6 +142,28 @@ class _FakeAuthRepository implements AuthRepository {
       const AppUser(id: 'user-1', isAnonymous: true),
     );
   }
+
+  @override
+  Future<AppUser> registerWithEmail({
+    required String email,
+    required String password,
+  }) async =>
+      AppUser(id: 'account-1', isAnonymous: false, email: email);
+
+  @override
+  Future<AppUser> signInWithEmail({
+    required String email,
+    required String password,
+  }) async =>
+      AppUser(id: 'account-1', isAnonymous: false, email: email);
+
+  @override
+  Future<AppUser> signInWithGoogle() async =>
+      const AppUser(id: 'account-1', isAnonymous: false);
+
+  @override
+  Future<AppUser> signInWithApple() async =>
+      const AppUser(id: 'account-1', isAnonymous: false);
 }
 
 class _FakePetRepository implements PetRepository {
