@@ -16,7 +16,7 @@ gaps to address before a store release.
 | --- | --- | --- |
 | Display name | `Paw Vault` (CFBundleDisplayName) | `PawVault` |
 | App / bundle id | `com.treamz.pawVault` | `com.example.paw_vault` |
-| Min SDK / deployment target | iOS 13.0 | `flutter.minSdkVersion` |
+| Min SDK / deployment target | iOS 15.0 | `flutter.minSdkVersion` |
 | Launcher icon | default Flutter icon | default Flutter icon |
 | Permissions | Camera, Photo Library | INTERNET (+ plugin-injected) |
 
@@ -31,9 +31,6 @@ uses the entitlement).
   rebranded (e.g. `com.treamz.pawvault`) for release. Changing it requires
   re-registering the Android app in Firebase and downloading a new
   `google-services.json`.
-- **iOS deployment target is 13.0.** Recent Firebase pods often require iOS 15;
-  if a release build warns or fails, bump `IPHONEOS_DEPLOYMENT_TARGET` (and the
-  Podfile platform) to 15.0.
 - **Launcher icons are the default Flutter icon.** Add a branded PawVault icon
   (e.g. via the `flutter_launcher_icons` package) for iOS and Android.
 - **`RunnerTests` bundle id** is still `com.example.pawVault.RunnerTests`
