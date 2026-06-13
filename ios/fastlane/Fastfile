@@ -28,6 +28,11 @@ platform :ios do
       scheme: "Runner",
       configuration: "Release",
       export_method: "app-store",
+      # Pass the API key to xcodebuild so `-allowProvisioningUpdates` can
+      # authenticate with App Store Connect and fetch/create the distribution
+      # signing assets (automatic cloud signing). Without this xcodebuild has
+      # "No Accounts" and the archive fails to find a provisioning profile.
+      api_key: api_key,
       xcargs: "-allowProvisioningUpdates",
       export_options: {
         signingStyle: "automatic",
