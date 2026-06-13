@@ -1,0 +1,103 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
+import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
+import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
+import 'package:paw_vault/features/documents/presentation/screens/documents_screen.dart';
+
+void main() {
+  group('DocumentsScreen', () {
+    testWidgets('shows the empty state when there are no documents',
+        (tester) async {
+      await tester.pumpWidget(_app(const []));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No documents yet'), findsOneWidget);
+    });
+
+    testWidgets('renders documents when present', (tester) async {
+      await tester.pumpWidget(_app([_document()]));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vaccination certificate'), findsOneWidget);
+      expect(find.text('No documents yet'), findsNothing);
+    });
+  });
+}
+
+Widget _app(List<PetDocument> documents) {
+  return MultiRepositoryProvider(
+    providers: [
+      RepositoryProvider<AuthRepository>.value(value: _FakeAuthRepository()),
+      RepositoryProvider<DocumentRepository>.value(
+        value: _FakeDocumentRepository(documents),
+      ),
+    ],
+    child: const MaterialApp(home: DocumentsScreen(petId: 'pet-1')),
+  );
+}
+
+PetDocument _document() => PetDocument(
+      id: const EntityId('doc-1'),
+      userId: const EntityId('user-1'),
+      petId: const EntityId('pet-1'),
+      title: 'Vaccination certificate',
+      type: PetDocumentType.vaccinationCertificate,
+      fileUrl: Uri.parse('https://example.com/doc.pdf'),
+      storagePath: 'users/user-1/pets/pet-1/documents/doc-1.pdf',
+    );
+
+class _FakeAuthRepository implements AuthRepository {
+  @override
+  Future<AppUser?> currentUser() async =>
+      const AppUser(id: 'user-1', isAnonymous: true);
+
+  @override
+  Future<AppUser> signInAnonymously() async =>
+      const AppUser(id: 'user-1', isAnonymous: true);
+
+  @override
+  Future<void> signOut() async {}
+
+  @override
+  Stream<AppUser?> watchCurrentUser() => Stream<AppUser?>.value(
+        const AppUser(id: 'user-1', isAnonymous: true),
+      );
+}
+
+class _FakeDocumentRepository implements DocumentRepository {
+  _FakeDocumentRepository(this.documents);
+
+  final List<PetDocument> documents;
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Stream<List<PetDocument>> watchDocuments({
+    required EntityId userId,
+    required EntityId petId,
+  }) =>
+      Stream<List<PetDocument>>.value(documents);
+
+  @override
+  Future<PetDocument?> getDocument({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId documentId,
+  }) async =>
+      null;
+
+  @override
+  Future<void> saveDocument(PetDocument document) async {}
+
+  @override
+  Future<void> deleteDocument({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId documentId,
+  }) async {}
+}

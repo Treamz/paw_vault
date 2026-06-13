@@ -264,7 +264,7 @@
   feature screens for consistent UX.
 - [x] Accessibility pass: add semantic labels/tooltips to icon-only buttons and
   ensure interactive elements meet minimum tap-target sizes.
-- [ ] Add widget tests for key screens (documents, reminders, smart input, vet
+- [x] Add widget tests for key screens (documents, reminders, smart input, vet
   summary) covering their empty and populated states.
 - [ ] Tighten lints in `analysis_options.yaml` and resolve any new warnings.
 - [ ] Review platform configuration (app name, bundle/app id, icons, min SDK
