@@ -253,6 +253,6 @@
   AccountRoute is registered and AccountAuthRepository is provided.)
 - [x] Document the required Firebase and Apple platform configuration for
   Google/Apple sign-in (docs/AUTH_SETUP.md).
-- [ ] Run a Phase 11 architecture boundary review to confirm widgets/Cubits use
+- [x] Run a Phase 11 architecture boundary review to confirm widgets/Cubits use
   the auth abstraction and do not access Firebase Auth or provider SDKs
   directly.
