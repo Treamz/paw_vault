@@ -267,7 +267,7 @@
 - [x] Add widget tests for key screens (documents, reminders, smart input, vet
   summary) covering their empty and populated states.
 - [x] Tighten lints in `analysis_options.yaml` and resolve any new warnings.
-- [ ] Review platform configuration (app name, bundle/app id, icons, min SDK
+- [x] Review platform configuration (app name, bundle/app id, icons, min SDK
   versions, required permissions) and document any gaps.
 - [ ] Update the README with the full feature list and run instructions, and
   refresh `.ai` docs to reflect the shipped app.
