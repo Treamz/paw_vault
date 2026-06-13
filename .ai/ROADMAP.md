@@ -70,6 +70,18 @@ anonymous account to a permanent one (so existing local data is preserved),
 sign-out, and signed-in account state. Enables the same archive to be accessed
 across devices instead of being tied to a single device's anonymous user.
 
+Decisions (2026-06-12):
+
+- Sign-in methods: email/password, Google, and Apple.
+- On sign-up, link the credential to the current anonymous account so existing
+  pets/records carry over; fall back to plain sign-in when the credential
+  already belongs to an account.
+- Sign-in is optional: the app keeps working anonymously and users sign in from
+  the profile to back up and sync; no startup login gate.
+- Provider/platform configuration (Google client IDs, Sign in with Apple
+  capability and Firebase provider enablement) is required and tracked as setup
+  tasks; the code is built behind the existing auth abstractions.
+
 ## Phase 12: Polish, tests, release candidate
 
 Improve UX, accessibility, error states, empty states, test coverage, platform

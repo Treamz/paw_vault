@@ -3,6 +3,7 @@ import 'package:paw_vault/core/ai/data/datasources/noop_firebase_ai_logic_data_s
 import 'package:paw_vault/core/auth/data/datasources/flutter_fire_auth_data_source.dart';
 import 'package:paw_vault/core/auth/data/datasources/noop_firebase_auth_data_source.dart';
 import 'package:paw_vault/core/auth/data/repositories/firebase_ready_auth_repository.dart';
+import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/firebase/firebase_instances.dart';
 import 'package:paw_vault/core/storage/data/datasources/flutter_fire_storage_data_source.dart';
@@ -145,6 +146,10 @@ class AppDependencies {
   final DocumentExtractionAiRepository documentExtractionAiRepository;
   final DocumentSourcePicker documentSourcePicker;
   final ReminderNotificationScheduler reminderNotificationScheduler;
+
+  /// The auth repository also satisfies account (non-anonymous) auth.
+  AccountAuthRepository get accountAuthRepository =>
+      authRepository as AccountAuthRepository;
 
   LoadVetSummaryData get loadVetSummaryData => LoadVetSummaryData(
         petRepository: petRepository,

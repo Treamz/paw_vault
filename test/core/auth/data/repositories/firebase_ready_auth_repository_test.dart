@@ -46,6 +46,33 @@ void main() {
 
       expect(dataSource.signOutCallCount, 1);
     });
+
+    test('registers with email through the data source', () async {
+      final dataSource = _FakeFirebaseAuthDataSource();
+      final repository = FirebaseReadyAuthRepository(dataSource);
+
+      final result = await repository.registerWithEmail(
+        email: 'a@b.com',
+        password: 'secret123',
+      );
+
+      expect(dataSource.registerEmail, 'a@b.com');
+      expect(result.email, 'a@b.com');
+      expect(result.isAnonymous, isFalse);
+    });
+
+    test('signs in with email through the data source', () async {
+      final dataSource = _FakeFirebaseAuthDataSource();
+      final repository = FirebaseReadyAuthRepository(dataSource);
+
+      final result = await repository.signInWithEmail(
+        email: 'a@b.com',
+        password: 'secret123',
+      );
+
+      expect(dataSource.signInEmail, 'a@b.com');
+      expect(result.email, 'a@b.com');
+    });
   });
 }
 
@@ -64,6 +91,8 @@ class _FakeFirebaseAuthDataSource implements FirebaseAuthDataSource {
   int currentUserCallCount = 0;
   int signInAnonymouslyCallCount = 0;
   int signOutCallCount = 0;
+  String? registerEmail;
+  String? signInEmail;
 
   @override
   Future<AppUser?> currentUser() async {
@@ -87,4 +116,30 @@ class _FakeFirebaseAuthDataSource implements FirebaseAuthDataSource {
     watchCurrentUserCallCount++;
     return Stream<AppUser?>.value(watchedUser);
   }
+
+  @override
+  Future<AppUser> registerWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    registerEmail = email;
+    return AppUser(id: 'account-1', isAnonymous: false, email: email);
+  }
+
+  @override
+  Future<AppUser> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    signInEmail = email;
+    return AppUser(id: 'account-1', isAnonymous: false, email: email);
+  }
+
+  @override
+  Future<AppUser> signInWithGoogle() async =>
+      const AppUser(id: 'account-1', isAnonymous: false);
+
+  @override
+  Future<AppUser> signInWithApple() async =>
+      const AppUser(id: 'account-1', isAnonymous: false);
 }

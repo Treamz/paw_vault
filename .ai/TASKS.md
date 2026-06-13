@@ -224,3 +224,35 @@
   `AppDependencies`/providers.
 - [x] Run a Phase 10 architecture boundary review: UI/Cubits use ports/
   repositories, and PDF/share/Firebase SDKs stay in the data layer.
+
+## Phase 11: Account auth and cross-device sync
+
+- [x] Add Phase 11 actionable task checklist.
+- [x] Extend the `AppUser` entity and `AuthRepository` contract with email and
+  credential-based sign-up/sign-in/link methods (email/password, Google,
+  Apple), without implementing Firebase behavior yet. Added via an
+  `AccountAuthRepository` sub-interface to avoid breaking existing fakes.
+- [x] Implement Firebase email/password sign-up that links the credential to the
+  current anonymous user (falling back to sign-in when already registered) and
+  email/password sign-in, in the auth data source and repository, with
+  fake-data-source tests where feasible.
+- [x] Add Google sign-in support using the `google_sign_in` package with
+  anonymous-account linking, behind the auth abstraction. Platform config
+  (OAuth client IDs, iOS URL scheme) tracked in the documentation task.
+- [x] Add Apple sign-in support using the `sign_in_with_apple` package with
+  anonymous-account linking, behind the auth abstraction. The Sign in with
+  Apple capability/entitlement is tracked in the documentation task.
+- [x] Implement an `AccountCubit` exposing the signed-in account state and
+  sign-up/sign-in/sign-out actions, with fake-repository tests.
+- [x] Add a sign-in/sign-up UI (email/password form + Google/Apple buttons)
+  reachable from the profile, surfacing errors and linking outcomes.
+- [x] Add signed-in account status and sign-out UI (an AccountAction in the pet
+  list app bar showing signed-in state, with a sign-out sheet).
+- [x] Wire the account route and any new auth providers through
+  `AppDependencies`/providers. (Done alongside the account status UI: the
+  AccountRoute is registered and AccountAuthRepository is provided.)
+- [x] Document the required Firebase and Apple platform configuration for
+  Google/Apple sign-in (docs/AUTH_SETUP.md).
+- [x] Run a Phase 11 architecture boundary review to confirm widgets/Cubits use
+  the auth abstraction and do not access Firebase Auth or provider SDKs
+  directly.

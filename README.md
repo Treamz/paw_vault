@@ -64,6 +64,9 @@ Firebase-ready dependencies and generated platform files are present for:
 - Firebase Storage
 - Firebase AI Logic / Gemini
 
+Account sign-in (email/Google/Apple) requires extra provider and platform
+configuration — see `docs/AUTH_SETUP.md`. The app works anonymously without it.
+
 The app currently keeps feature behavior placeholder-first. Firebase SDK access
 should stay behind data sources and repositories. UI and Cubits must not call
 Firebase SDKs directly.

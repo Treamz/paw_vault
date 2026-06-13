@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/features/account/presentation/widgets/account_action.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/pets/presentation/cubit/pet_list_cubit.dart';
@@ -29,7 +30,10 @@ class _PetListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('PawVault')),
+      appBar: AppBar(
+        title: const Text('PawVault'),
+        actions: const [AccountAction()],
+      ),
       body: SafeArea(
         child: BlocBuilder<PetListCubit, PetListState>(
           builder: (context, state) {

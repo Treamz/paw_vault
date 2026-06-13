@@ -8,4 +8,18 @@ abstract interface class FirebaseAuthDataSource {
   Future<AppUser> signInAnonymously();
 
   Future<void> signOut();
+
+  Future<AppUser> registerWithEmail({
+    required String email,
+    required String password,
+  });
+
+  Future<AppUser> signInWithEmail({
+    required String email,
+    required String password,
+  });
+
+  Future<AppUser> signInWithGoogle();
+
+  Future<AppUser> signInWithApple();
 }
