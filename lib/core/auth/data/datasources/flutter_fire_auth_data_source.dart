@@ -34,7 +34,11 @@ class FlutterFireAuthDataSource implements FirebaseAuthDataSource {
 
   @override
   Stream<AppUser?> watchCurrentUser() {
-    return _auth.authStateChanges().map(_mapUser);
+    // userChanges (not authStateChanges) so the UI also reacts when an
+    // anonymous account is linked to a credential — the uid is unchanged, so
+    // authStateChanges would not fire and the account would still look
+    // anonymous.
+    return _auth.userChanges().map(_mapUser);
   }
 
   @override
