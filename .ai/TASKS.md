@@ -248,10 +248,11 @@
   reachable from the profile, surfacing errors and linking outcomes.
 - [x] Add signed-in account status and sign-out UI (an AccountAction in the pet
   list app bar showing signed-in state, with a sign-out sheet).
-- [ ] Wire the account route and any new auth providers through
-  `AppDependencies`/providers.
-- [ ] Document the required Firebase and Apple platform configuration for
-  Google/Apple sign-in.
+- [x] Wire the account route and any new auth providers through
+  `AppDependencies`/providers. (Done alongside the account status UI: the
+  AccountRoute is registered and AccountAuthRepository is provided.)
+- [x] Document the required Firebase and Apple platform configuration for
+  Google/Apple sign-in (docs/AUTH_SETUP.md).
 - [ ] Run a Phase 11 architecture boundary review to confirm widgets/Cubits use
   the auth abstraction and do not access Firebase Auth or provider SDKs
   directly.
