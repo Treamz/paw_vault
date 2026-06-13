@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import 'package:intl/intl.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
@@ -19,16 +20,22 @@ import 'package:pdf/widgets.dart' as pw;
 /// vaccinations derived from the timeline), the full health timeline with
 /// descriptions, medium-length document overviews, and upcoming reminders.
 class VetSummaryPdfBuilder implements VetSummaryPdfGenerator {
-  const VetSummaryPdfBuilder();
+  /// [assetBundle] is injectable for tests; production uses [rootBundle].
+  const VetSummaryPdfBuilder({AssetBundle? assetBundle})
+      : _assetBundle = assetBundle;
+
+  final AssetBundle? _assetBundle;
 
   static const _documentOverviewMaxChars = 320;
   static const _eventDescriptionMaxChars = 240;
   static const _muted = PdfColors.grey700;
+  static const _regularFontAsset = 'assets/fonts/NotoSans-Regular.ttf';
+  static const _boldFontAsset = 'assets/fonts/NotoSans-Bold.ttf';
 
   @override
   Future<Uint8List> build(VetSummaryData data) async {
     final dateFormat = DateFormat.yMMMd();
-    final doc = pw.Document();
+    final doc = pw.Document(theme: await _loadTheme());
     final overview = _healthOverviewSection(data, dateFormat);
 
     doc.addPage(
@@ -54,6 +61,21 @@ class VetSummaryPdfBuilder implements VetSummaryPdfGenerator {
     );
 
     return doc.save();
+  }
+
+  /// Loads a Unicode-capable font (Noto Sans) so characters outside Latin-1
+  /// (em dashes, smart quotes, accents, Greek/Cyrillic, etc.) render instead of
+  /// being dropped. Falls back to the built-in Helvetica when the asset bundle
+  /// is unavailable (e.g. plain unit tests).
+  Future<pw.ThemeData?> _loadTheme() async {
+    final bundle = _assetBundle ?? rootBundle;
+    try {
+      final base = pw.Font.ttf(await bundle.load(_regularFontAsset));
+      final bold = pw.Font.ttf(await bundle.load(_boldFontAsset));
+      return pw.ThemeData.withFont(base: base, bold: bold);
+    } catch (_) {
+      return null;
+    }
   }
 
   pw.Widget _title(Pet pet) {

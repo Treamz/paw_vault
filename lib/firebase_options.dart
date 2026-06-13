@@ -63,7 +63,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '70756738260',
     projectId: 'pawvault-e0cc5',
     storageBucket: 'pawvault-e0cc5.firebasestorage.app',
-    iosClientId: '70756738260-517538s2u9i9hhng41ne1nr51e6jkmfn.apps.googleusercontent.com',
+    iosClientId:
+        '70756738260-517538s2u9i9hhng41ne1nr51e6jkmfn.apps.googleusercontent.com',
     iosBundleId: 'com.treamz.pawVault',
   );
 }

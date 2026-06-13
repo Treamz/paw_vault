@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
@@ -69,7 +71,37 @@ void main() {
       expect(bytes, isNotEmpty);
       expect(utf8.decode(bytes.sublist(0, 4)), '%PDF');
     });
+
+    test('embeds the Unicode font and renders non-Latin-1 text', () async {
+      final builder = VetSummaryPdfBuilder(assetBundle: _DiskAssetBundle());
+      const data = VetSummaryData(
+        pet: Pet(
+          id: EntityId('pet-1'),
+          userId: EntityId('user-1'),
+          name: 'Bella',
+          // Characters outside Latin-1: em dash, smart quotes, ellipsis,
+          // accents, and Cyrillic — these get dropped by Helvetica.
+          notes: 'Café visit — "smart quotes" … Привет',
+        ),
+      );
+
+      final bytes = await builder.build(data);
+
+      expect(utf8.decode(bytes.sublist(0, 4)), '%PDF');
+      // The Noto Sans font is embedded (its name appears in the font dict).
+      expect(latin1.decode(bytes, allowInvalid: true).contains('Noto'), isTrue);
+    });
   });
+}
+
+/// Loads assets straight from disk so the builder's font path is exercised in
+/// a plain unit test (no Flutter asset bundle required).
+class _DiskAssetBundle extends CachingAssetBundle {
+  @override
+  Future<ByteData> load(String key) async {
+    final bytes = await File(key).readAsBytes();
+    return ByteData.sublistView(Uint8List.fromList(bytes));
+  }
 }
 
 Pet _pet() => const Pet(
