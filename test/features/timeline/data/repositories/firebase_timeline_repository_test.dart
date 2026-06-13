@@ -9,9 +9,11 @@ void main() {
   group('FirebaseTimelineRepository', () {
     test('watches events through the Firestore data source', () async {
       final event = _event();
-      final dataSource = _FakeFirestoreTimelineDataSource(watchedEvents: [
-        event,
-      ]);
+      final dataSource = _FakeFirestoreTimelineDataSource(
+        watchedEvents: [
+          event,
+        ],
+      );
       final repository = FirebaseTimelineRepository(dataSource);
 
       final events = await repository

@@ -1,3 +1,4 @@
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:paw_vault/core/ai/data/datasources/flutter_fire_ai_logic_data_source.dart';
 import 'package:paw_vault/core/ai/data/datasources/noop_firebase_ai_logic_data_source.dart';
 import 'package:paw_vault/core/auth/data/datasources/flutter_fire_auth_data_source.dart';
@@ -24,7 +25,6 @@ import 'package:paw_vault/features/pets/data/datasources/flutter_fire_pet_data_s
 import 'package:paw_vault/features/pets/data/repositories/firebase_pet_repository.dart';
 import 'package:paw_vault/features/pets/data/repositories/local_pet_repository.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:paw_vault/features/reminders/data/datasources/flutter_fire_reminder_data_source.dart';
 import 'package:paw_vault/features/reminders/data/repositories/firebase_reminder_repository.dart';
 import 'package:paw_vault/features/reminders/data/repositories/local_reminder_repository.dart';

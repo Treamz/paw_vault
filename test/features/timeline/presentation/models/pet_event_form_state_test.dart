@@ -27,7 +27,9 @@ void main() {
       expect(formState.description, 'Rabies shot');
       expect(formState.date?.toUtc(), DateTime(2024, 1, 15).toUtc());
       expect(
-          formState.nextReminderDate?.toUtc(), DateTime(2025, 1, 15).toUtc());
+        formState.nextReminderDate?.toUtc(),
+        DateTime(2025, 1, 15).toUtc(),
+      );
       expect(formState.attachments, ['https://example.com/cert.pdf']);
     });
 
@@ -35,7 +37,6 @@ void main() {
       const formState = PetEventFormState(
         type: PetEventType.vaccination,
         title: 'Original title',
-        date: null,
       );
 
       final updated = formState.copyWith(
@@ -76,7 +77,6 @@ void main() {
     test('validate returns error when title is empty', () {
       final formState = PetEventFormState(
         type: PetEventType.vaccination,
-        title: '',
         date: DateTime(2024, 1, 15),
       );
 
@@ -109,8 +109,10 @@ void main() {
       final validation = formState.validate();
 
       expect(validation.isValid, isFalse);
-      expect(validation.errorFor('title'),
-          'Event title must be 200 characters or less');
+      expect(
+        validation.errorFor('title'),
+        'Event title must be 200 characters or less',
+      );
     });
 
     test('validate returns error when date is missing', () {
@@ -130,14 +132,16 @@ void main() {
       final formState = PetEventFormState(
         type: PetEventType.vaccination,
         title: 'Title',
-        date: DateTime(now.year + 2, 1, 1),
+        date: DateTime(now.year + 2),
       );
 
       final validation = formState.validate();
 
       expect(validation.isValid, isFalse);
-      expect(validation.errorFor('date'),
-          'Event date cannot be more than 1 year in the future');
+      expect(
+        validation.errorFor('date'),
+        'Event date cannot be more than 1 year in the future',
+      );
     });
 
     test('validate returns error when date is too far in the past', () {
@@ -145,14 +149,16 @@ void main() {
       final formState = PetEventFormState(
         type: PetEventType.vaccination,
         title: 'Title',
-        date: DateTime(now.year - 101, 1, 1),
+        date: DateTime(now.year - 101),
       );
 
       final validation = formState.validate();
 
       expect(validation.isValid, isFalse);
-      expect(validation.errorFor('date'),
-          'Event date cannot be more than 100 years in the past');
+      expect(
+        validation.errorFor('date'),
+        'Event date cannot be more than 100 years in the past',
+      );
     });
 
     test('validate returns error when description exceeds 5000 characters', () {
@@ -166,23 +172,27 @@ void main() {
       final validation = formState.validate();
 
       expect(validation.isValid, isFalse);
-      expect(validation.errorFor('description'),
-          'Description must be 5000 characters or less');
+      expect(
+        validation.errorFor('description'),
+        'Description must be 5000 characters or less',
+      );
     });
 
     test('validate returns error when reminder date is before event date', () {
       final formState = PetEventFormState(
         type: PetEventType.vaccination,
         title: 'Title',
-        date: DateTime(2024, 2, 1),
-        nextReminderDate: DateTime(2024, 1, 1),
+        date: DateTime(2024, 2),
+        nextReminderDate: DateTime(2024),
       );
 
       final validation = formState.validate();
 
       expect(validation.isValid, isFalse);
-      expect(validation.errorFor('nextReminderDate'),
-          'Reminder date cannot be before event date');
+      expect(
+        validation.errorFor('nextReminderDate'),
+        'Reminder date cannot be before event date',
+      );
     });
 
     test('validate returns error when reminder date is too far in the future',
@@ -192,14 +202,16 @@ void main() {
         type: PetEventType.vaccination,
         title: 'Title',
         date: now,
-        nextReminderDate: DateTime(now.year + 3, 1, 1),
+        nextReminderDate: DateTime(now.year + 3),
       );
 
       final validation = formState.validate();
 
       expect(validation.isValid, isFalse);
-      expect(validation.errorFor('nextReminderDate'),
-          'Reminder date cannot be more than 2 years in the future');
+      expect(
+        validation.errorFor('nextReminderDate'),
+        'Reminder date cannot be more than 2 years in the future',
+      );
     });
 
     test('validate returns error when attachment is invalid URL', () {
@@ -213,8 +225,10 @@ void main() {
       final validation = formState.validate();
 
       expect(validation.isValid, isFalse);
-      expect(validation.errorFor('attachments'),
-          'All attachments must be valid HTTP/HTTPS URLs');
+      expect(
+        validation.errorFor('attachments'),
+        'All attachments must be valid HTTP/HTTPS URLs',
+      );
     });
 
     test('validate accepts valid HTTP URL in attachments', () {
@@ -244,10 +258,7 @@ void main() {
     });
 
     test('validate allows multiple validation errors', () {
-      const formState = PetEventFormState(
-        title: '',
-        date: null,
-      );
+      const formState = PetEventFormState();
 
       final validation = formState.validate();
 
@@ -272,7 +283,7 @@ void main() {
         id: const EntityId('event-1'),
         userId: const EntityId('user-1'),
         petId: const EntityId('pet-1'),
-        createdAt: DateTime(2024, 1, 1),
+        createdAt: DateTime(2024),
         updatedAt: DateTime(2024, 1, 15),
       );
 
@@ -284,12 +295,16 @@ void main() {
       expect(event.description, 'Rabies shot');
       expect(event.date.value.toUtc(), DateTime(2024, 1, 15).toUtc());
       expect(
-          event.nextReminderDate?.value.toUtc(), DateTime(2025, 1, 15).toUtc());
+        event.nextReminderDate?.value.toUtc(),
+        DateTime(2025, 1, 15).toUtc(),
+      );
       expect(event.attachments.length, 1);
       expect(
-          event.attachments.first.toString(), 'https://example.com/cert.pdf');
+        event.attachments.first.toString(),
+        'https://example.com/cert.pdf',
+      );
       expect(event.source, PetEventSource.manual);
-      expect(event.createdAt?.value.toUtc(), DateTime(2024, 1, 1).toUtc());
+      expect(event.createdAt?.value.toUtc(), DateTime(2024).toUtc());
       expect(event.updatedAt?.value.toUtc(), DateTime(2024, 1, 15).toUtc());
     });
 
@@ -354,10 +369,7 @@ void main() {
 
     test('toEvent throws PetEventFormValidationException when form is invalid',
         () {
-      const formState = PetEventFormState(
-        title: '',
-        date: null,
-      );
+      const formState = PetEventFormState();
 
       expect(
         () => formState.toEvent(
@@ -380,11 +392,11 @@ void main() {
         id: const EntityId('event-1'),
         userId: const EntityId('user-1'),
         petId: const EntityId('pet-1'),
-        createdAt: DateTime(2024, 1, 1),
+        createdAt: DateTime(2024),
         updatedAt: DateTime(2024, 1, 10),
       );
 
-      expect(event.createdAt?.value.toUtc(), DateTime(2024, 1, 1).toUtc());
+      expect(event.createdAt?.value.toUtc(), DateTime(2024).toUtc());
       expect(event.updatedAt?.value.toUtc(), DateTime(2024, 1, 10).toUtc());
     });
 

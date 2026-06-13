@@ -35,7 +35,7 @@ void main() {
     testWidgets('renders empty state', (tester) async {
       await tester.pumpWidget(
         _TestApp(
-          petRepository: _FakePetRepository(watchedPets: const []),
+          petRepository: _FakePetRepository(),
         ),
       );
 
@@ -44,7 +44,8 @@ void main() {
       expect(find.text('No pets yet'), findsOneWidget);
       expect(
         find.text(
-            'Add your first pet profile to start building a health archive.'),
+          'Add your first pet profile to start building a health archive.',
+        ),
         findsOneWidget,
       );
     });

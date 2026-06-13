@@ -36,8 +36,10 @@ void main() {
         DocumentExtractionStatus.extracting,
         DocumentExtractionStatus.review,
       ]);
-      expect(cubit.state.draft?.detectedType,
-          PetDocumentType.vaccinationCertificate);
+      expect(
+        cubit.state.draft?.detectedType,
+        PetDocumentType.vaccinationCertificate,
+      );
       expect(cubit.state.pickedFile, isNotNull);
       expect(cubit.state.hasDraft, isTrue);
 
@@ -47,7 +49,7 @@ void main() {
 
     test('returns to idle without extracting when the picker is cancelled',
         () async {
-      final picker = _FakePicker(file: null);
+      final picker = _FakePicker();
       final aiRepository = _FakeAiRepository(draft: _draft());
       final cubit = _cubit(picker: picker, aiRepository: aiRepository);
 
@@ -91,8 +93,10 @@ void main() {
         ),
       );
 
-      expect(storageRepository.uploadedPath,
-          startsWith('users/user-1/pets/pet-1/documents/'));
+      expect(
+        storageRepository.uploadedPath,
+        startsWith('users/user-1/pets/pet-1/documents/'),
+      );
       final saved = documentRepository.savedDocument;
       expect(saved, isNotNull);
       expect(saved!.title, 'Rabies vaccination');
@@ -138,7 +142,7 @@ void main() {
       await cubit.pickAndExtract(DocumentSource.camera);
       await cubit.confirmExtraction(
         'pet-1',
-        const PetDocumentFormState(title: ''),
+        const PetDocumentFormState(),
       );
 
       expect(cubit.state.status, DocumentExtractionStatus.failure);

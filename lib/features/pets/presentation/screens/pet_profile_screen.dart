@@ -120,8 +120,11 @@ class _PetProfileView extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline,
-                        size: 48, color: Colors.red),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Colors.red,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'Error loading pet',
@@ -286,31 +289,33 @@ class _PetProfileView extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 12),
-            ...rows.map((row) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: row.label.isEmpty
-                      ? Text(row.value)
-                      : Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              width: 120,
-                              child: Text(
-                                row.label,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                              ),
+            ...rows.map(
+              (row) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: row.label.isEmpty
+                    ? Text(row.value)
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 120,
+                            child: Text(
+                              row.label,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                  ),
                             ),
-                            Expanded(
-                              child: Text(row.value),
-                            ),
-                          ],
-                        ),
-                )),
+                          ),
+                          Expanded(
+                            child: Text(row.value),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
           ],
         ),
       ),

@@ -32,8 +32,11 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
   /// Picks a file from [source] and asks the AI to extract its fields. The
   /// result is surfaced as a draft for review — nothing is saved here.
   Future<void> pickAndExtract(DocumentSource source) async {
-    emit(const DocumentExtractionState(
-        status: DocumentExtractionStatus.picking));
+    emit(
+      const DocumentExtractionState(
+        status: DocumentExtractionStatus.picking,
+      ),
+    );
 
     try {
       final file = await _picker.pick(source);
@@ -129,9 +132,11 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
 
       await _documentRepository.saveDocument(document);
 
-      emit(const DocumentExtractionState(
-        status: DocumentExtractionStatus.confirmed,
-      ));
+      emit(
+        const DocumentExtractionState(
+          status: DocumentExtractionStatus.confirmed,
+        ),
+      );
     } catch (error) {
       emit(
         state.copyWith(

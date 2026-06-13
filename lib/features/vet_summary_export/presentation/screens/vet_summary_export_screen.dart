@@ -98,9 +98,7 @@ class _VetSummaryView extends StatelessWidget {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: isSharing || isSaving
-                              ? null
-                              : () => cubit.share(),
+                          onPressed: isSharing || isSaving ? null : cubit.share,
                           icon: isSharing
                               ? const SizedBox(
                                   width: 18,
@@ -115,9 +113,8 @@ class _VetSummaryView extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: FilledButton.icon(
-                          onPressed: isSharing || isSaving
-                              ? null
-                              : () => cubit.saveCopy(),
+                          onPressed:
+                              isSharing || isSaving ? null : cubit.saveCopy,
                           icon: isSaving
                               ? const SizedBox(
                                   width: 18,

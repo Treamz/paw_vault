@@ -8,9 +8,11 @@ void main() {
   group('FirebaseDocumentRepository', () {
     test('watches documents through the Firestore data source', () async {
       final document = _document();
-      final dataSource = _FakeFirestoreDocumentDataSource(watchedDocuments: [
-        document,
-      ]);
+      final dataSource = _FakeFirestoreDocumentDataSource(
+        watchedDocuments: [
+          document,
+        ],
+      );
       final repository = FirebaseDocumentRepository(dataSource);
 
       final documents = await repository

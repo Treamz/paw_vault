@@ -44,7 +44,7 @@ class FlutterFireAiLogicDataSource implements FirebaseAiLogicDataSource {
     final response = await model.generateContent([
       Content.multi([
         InlineDataPart(mimeType, bytes),
-        TextPart(_extractionPrompt),
+        const TextPart(_extractionPrompt),
       ]),
     ]);
     return _parseExtractionDraft(response.text);

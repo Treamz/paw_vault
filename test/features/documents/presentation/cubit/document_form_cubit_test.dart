@@ -76,7 +76,7 @@ void main() {
 
       await cubit.createDocument(
         'pet-1',
-        const PetDocumentFormState(title: ''),
+        const PetDocumentFormState(),
       );
 
       expect(cubit.state.status, DocumentFormStatus.failure);
@@ -254,7 +254,6 @@ PetDocument _document() {
     type: PetDocumentType.insurance,
     fileUrl: Uri.parse('https://storage.example.com/original.pdf'),
     storagePath: 'users/user-1/pets/pet-1/documents/doc-1/original.pdf',
-    createdAt: null,
     issueDate: const DateOnly(year: 2024, month: 1, day: 1),
   );
 }

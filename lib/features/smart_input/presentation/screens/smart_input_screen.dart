@@ -142,7 +142,8 @@ class _SmartInputViewState extends State<_SmartInputView> {
                                     width: 18,
                                     height: 18,
                                     child: CircularProgressIndicator(
-                                        strokeWidth: 2),
+                                      strokeWidth: 2,
+                                    ),
                                   )
                                 : const Icon(Icons.check),
                             label: Text(isSaving ? 'Saving…' : 'Confirm'),
@@ -226,8 +227,10 @@ class _ErrorBanner extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(Icons.error_outline,
-                color: theme.colorScheme.onErrorContainer),
+            Icon(
+              Icons.error_outline,
+              color: theme.colorScheme.onErrorContainer,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -305,8 +308,11 @@ class _DraftReview extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.warning_amber,
-                      size: 18, color: theme.colorScheme.error),
+                  Icon(
+                    Icons.warning_amber,
+                    size: 18,
+                    color: theme.colorScheme.error,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(

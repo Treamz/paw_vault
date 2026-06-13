@@ -59,7 +59,7 @@ void main() {
     });
 
     test('toReminder throws when invalid', () {
-      const form = ReminderFormState(title: '');
+      const form = ReminderFormState();
 
       expect(
         () => form.toReminder(

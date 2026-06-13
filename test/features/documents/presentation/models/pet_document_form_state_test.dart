@@ -77,8 +77,8 @@ void main() {
       final form = PetDocumentFormState(
         type: PetDocumentType.passport,
         title: 'Passport',
-        issueDate: DateTime(2024, 6, 1),
-        expiryDate: DateTime(2024, 5, 1),
+        issueDate: DateTime(2024, 6),
+        expiryDate: DateTime(2024, 5),
       );
 
       final validation = form.validate();
@@ -90,8 +90,8 @@ void main() {
       final form = PetDocumentFormState(
         type: PetDocumentType.passport,
         title: 'Passport',
-        issueDate: DateTime(2024, 6, 1),
-        expiryDate: DateTime(2030, 6, 1),
+        issueDate: DateTime(2024, 6),
+        expiryDate: DateTime(2030, 6),
       );
 
       final validation = form.validate();
@@ -112,7 +112,7 @@ void main() {
     });
 
     test('toDocument throws when invalid', () {
-      const form = PetDocumentFormState(title: '');
+      const form = PetDocumentFormState();
 
       expect(
         () => form.toDocument(
@@ -147,15 +147,19 @@ void main() {
       expect(document.type, PetDocumentType.insurance);
       expect(document.fileUrl, Uri.parse('https://example.com/doc.pdf'));
       expect(
-          document.storagePath, 'users/user-1/pets/pet-1/documents/doc-1.pdf');
+        document.storagePath,
+        'users/user-1/pets/pet-1/documents/doc-1.pdf',
+      );
       expect(document.issueDate, const DateOnly(year: 2024, month: 1, day: 15));
       expect(
-          document.expiryDate, const DateOnly(year: 2025, month: 1, day: 15));
+        document.expiryDate,
+        const DateOnly(year: 2025, month: 1, day: 15),
+      );
       expect(document.notes, 'annual policy');
     });
 
     test('toDocument maps empty notes to null', () {
-      final form = PetDocumentFormState(
+      const form = PetDocumentFormState(
         type: PetDocumentType.passport,
         title: 'Passport',
         notes: '   ',

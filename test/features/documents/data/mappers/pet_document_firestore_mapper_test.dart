@@ -19,8 +19,10 @@ void main() {
       expect(data['title'], 'Rabies certificate');
       expect(data['type'], 'vaccinationCertificate');
       expect(data['fileUrl'], 'https://example.com/rabies.pdf');
-      expect(data['storagePath'],
-          'users/user-1/pets/pet-1/documents/doc-1/original.pdf');
+      expect(
+        data['storagePath'],
+        'users/user-1/pets/pet-1/documents/doc-1/original.pdf',
+      );
       expect(data['extractedText'], 'Rabies vaccine certificate');
       expect(data['extractedData'], {'vaccineName': 'rabies'});
       expect(data['issueDate'], '2026-01-02');

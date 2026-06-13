@@ -6,7 +6,7 @@ import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 void main() {
   group('AnonymousAuthBootstrap', () {
     test('returns the current user when one already exists', () async {
-      final currentUser = AppUser(id: 'existing-user', isAnonymous: true);
+      const currentUser = AppUser(id: 'existing-user', isAnonymous: true);
       final authRepository = _FakeAuthRepository(currentAuthUser: currentUser);
 
       final user = await AnonymousAuthBootstrap.ensureSignedIn(authRepository);
@@ -16,7 +16,7 @@ void main() {
     });
 
     test('signs in anonymously when no current user exists', () async {
-      final signedInUser = AppUser(id: 'anonymous-user', isAnonymous: true);
+      const signedInUser = AppUser(id: 'anonymous-user', isAnonymous: true);
       final authRepository = _FakeAuthRepository(signedInUser: signedInUser);
 
       final user = await AnonymousAuthBootstrap.ensureSignedIn(authRepository);

@@ -260,11 +260,15 @@ class _PetFormViewState extends State<_PetFormView> {
                       initialValue: _selectedGender,
                       decoration: const InputDecoration(labelText: 'Gender'),
                       items: PetGender.values
-                          .map((gender) => DropdownMenuItem(
-                                value: gender,
-                                child: Text(gender.name[0].toUpperCase() +
-                                    gender.name.substring(1)),
-                              ))
+                          .map(
+                            (gender) => DropdownMenuItem(
+                              value: gender,
+                              child: Text(
+                                gender.name[0].toUpperCase() +
+                                    gender.name.substring(1),
+                              ),
+                            ),
+                          )
                           .toList(),
                       onChanged: isSaving
                           ? null
@@ -278,10 +282,12 @@ class _PetFormViewState extends State<_PetFormView> {
                     const SizedBox(height: 16),
                     ListTile(
                       title: const Text('Birth Date'),
-                      subtitle: Text(_selectedBirthDate != null
-                          ? DateOnly.fromDateTime(_selectedBirthDate!)
-                              .toString()
-                          : 'Not set'),
+                      subtitle: Text(
+                        _selectedBirthDate != null
+                            ? DateOnly.fromDateTime(_selectedBirthDate!)
+                                .toString()
+                            : 'Not set',
+                      ),
                       trailing: const Icon(Icons.calendar_today),
                       onTap: isSaving ? null : _selectBirthDate,
                       contentPadding: EdgeInsets.zero,
@@ -308,7 +314,8 @@ class _PetFormViewState extends State<_PetFormView> {
                               errorText: _validation?.errorFor('weight'),
                             ),
                             keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
+                              decimal: true,
+                            ),
                             enabled: !isSaving,
                             onChanged: (_) => _updateFormState(),
                           ),
@@ -321,10 +328,12 @@ class _PetFormViewState extends State<_PetFormView> {
                             decoration:
                                 const InputDecoration(labelText: 'Unit'),
                             items: PetWeightUnit.values
-                                .map((unit) => DropdownMenuItem(
-                                      value: unit,
-                                      child: Text(unit.name),
-                                    ))
+                                .map(
+                                  (unit) => DropdownMenuItem(
+                                    value: unit,
+                                    child: Text(unit.name),
+                                  ),
+                                )
                                 .toList(),
                             onChanged: isSaving
                                 ? null
@@ -400,7 +409,8 @@ class _PetFormViewState extends State<_PetFormView> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : Text(
-                              widget.isEditMode ? 'Save Changes' : 'Add Pet'),
+                              widget.isEditMode ? 'Save Changes' : 'Add Pet',
+                            ),
                     ),
                     const SizedBox(height: 8),
                     TextButton(

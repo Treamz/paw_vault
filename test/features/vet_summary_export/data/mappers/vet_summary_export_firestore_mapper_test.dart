@@ -16,8 +16,10 @@ void main() {
       expect(data['userId'], 'user-1');
       expect(data['petId'], 'pet-1');
       expect(data['fileUrl'], 'https://example.com/vet-summary.pdf');
-      expect(data['storagePath'],
-          'users/user-1/pets/pet-1/exports/vet_summary.pdf');
+      expect(
+        data['storagePath'],
+        'users/user-1/pets/pet-1/exports/vet_summary.pdf',
+      );
       expect(data['createdAt'], isA<Timestamp>());
     });
 

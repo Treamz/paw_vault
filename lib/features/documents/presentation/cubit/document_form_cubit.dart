@@ -25,11 +25,13 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
   final StorageRepository _storageRepository;
 
   Future<void> load(String petId, String documentId) async {
-    emit(DocumentFormState(
-      status: DocumentFormStatus.loading,
-      petId: petId,
-      documentId: documentId,
-    ));
+    emit(
+      DocumentFormState(
+        status: DocumentFormStatus.loading,
+        petId: petId,
+        documentId: documentId,
+      ),
+    );
 
     try {
       await _documentRepository.initialize();
@@ -215,7 +217,6 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
           userId: state.userId,
           petId: state.petId,
           documentId: state.documentId,
-          document: null,
         ),
       );
     } catch (error) {

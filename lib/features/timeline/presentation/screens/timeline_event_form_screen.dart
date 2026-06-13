@@ -297,10 +297,12 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
                         errorText: _validation?.errorFor('type'),
                       ),
                       items: PetEventType.values
-                          .map((type) => DropdownMenuItem(
-                                value: type,
-                                child: Text(_formatEventType(type)),
-                              ))
+                          .map(
+                            (type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(_formatEventType(type)),
+                            ),
+                          )
                           .toList(),
                       onChanged: isSaving
                           ? null
@@ -324,9 +326,11 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
                     const SizedBox(height: 16),
                     ListTile(
                       title: const Text('Date *'),
-                      subtitle: Text(_selectedDate != null
-                          ? dateFormat.format(_selectedDate!)
-                          : 'Not set'),
+                      subtitle: Text(
+                        _selectedDate != null
+                            ? dateFormat.format(_selectedDate!)
+                            : 'Not set',
+                      ),
                       trailing: const Icon(Icons.calendar_today),
                       onTap: isSaving ? null : _selectDate,
                       contentPadding: EdgeInsets.zero,
@@ -356,9 +360,11 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
                     const SizedBox(height: 16),
                     ListTile(
                       title: const Text('Reminder Date'),
-                      subtitle: Text(_selectedReminderDate != null
-                          ? dateFormat.format(_selectedReminderDate!)
-                          : 'Not set'),
+                      subtitle: Text(
+                        _selectedReminderDate != null
+                            ? dateFormat.format(_selectedReminderDate!)
+                            : 'Not set',
+                      ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -405,7 +411,8 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : Text(
-                              widget.isEditMode ? 'Save Changes' : 'Add Event'),
+                              widget.isEditMode ? 'Save Changes' : 'Add Event',
+                            ),
                     ),
                     const SizedBox(height: 8),
                     TextButton(

@@ -18,19 +18,23 @@ class AccountCubit extends Cubit<AccountState> {
     required String email,
     required String password,
   }) =>
-      _run(() => _repository.registerWithEmail(
-            email: email,
-            password: password,
-          ));
+      _run(
+        () => _repository.registerWithEmail(
+          email: email,
+          password: password,
+        ),
+      );
 
   Future<void> signInWithEmail({
     required String email,
     required String password,
   }) =>
-      _run(() => _repository.signInWithEmail(
-            email: email,
-            password: password,
-          ));
+      _run(
+        () => _repository.signInWithEmail(
+          email: email,
+          password: password,
+        ),
+      );
 
   Future<void> signInWithGoogle() => _run(_repository.signInWithGoogle);
 
@@ -43,24 +47,29 @@ class AccountCubit extends Cubit<AccountState> {
       // the previous account's data is no longer shown.
       await _repository.signInAnonymously();
     } catch (error) {
-      emit(state.copyWith(
-        status: AccountStatus.failure,
-        errorMessage: error.toString(),
-      ));
+      emit(
+        state.copyWith(
+          status: AccountStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
     }
   }
 
   Future<void> _run(Future<AppUser> Function() action) async {
     emit(
-        state.copyWith(status: AccountStatus.authenticating, clearError: true));
+      state.copyWith(status: AccountStatus.authenticating, clearError: true),
+    );
     try {
       final user = await action();
       emit(state.copyWith(status: AccountStatus.idle, user: user));
     } catch (error) {
-      emit(state.copyWith(
-        status: AccountStatus.failure,
-        errorMessage: error.toString(),
-      ));
+      emit(
+        state.copyWith(
+          status: AccountStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
     }
   }
 

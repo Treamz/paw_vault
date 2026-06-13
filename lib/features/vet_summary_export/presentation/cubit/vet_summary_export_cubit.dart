@@ -39,10 +39,12 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
 
   /// Subscribes to the pet's saved export history.
   Future<void> load(String petId) async {
-    emit(state.copyWith(
-      petId: petId,
-      historyStatus: VetSummaryHistoryStatus.loading,
-    ));
+    emit(
+      state.copyWith(
+        petId: petId,
+        historyStatus: VetSummaryHistoryStatus.loading,
+      ),
+    );
 
     try {
       await _exportRepository.initialize();
@@ -55,35 +57,43 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
           .watchExports(userId: userId, petId: EntityId(petId))
           .listen(
         (exports) {
-          emit(state.copyWith(
-            userId: userId,
-            historyStatus: VetSummaryHistoryStatus.ready,
-            exports: exports,
-          ));
+          emit(
+            state.copyWith(
+              userId: userId,
+              historyStatus: VetSummaryHistoryStatus.ready,
+              exports: exports,
+            ),
+          );
         },
         onError: (Object error) {
-          emit(state.copyWith(
-            historyStatus: VetSummaryHistoryStatus.failure,
-            historyError: error.toString(),
-          ));
+          emit(
+            state.copyWith(
+              historyStatus: VetSummaryHistoryStatus.failure,
+              historyError: error.toString(),
+            ),
+          );
         },
       );
     } catch (error) {
-      emit(state.copyWith(
-        historyStatus: VetSummaryHistoryStatus.failure,
-        historyError: error.toString(),
-      ));
+      emit(
+        state.copyWith(
+          historyStatus: VetSummaryHistoryStatus.failure,
+          historyError: error.toString(),
+        ),
+      );
     }
   }
 
   /// Loads the pet's records and renders a PDF, held in state for review.
   Future<void> generate(String petId) async {
-    emit(state.copyWith(
-      status: VetSummaryExportStatus.generating,
-      petId: petId,
-      clearPdf: true,
-      clearError: true,
-    ));
+    emit(
+      state.copyWith(
+        status: VetSummaryExportStatus.generating,
+        petId: petId,
+        clearPdf: true,
+        clearError: true,
+      ),
+    );
 
     try {
       final user = await _authRepository.currentUser() ??
@@ -95,21 +105,25 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
       );
       final bytes = await _pdfGenerator.build(data);
 
-      emit(state.copyWith(
-        status: VetSummaryExportStatus.ready,
-        userId: userId,
-        petId: petId,
-        petName: data.pet.name,
-        pdfBytes: bytes,
-        clearError: true,
-      ));
+      emit(
+        state.copyWith(
+          status: VetSummaryExportStatus.ready,
+          userId: userId,
+          petId: petId,
+          petName: data.pet.name,
+          pdfBytes: bytes,
+          clearError: true,
+        ),
+      );
     } catch (error) {
-      emit(state.copyWith(
-        status: VetSummaryExportStatus.failure,
-        petId: petId,
-        errorMessage: error.toString(),
-        clearPdf: true,
-      ));
+      emit(
+        state.copyWith(
+          status: VetSummaryExportStatus.failure,
+          petId: petId,
+          errorMessage: error.toString(),
+          clearPdf: true,
+        ),
+      );
     }
   }
 
@@ -117,10 +131,12 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
   Future<void> share() async {
     final bytes = state.pdfBytes;
     if (bytes == null) {
-      emit(state.copyWith(
-        status: VetSummaryExportStatus.failure,
-        errorMessage: 'Generate a summary first.',
-      ));
+      emit(
+        state.copyWith(
+          status: VetSummaryExportStatus.failure,
+          errorMessage: 'Generate a summary first.',
+        ),
+      );
       return;
     }
 
@@ -130,10 +146,12 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
       await _shareService.share(bytes: bytes, fileName: _fileName());
       emit(state.copyWith(status: VetSummaryExportStatus.ready));
     } catch (error) {
-      emit(state.copyWith(
-        status: VetSummaryExportStatus.failure,
-        errorMessage: error.toString(),
-      ));
+      emit(
+        state.copyWith(
+          status: VetSummaryExportStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
     }
   }
 
@@ -143,10 +161,12 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
     final userId = state.userId;
     final petId = state.petId;
     if (bytes == null || userId == null || petId == null) {
-      emit(state.copyWith(
-        status: VetSummaryExportStatus.failure,
-        errorMessage: 'Generate a summary first.',
-      ));
+      emit(
+        state.copyWith(
+          status: VetSummaryExportStatus.failure,
+          errorMessage: 'Generate a summary first.',
+        ),
+      );
       return;
     }
 
@@ -180,10 +200,12 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
 
       emit(state.copyWith(status: VetSummaryExportStatus.saved));
     } catch (error) {
-      emit(state.copyWith(
-        status: VetSummaryExportStatus.failure,
-        errorMessage: error.toString(),
-      ));
+      emit(
+        state.copyWith(
+          status: VetSummaryExportStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
     }
   }
 
