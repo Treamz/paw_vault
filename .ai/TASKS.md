@@ -260,7 +260,7 @@
 ## Phase 12: Polish, tests, release candidate
 
 - [x] Add Phase 12 actionable task checklist.
-- [ ] Extract shared loading/empty/error state widgets and adopt them across the
+- [x] Extract shared loading/empty/error state widgets and adopt them across the
   feature screens for consistent UX.
 - [ ] Accessibility pass: add semantic labels/tooltips to icon-only buttons and
   ensure interactive elements meet minimum tap-target sizes.

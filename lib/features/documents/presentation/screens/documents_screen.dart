@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
+import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/presentation/cubit/documents_cubit.dart';
@@ -43,12 +44,18 @@ class _DocumentsView extends StatelessWidget {
             return switch (state.status) {
               DocumentsStatus.initial ||
               DocumentsStatus.loading =>
-                const _DocumentsLoading(),
-              DocumentsStatus.failure => _DocumentsFailure(
+                const LoadingView(),
+              DocumentsStatus.failure => ErrorStateView(
+                  title: 'Could not load documents',
                   message: state.errorMessage,
                 ),
               DocumentsStatus.ready => state.documents.isEmpty
-                  ? const _DocumentsEmpty()
+                  ? const EmptyStateView(
+                      icon: Icons.folder_outlined,
+                      title: 'No documents yet',
+                      message: 'Upload passports, vaccination records, and '
+                          'other documents to keep them in one place.',
+                    )
                   : _DocumentsContent(
                       documents: state.documents,
                       petId: state.petId!,
@@ -69,92 +76,6 @@ class _DocumentsView extends StatelessWidget {
             label: const Text('Add document'),
           );
         },
-      ),
-    );
-  }
-}
-
-class _DocumentsLoading extends StatelessWidget {
-  const _DocumentsLoading();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(),
-    );
-  }
-}
-
-class _DocumentsEmpty extends StatelessWidget {
-  const _DocumentsEmpty();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.folder_outlined,
-              size: 48,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No documents yet',
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Upload passports, vaccination records, and other documents '
-              'to keep them in one place.',
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DocumentsFailure extends StatelessWidget {
-  const _DocumentsFailure({required this.message});
-
-  final String? message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Could not load documents',
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            if (message != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                message!,
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }
