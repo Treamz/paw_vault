@@ -39,6 +39,9 @@ class AccountCubit extends Cubit<AccountState> {
   Future<void> signOut() async {
     try {
       await _repository.signOut();
+      // Re-establish a fresh anonymous session so the app keeps working and
+      // the previous account's data is no longer shown.
+      await _repository.signInAnonymously();
     } catch (error) {
       emit(state.copyWith(
         status: AccountStatus.failure,
