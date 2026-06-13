@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:70756738260:android:495fdafa3fee8749778741",
+        "mobilesdk_app_id": "1:70756738260:android:76868e47900c422c778741",
         "android_client_info": {
-          "package_name": "com.example.paw_vault"
+          "package_name": "com.treamz.paw_vault"
         }
       },
       "oauth_client": [

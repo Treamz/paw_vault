@@ -15,7 +15,7 @@ gaps to address before a store release.
 | Item | iOS | Android |
 | --- | --- | --- |
 | Display name | `Paw Vault` (CFBundleDisplayName) | `PawVault` |
-| App / bundle id | `com.treamz.pawVault` | `com.example.paw_vault` |
+| App / bundle id | `com.treamz.pawVault` | `com.treamz.paw_vault` |
 | Min SDK / deployment target | iOS 15.0 | `flutter.minSdkVersion` |
 | Launcher icon | default Flutter icon | default Flutter icon |
 | Permissions | Camera, Photo Library | INTERNET (+ plugin-injected) |
@@ -26,11 +26,6 @@ uses the entitlement).
 
 ## Gaps to address before release
 
-- **Android application id** is still `com.example.paw_vault`. It matches the
-  Android entry in `google-services.json`, so it works today, but should be
-  rebranded (e.g. `com.treamz.pawvault`) for release. Changing it requires
-  re-registering the Android app in Firebase and downloading a new
-  `google-services.json`.
 - **Launcher icons are the default Flutter icon.** Add a branded PawVault icon
   (e.g. via the `flutter_launcher_icons` package) for iOS and Android.
 - **`RunnerTests` bundle id** is still `com.example.pawVault.RunnerTests`
