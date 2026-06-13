@@ -269,7 +269,7 @@
 - [x] Tighten lints in `analysis_options.yaml` and resolve any new warnings.
 - [x] Review platform configuration (app name, bundle/app id, icons, min SDK
   versions, required permissions) and document any gaps.
-- [ ] Update the README with the full feature list and run instructions, and
+- [x] Update the README with the full feature list and run instructions, and
   refresh `.ai` docs to reflect the shipped app.
 - [ ] Run the full required checks (format, analyze, test) and a manual smoke
   pass of the primary flows; record the release-readiness result.

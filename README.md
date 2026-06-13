@@ -1,8 +1,30 @@
 # PawVault
 
-PawVault is a Flutter app for managing a pet health archive. It is designed to
-store pet profiles, health events, documents, reminders, smart text input
-drafts, document extraction drafts, and vet summary exports.
+PawVault is a Flutter app for managing a pet health archive. It stores pet
+profiles, health events, documents, reminders, AI-structured notes, scanned
+documents, and vet summary exports, backed by Firebase.
+
+## Features
+
+- **Pets** — create, edit, and delete pet profiles (species, breed, weight,
+  allergies, conditions, notes).
+- **Health timeline** — log events (vaccinations, vet visits, medications, …)
+  with type/date filtering.
+- **Documents** — upload passports, lab results, and insurance (image/PDF) to
+  storage with metadata, expiry tracking, and delete.
+- **Smart text input (Gemini)** — turn free text into a structured draft you
+  review and confirm before anything is saved.
+- **Document scanning (Gemini)** — photograph or pick a document; the AI reads
+  it and pre-fills an editable form that saves into the pet's documents.
+- **Reminders** — schedule reminders with repeat rules and local notifications;
+  mark complete or delete.
+- **Vet summary export** — generate a PDF of the pet's records, share it, and
+  optionally save a copy.
+- **Accounts** — works anonymously by default; sign in with email, Google, or
+  Apple to back up and sync, linking existing data to the account.
+
+AI never writes to Firestore directly — it only produces drafts that require
+explicit user confirmation.
 
 ## Stack
 
@@ -67,13 +89,23 @@ Firebase-ready dependencies and generated platform files are present for:
 Account sign-in (email/Google/Apple) requires extra provider and platform
 configuration — see `docs/AUTH_SETUP.md`. The app works anonymously without it.
 
-The app currently keeps feature behavior placeholder-first. Firebase SDK access
-should stay behind data sources and repositories. UI and Cubits must not call
-Firebase SDKs directly.
+Firebase SDK access stays behind data sources and repositories — UI and Cubits
+do not call Firebase SDKs directly.
 
-Gemini must only structure user-provided data into drafts or suggested actions.
-It must not write directly to Firestore. Every AI-generated action must be
-shown to the user for confirmation before saving.
+Gemini only structures user-provided data into drafts or suggested actions. It
+does not write directly to Firestore. Every AI-generated action is shown to the
+user for confirmation before saving.
+
+## Documentation
+
+- `docs/NAVIGATION.md` — every screen and how to reach it, plus how to verify
+  flows against a running app via the Dart/Flutter MCP server.
+- `docs/AUTH_SETUP.md` — Firebase/Google/Apple configuration for account
+  sign-in.
+- `docs/PLATFORM_CONFIG.md` — app metadata, identifiers, icons, SDK levels, and
+  permissions, with release gaps.
+- `.ai/ROADMAP.md` and `.ai/TASKS.md` — the phased build plan (all phases
+  complete) and task history.
 
 ## Development Workflow
 
