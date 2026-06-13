@@ -271,5 +271,5 @@
   versions, required permissions) and document any gaps.
 - [x] Update the README with the full feature list and run instructions, and
   refresh `.ai` docs to reflect the shipped app.
-- [ ] Run the full required checks (format, analyze, test) and a manual smoke
+- [x] Run the full required checks (format, analyze, test) and a manual smoke
   pass of the primary flows; record the release-readiness result.
