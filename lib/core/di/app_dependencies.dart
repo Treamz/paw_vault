@@ -1,6 +1,9 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:paw_vault/core/ai/data/datasources/flutter_fire_ai_logic_data_source.dart';
 import 'package:paw_vault/core/ai/data/datasources/noop_firebase_ai_logic_data_source.dart';
+import 'package:paw_vault/core/analytics/data/services/firebase_analytics_service.dart';
+import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/data/datasources/flutter_fire_auth_data_source.dart';
 import 'package:paw_vault/core/auth/data/datasources/noop_firebase_auth_data_source.dart';
 import 'package:paw_vault/core/auth/data/repositories/firebase_ready_auth_repository.dart';
@@ -66,6 +69,7 @@ class AppDependencies {
     required this.documentExtractionAiRepository,
     required this.documentSourcePicker,
     required this.reminderNotificationScheduler,
+    required this.analyticsService,
   });
 
   factory AppDependencies.localFirst() {
@@ -90,6 +94,7 @@ class AppDependencies {
       documentSourcePicker: DocumentSourcePickerImpl(),
       reminderNotificationScheduler:
           LocalReminderNotificationScheduler(FlutterLocalNotificationsPlugin()),
+      analyticsService: const NoopAnalyticsService(),
     );
   }
 
@@ -130,6 +135,7 @@ class AppDependencies {
       documentSourcePicker: DocumentSourcePickerImpl(),
       reminderNotificationScheduler:
           LocalReminderNotificationScheduler(FlutterLocalNotificationsPlugin()),
+      analyticsService: FirebaseAnalyticsService(firebase.analytics),
     );
   }
 
@@ -146,6 +152,7 @@ class AppDependencies {
   final DocumentExtractionAiRepository documentExtractionAiRepository;
   final DocumentSourcePicker documentSourcePicker;
   final ReminderNotificationScheduler reminderNotificationScheduler;
+  final AnalyticsService analyticsService;
 
   /// The auth repository also satisfies account (non-anonymous) auth.
   AccountAuthRepository get accountAuthRepository =>
