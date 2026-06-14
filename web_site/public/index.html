@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PawVault — Pet Health, Organized</title>
+    <meta
+      name="description"
+      content="PawVault keeps your pet's health records — vaccinations, vet visits, documents, and reminders — in one organized archive."
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23124E45'/%3E%3Cg fill='%239FE7CE'%3E%3Cellipse cx='50' cy='64' rx='17' ry='14'/%3E%3Cellipse cx='30' cy='44' rx='8' ry='11'/%3E%3Cellipse cx='44' cy='34' rx='8' ry='12'/%3E%3Cellipse cx='58' cy='34' rx='8' ry='12'/%3E%3Cellipse cx='71' cy='45' rx='8' ry='11'/%3E%3C/g%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        --teal: #2e7d72;
+        --teal-dark: #124e45;
+        --mint: #f1f7f4;
+        --ink: #1f2a27;
+        --muted: #5b6b66;
+        --line: #dce9e4;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        background: #fff;
+        line-height: 1.6;
+      }
+      a { color: var(--teal); }
+      header {
+        position: sticky;
+        top: 0;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: saturate(180%) blur(8px);
+        border-bottom: 1px solid var(--line);
+        z-index: 10;
+      }
+      .bar {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        font-size: 19px;
+        color: var(--teal-dark);
+        text-decoration: none;
+      }
+      .brand svg { width: 28px; height: 28px; }
+      nav a {
+        margin-left: 18px;
+        text-decoration: none;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      nav a:hover { color: var(--teal); }
+      main { max-width: 760px; margin: 0 auto; padding: 0 20px 80px; }
+      .hero {
+        text-align: center;
+        padding: 64px 20px 40px;
+        background: linear-gradient(180deg, var(--mint), #fff);
+      }
+      .hero h1 { font-size: 40px; margin: 12px 0 8px; color: var(--teal-dark); }
+      .hero p { font-size: 19px; color: var(--muted); margin: 0 auto; max-width: 560px; }
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin: 36px 0;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px;
+        background: var(--mint);
+      }
+      .card h3 { margin: 0 0 6px; color: var(--teal-dark); font-size: 17px; }
+      .card p { margin: 0; color: var(--muted); font-size: 15px; }
+      h1.page { font-size: 30px; color: var(--teal-dark); margin: 36px 0 4px; }
+      h2 { font-size: 20px; color: var(--teal-dark); margin: 28px 0 6px; }
+      .meta { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+      .legal p, .legal li { color: #33403c; }
+      .legal ul { padding-left: 20px; }
+      .note {
+        background: var(--mint);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 16px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 28px 20px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      footer a { margin: 0 10px; font-weight: 600; text-decoration: none; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="bar">
+        <a class="brand" href="/" data-link>
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <rect width="100" height="100" rx="22" fill="#124E45" />
+            <g fill="#9FE7CE">
+              <ellipse cx="50" cy="64" rx="17" ry="14" />
+              <ellipse cx="30" cy="44" rx="8" ry="11" />
+              <ellipse cx="44" cy="34" rx="8" ry="12" />
+              <ellipse cx="58" cy="34" rx="8" ry="12" />
+              <ellipse cx="71" cy="45" rx="8" ry="11" />
+            </g>
+          </svg>
+          PawVault
+        </a>
+        <nav>
+          <a href="/" data-link>Home</a>
+          <a href="/privacy" data-link>Privacy</a>
+          <a href="/terms" data-link>Terms</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Home -->
+    <section id="route-home" data-route="/">
+      <div class="hero">
+        <h1>Your pet's health, organized</h1>
+        <p>
+          PawVault keeps vaccinations, vet visits, medications, documents, and
+          reminders for all your pets in one private archive.
+        </p>
+      </div>
+      <main>
+        <div class="features">
+          <div class="card"><h3>Health timeline</h3><p>Log vaccinations, vet visits, medications, lab tests, symptoms and more.</p></div>
+          <div class="card"><h3>Document vault</h3><p>Store certificates, insurance, and lab results with expiry tracking.</p></div>
+          <div class="card"><h3>Reminders</h3><p>Never miss a vaccine or dose with on-device reminders.</p></div>
+          <div class="card"><h3>AI Smart Input</h3><p>Turn free-text notes into structured entries you review and confirm.</p></div>
+          <div class="card"><h3>Vet summary PDF</h3><p>Generate a shareable PDF of your pet's records for the vet.</p></div>
+          <div class="card"><h3>Private &amp; synced</h3><p>Works anonymously; sign in to back up and sync across devices.</p></div>
+        </div>
+        <div class="note">
+          PawVault helps you keep records. It does not provide medical or
+          veterinary advice and is not a replacement for your veterinarian.
+        </div>
+      </main>
+    </section>
+
+    <!-- Privacy -->
+    <section id="route-privacy" data-route="/privacy">
+      <main class="legal">
+        <h1 class="page">Privacy Policy</h1>
+        <p class="meta">Effective June 14, 2026</p>
+        <p>
+          This Privacy Policy explains how PawVault ("we", "us") collects, uses,
+          and protects information when you use the PawVault mobile app (the
+          "App").
+        </p>
+
+        <h2>Information we collect</h2>
+        <ul>
+          <li><strong>Account information.</strong> If you sign in, we process your email address and basic profile details from your chosen provider (email, Google, or Apple). You can use the App anonymously without an account.</li>
+          <li><strong>Pet and health records you enter.</strong> Pet profiles, timeline events, documents and images you upload, reminders, and notes.</li>
+          <li><strong>Purchase information.</strong> Subscription status is managed by RevenueCat and the App Store / Google Play. We do not receive or store your full payment card details.</li>
+          <li><strong>Usage and diagnostics.</strong> Aggregated, non-identifying analytics about how features are used, to improve the App.</li>
+        </ul>
+
+        <h2>How we use information</h2>
+        <ul>
+          <li>To provide, sync, and back up your pet records.</li>
+          <li>To enable AI features you choose to use (see below).</li>
+          <li>To operate subscriptions and to improve the App.</li>
+        </ul>
+
+        <h2>AI features</h2>
+        <p>
+          When you use Smart Input or document scanning, the text or image you
+          choose to process is sent to Google's Gemini models to structure it
+          into a draft that you review and confirm. We do not send this content
+          for AI processing unless you initiate the feature.
+        </p>
+
+        <h2>Service providers</h2>
+        <p>
+          We share information only as needed with providers that operate the App
+          on our behalf: Google Firebase (authentication, database, storage,
+          analytics), Google (Gemini/Vertex AI for the AI features), RevenueCat
+          (subscription management), and Apple / Google (payment processing). We
+          do not sell your personal information.
+        </p>
+
+        <h2>Data retention and deletion</h2>
+        <p>
+          Your records are kept while your account is active. You can delete pets,
+          documents, and other records in the App, and you can request deletion of
+          your account and associated data by contacting us.
+        </p>
+
+        <h2>Your rights</h2>
+        <p>
+          Depending on where you live (e.g. EEA/UK under GDPR, California under
+          CCPA), you may have rights to access, correct, export, or delete your
+          personal information. Contact us to exercise these rights.
+        </p>
+
+        <h2>Security</h2>
+        <p>
+          We use industry-standard measures, including encrypted transport and
+          Google Cloud infrastructure, to protect your information. No method of
+          transmission or storage is completely secure.
+        </p>
+
+        <h2>Children</h2>
+        <p>
+          PawVault is not directed to children under 13 (or the minimum age in
+          your country), and we do not knowingly collect data from them.
+        </p>
+
+        <h2>Changes</h2>
+        <p>We may update this policy; material changes will be reflected by the effective date above.</p>
+
+        <h2>Contact</h2>
+        <p>Questions or requests: <a href="mailto:chrnknzhnkv@gmail.com">chrnknzhnkv@gmail.com</a>.</p>
+      </main>
+    </section>
+
+    <!-- Terms -->
+    <section id="route-terms" data-route="/terms">
+      <main class="legal">
+        <h1 class="page">Terms of Use</h1>
+        <p class="meta">Effective June 14, 2026</p>
+        <p>
+          These Terms of Use ("Terms") govern your use of the PawVault mobile app
+          (the "App"). By using the App you agree to these Terms.
+        </p>
+
+        <h2>License</h2>
+        <p>We grant you a personal, non-transferable, non-exclusive license to use the App for managing your own pets' records.</p>
+
+        <h2>Your account and content</h2>
+        <p>You are responsible for the accuracy of the information you enter and for keeping your account credentials secure. You retain ownership of the content you add.</p>
+
+        <h2>Subscriptions (PawVault Pro)</h2>
+        <ul>
+          <li>PawVault Pro is an auto-renewable subscription that unlocks premium features (such as unlimited pets and AI features).</li>
+          <li>Payment is charged to your App Store / Google Play account at confirmation of purchase.</li>
+          <li>If a free trial is offered, any unused portion is forfeited when you purchase a subscription.</li>
+          <li>The subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period. Your account is charged for renewal within 24 hours before the end of the period.</li>
+          <li>You can manage or cancel your subscription in your App Store / Google Play account settings after purchase.</li>
+        </ul>
+
+        <h2>Acceptable use</h2>
+        <p>You agree not to misuse the App, attempt to access it in unauthorized ways, or use it to violate any law.</p>
+
+        <h2>No veterinary advice</h2>
+        <p>
+          PawVault is a record-keeping tool. It does not provide medical or
+          veterinary advice, diagnosis, or treatment, and is not a substitute for
+          professional care. Always consult a qualified veterinarian for health
+          decisions about your pet.
+        </p>
+
+        <h2>Disclaimers and liability</h2>
+        <p>
+          The App is provided "as is" without warranties of any kind. To the
+          maximum extent permitted by law, we are not liable for any indirect or
+          consequential damages arising from your use of the App.
+        </p>
+
+        <h2>Termination</h2>
+        <p>We may suspend or terminate access if these Terms are violated. You may stop using the App at any time.</p>
+
+        <h2>Changes</h2>
+        <p>We may update these Terms; continued use after changes means you accept them.</p>
+
+        <h2>Contact</h2>
+        <p><a href="mailto:chrnknzhnkv@gmail.com">chrnknzhnkv@gmail.com</a></p>
+      </main>
+    </section>
+
+    <footer>
+      <div>
+        <a href="/privacy" data-link>Privacy Policy</a>
+        <a href="/terms" data-link>Terms of Use</a>
+      </div>
+      <p>
+        © <span id="year"></span> PawVault. PawVault is a record-keeping tool and
+        is not a substitute for professional veterinary care.
+      </p>
+    </footer>
+
+    <script>
+      var TITLES = {
+        "/": "PawVault — Pet Health, Organized",
+        "/privacy": "Privacy Policy — PawVault",
+        "/terms": "Terms of Use — PawVault",
+      };
+      function render() {
+        var path = window.location.pathname.replace(/\/+$/, "") || "/";
+        if (!TITLES[path]) path = "/";
+        document.querySelectorAll("section[data-route]").forEach(function (s) {
+          s.hidden = s.getAttribute("data-route") !== path;
+        });
+        document.title = TITLES[path];
+        window.scrollTo(0, 0);
+      }
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest("a[data-link]");
+        if (!a) return;
+        e.preventDefault();
+        history.pushState(null, "", a.getAttribute("href"));
+        render();
+      });
+      window.addEventListener("popstate", render);
+      document.getElementById("year").textContent = new Date().getFullYear();
+      render();
+    </script>
+  </body>
+</html>

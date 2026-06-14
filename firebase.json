@@ -1,1 +1,41 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"pawvault-e0cc5","appId":"1:70756738260:android:76868e47900c422c778741","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"pawvault-e0cc5","appId":"1:70756738260:ios:de85927129f4db55778741","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"pawvault-e0cc5","configurations":{"android":"1:70756738260:android:76868e47900c422c778741","ios":"1:70756738260:ios:de85927129f4db55778741"}}}}}}
+{
+  "hosting": {
+    "public": "web_site/public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{ "source": "**", "destination": "/index.html" }],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }]
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "pawvault-e0cc5",
+          "appId": "1:70756738260:android:76868e47900c422c778741",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "pawvault-e0cc5",
+          "appId": "1:70756738260:ios:de85927129f4db55778741",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "pawvault-e0cc5",
+          "configurations": {
+            "android": "1:70756738260:android:76868e47900c422c778741",
+            "ios": "1:70756738260:ios:de85927129f4db55778741"
+          }
+        }
+      }
+    }
+  }
+}
