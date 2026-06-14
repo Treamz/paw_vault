@@ -11,11 +11,16 @@ abstract final class AnalyticsEvents {
   static const smartInputUsed = 'smart_input_used';
   static const vetSummaryExported = 'vet_summary_exported';
 
-  /// Firebase's recommended sign-in event; pair with [paramMethod].
+  /// Firebase's recommended sign-in event; pair with [AnalyticsParams.method].
   static const login = 'login';
+
+  static const paywallViewed = 'paywall_viewed';
+  static const purchaseCompleted = 'purchase_completed';
+  static const purchaseRestored = 'purchase_restored';
 }
 
 abstract final class AnalyticsParams {
   static const type = 'type';
   static const method = 'method';
+  static const product = 'product';
 }

@@ -17,6 +17,7 @@ import firebase_storage
 import flutter_local_notifications
 import google_sign_in_ios
 import printing
+import purchases_flutter
 import sign_in_with_apple
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
@@ -32,5 +33,6 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   FlutterLocalNotificationsPlugin.register(with: registry.registrar(forPlugin: "FlutterLocalNotificationsPlugin"))
   FLTGoogleSignInPlugin.register(with: registry.registrar(forPlugin: "FLTGoogleSignInPlugin"))
   PrintingPlugin.register(with: registry.registrar(forPlugin: "PrintingPlugin"))
+  PurchasesFlutterPlugin.register(with: registry.registrar(forPlugin: "PurchasesFlutterPlugin"))
   SignInWithApplePlugin.register(with: registry.registrar(forPlugin: "SignInWithApplePlugin"))
 }

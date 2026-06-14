@@ -4,6 +4,7 @@ import 'package:paw_vault/features/account/presentation/screens/account_screen.d
 import 'package:paw_vault/features/document_extraction/presentation/screens/document_extraction_screen.dart';
 import 'package:paw_vault/features/documents/presentation/screens/document_form_screen.dart';
 import 'package:paw_vault/features/documents/presentation/screens/documents_screen.dart';
+import 'package:paw_vault/features/paywall/presentation/screens/paywall_screen.dart';
 import 'package:paw_vault/features/pets/presentation/screens/pet_form_screen.dart';
 import 'package:paw_vault/features/pets/presentation/screens/pet_list_screen.dart';
 import 'package:paw_vault/features/pets/presentation/screens/pet_profile_screen.dart';
@@ -22,6 +23,7 @@ class AppRouter extends RootStackRouter {
   List<AutoRoute> get routes => [
         AutoRoute(page: PetListRoute.page, initial: true, path: '/'),
         AutoRoute(page: AccountRoute.page, path: '/account'),
+        AutoRoute(page: PaywallRoute.page, path: '/paywall'),
         AutoRoute(page: PetFormRoute.page, path: '/pets/form'),
         AutoRoute(page: PetProfileRoute.page, path: '/pets/:petId'),
         AutoRoute(page: TimelineRoute.page, path: '/pets/:petId/timeline'),

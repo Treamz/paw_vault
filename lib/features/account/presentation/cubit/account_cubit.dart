@@ -6,20 +6,33 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
+import 'package:paw_vault/core/subscription/data/services/noop_subscription_service.dart';
+import 'package:paw_vault/core/subscription/domain/services/subscription_service.dart';
 
 class AccountCubit extends Cubit<AccountState> {
-  AccountCubit(this._repository, {AnalyticsService? analytics})
-      : _analytics = analytics ?? const NoopAnalyticsService(),
+  AccountCubit(
+    this._repository, {
+    AnalyticsService? analytics,
+    SubscriptionService? subscriptionService,
+  })  : _analytics = analytics ?? const NoopAnalyticsService(),
+        _subscriptionService =
+            subscriptionService ?? const NoopSubscriptionService(),
         super(const AccountState()) {
     _subscription = _repository.watchCurrentUser().listen((user) {
-      // Tie analytics to the current (possibly anonymous) uid, or clear it.
+      // Tie analytics + subscriptions to the current (possibly anonymous) uid.
       _analytics.setUserId(user?.id);
+      if (user != null) {
+        _subscriptionService.identify(user.id);
+      } else {
+        _subscriptionService.resetIdentity();
+      }
       emit(state.copyWith(user: user, clearUser: user == null));
     });
   }
 
   final AccountAuthRepository _repository;
   final AnalyticsService _analytics;
+  final SubscriptionService _subscriptionService;
   StreamSubscription<AppUser?>? _subscription;
 
   Future<void> registerWithEmail({

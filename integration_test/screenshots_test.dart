@@ -5,13 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-
 import 'package:paw_vault/app/theme/app_theme.dart';
 import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/core/subscription/data/services/noop_subscription_service.dart';
+import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/presentation/screens/documents_screen.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
@@ -68,7 +69,10 @@ void main() {
     MaterialApp wrap(Widget home) => MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
-          home: home,
+          home: BlocProvider<SubscriptionCubit>(
+            create: (_) => SubscriptionCubit(const NoopSubscriptionService()),
+            child: home,
+          ),
         );
 
     await shoot(
