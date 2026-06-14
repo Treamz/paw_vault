@@ -86,3 +86,14 @@ Decisions (2026-06-12):
 
 Improve UX, accessibility, error states, empty states, test coverage, platform
 configuration, and release readiness.
+
+## Phase 13: Analytics and product insights
+
+Add Google/Firebase Analytics to understand how the app is used and which
+features deliver value, behind the existing local-first/Firebase-ready
+abstractions. Track screen views automatically and key product events (pet
+created, timeline event added, document uploaded, reminder created, smart input
+used, vet summary exported, sign-in). Analytics must be a port with noop (local)
+and Firebase implementations so it is disabled in local-first mode and never
+called directly from widgets/Cubits via the SDK. No personal or medical content
+is sent as event parameters — only non-identifying counts and types.

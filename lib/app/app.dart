@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/app/theme/app_theme.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
+import 'package:paw_vault/core/analytics/presentation/analytics_route_observer.dart';
 import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/di/app_dependencies.dart';
@@ -35,11 +37,14 @@ class PawVaultApp extends StatefulWidget {
 
 class _PawVaultAppState extends State<PawVaultApp> {
   late final AppRouter _appRouter;
+  late final AnalyticsRouteObserver _analyticsObserver;
 
   @override
   void initState() {
     super.initState();
     _appRouter = AppRouter();
+    _analyticsObserver =
+        AnalyticsRouteObserver(widget.dependencies.analyticsService);
   }
 
   @override
@@ -97,12 +102,17 @@ class _PawVaultAppState extends State<PawVaultApp> {
         RepositoryProvider<PdfShareService>.value(
           value: widget.dependencies.pdfShareService,
         ),
+        RepositoryProvider<AnalyticsService>.value(
+          value: widget.dependencies.analyticsService,
+        ),
       ],
       child: MaterialApp.router(
         title: 'PawVault',
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
-        routerConfig: _appRouter.config(),
+        routerConfig: _appRouter.config(
+          navigatorObservers: () => [_analyticsObserver],
+        ),
       ),
     );
   }

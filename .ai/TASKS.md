@@ -273,3 +273,20 @@
   refresh `.ai` docs to reflect the shipped app.
 - [x] Run the full required checks (format, analyze, test) and a manual smoke
   pass of the primary flows; record the release-readiness result.
+
+## Phase 13: Analytics and product insights
+
+- [x] Add the `firebase_analytics` package and an `AnalyticsService` port with
+  noop (local) and Firebase implementations, expose it through
+  `FirebaseInstances`/`AppDependencies`, and provide it to the widget tree.
+- [x] Track screen views automatically via an analytics route observer wired
+  into the AutoRoute navigator.
+- [ ] Log key product events from the relevant Cubits (pet created, timeline
+  event added, document uploaded, reminder created, smart input used, vet
+  summary exported, sign-in) through the analytics port.
+- [ ] Set a non-identifying analytics user id from the signed-in user and clear
+  it on sign-out.
+- [ ] Document the analytics event taxonomy and how to view it in the Firebase
+  console (docs/ANALYTICS.md).
+- [ ] Run a Phase 13 architecture boundary review to confirm widgets/Cubits use
+  the analytics port and never the Firebase Analytics SDK directly.
