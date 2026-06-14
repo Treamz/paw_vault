@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
+import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
+import 'package:paw_vault/core/subscription/presentation/pro_gate.dart';
 import 'package:paw_vault/features/account/presentation/widgets/account_action.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
@@ -27,6 +29,16 @@ class PetListScreen extends StatelessWidget {
 
 class _PetListView extends StatelessWidget {
   const _PetListView();
+
+  /// Free users can keep [kFreePetLimit] pets; adding more opens the paywall.
+  Future<void> _onAddPet(BuildContext context, int petCount) async {
+    final isPro = context.read<SubscriptionCubit>().isPro;
+    if (!isPro && petCount >= kFreePetLimit) {
+      final unlocked = await showPaywall(context);
+      if (!unlocked) return;
+    }
+    if (context.mounted) context.router.push(PetFormRoute());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,10 +70,12 @@ class _PetListView extends StatelessWidget {
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.router.push(PetFormRoute()),
-        icon: const Icon(Icons.add),
-        label: const Text('Add pet'),
+      floatingActionButton: BlocBuilder<PetListCubit, PetListState>(
+        builder: (context, state) => FloatingActionButton.extended(
+          onPressed: () => _onAddPet(context, state.pets.length),
+          icon: const Icon(Icons.add),
+          label: const Text('Add pet'),
+        ),
       ),
     );
   }

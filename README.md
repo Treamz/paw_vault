@@ -110,6 +110,8 @@ user for confirmation before saving.
   device sizes with seeded sample data.
 - `docs/ANALYTICS.md` — the analytics event taxonomy, privacy stance, and how to
   view the data in Firebase.
+- `docs/MONETIZATION.md` — the RevenueCat "PawVault Pro" model, gating, API
+  keys, and the store/dashboard setup.
 - `.ai/ROADMAP.md` and `.ai/TASKS.md` — the phased build plan (all phases
   complete) and task history.
 

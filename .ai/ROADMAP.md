@@ -97,3 +97,31 @@ used, vet summary exported, sign-in). Analytics must be a port with noop (local)
 and Firebase implementations so it is disabled in local-first mode and never
 called directly from widgets/Cubits via the SDK. No personal or medical content
 is sent as event parameters — only non-identifying counts and types.
+
+## Phase 14: Monetization (RevenueCat)
+
+Introduce a paid "PawVault Pro" tier using RevenueCat (`purchases_flutter`),
+behind the existing local-first/Firebase-ready abstractions.
+
+Model (decided 2026-06-14):
+
+- **Free:** 1 pet; no AI features.
+- **Pro:** unlimited pets and AI features (Smart Input + AI document scanning).
+- **Plan:** annual subscription with a free trial (intro offer).
+
+Design:
+
+- A `SubscriptionService` port with a RevenueCat implementation and a no-op
+  (local-first) implementation that reports no entitlement. The presentation
+  layer depends only on the port; the SDK stays in data/composition.
+- Entitlement state (`isPro`) is exposed reactively; RevenueCat is identified
+  with the Firebase uid (`logIn`/`logOut`) so Pro follows the account across
+  devices, linking into the existing auth flow.
+- A paywall screen/Cubit driven by RevenueCat offerings; gating points: adding a
+  second pet, and entering Smart Input / document scanning. Existing data is
+  grandfathered (gates apply to new actions, never hide saved records).
+- Store/dashboard configuration (RevenueCat entitlement/offering, App Store
+  Connect + Play Console subscription products, public SDK keys) is tracked as
+  setup tasks; the code is built behind the port and testable with the no-op.
+- Reuse the analytics port to log paywall and purchase events. No personal or
+  medical data is sent to RevenueCat — only the uid.

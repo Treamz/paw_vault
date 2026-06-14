@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
+import 'package:paw_vault/core/subscription/presentation/pro_gate.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/pets/presentation/cubit/pet_profile_cubit.dart';
 
@@ -244,31 +246,48 @@ class _PetProfileView extends StatelessWidget {
   }
 
   Widget _buildRecordsCard(BuildContext context, String petId) {
-    final entries = <(IconData, String, PageRouteInfo)>[
-      (Icons.timeline, 'Timeline', TimelineRoute(petId: petId)),
-      (Icons.folder, 'Documents', DocumentsRoute(petId: petId)),
-      (Icons.notifications, 'Reminders', RemindersRoute(petId: petId)),
-      (Icons.bolt, 'Smart Input', SmartInputRoute(petId: petId)),
+    // The last flag marks Pro-only (AI) destinations.
+    final entries = <(IconData, String, PageRouteInfo, bool)>[
+      (Icons.timeline, 'Timeline', TimelineRoute(petId: petId), false),
+      (Icons.folder, 'Documents', DocumentsRoute(petId: petId), false),
+      (Icons.notifications, 'Reminders', RemindersRoute(petId: petId), false),
+      (Icons.bolt, 'Smart Input', SmartInputRoute(petId: petId), true),
       (
         Icons.summarize,
         'Vet Summary Export',
         VetSummaryExportRoute(petId: petId),
+        false,
       ),
     ];
+    final isPro = context.watch<SubscriptionCubit>().isPro;
 
     return Card(
       child: Column(
         children: [
-          for (final (icon, label, route) in entries)
+          for (final (icon, label, route, requiresPro) in entries)
             ListTile(
               leading: Icon(icon),
               title: Text(label),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.router.push(route),
+              trailing: requiresPro && !isPro
+                  ? const Icon(Icons.lock_outline)
+                  : const Icon(Icons.chevron_right),
+              onTap: () => _openRecord(context, route, requiresPro),
             ),
         ],
       ),
     );
+  }
+
+  Future<void> _openRecord(
+    BuildContext context,
+    PageRouteInfo route,
+    bool requiresPro,
+  ) async {
+    if (requiresPro && !context.read<SubscriptionCubit>().isPro) {
+      final unlocked = await showPaywall(context);
+      if (!unlocked) return;
+    }
+    if (context.mounted) context.router.push(route);
   }
 
   Widget _buildInfoCard(

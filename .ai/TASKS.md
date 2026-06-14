@@ -290,3 +290,23 @@
   console (docs/ANALYTICS.md).
 - [x] Run a Phase 13 architecture boundary review to confirm widgets/Cubits use
   the analytics port and never the Firebase Analytics SDK directly.
+
+## Phase 14: Monetization (RevenueCat)
+
+- [x] Add `purchases_flutter` and a `SubscriptionService` port with a RevenueCat
+  implementation and a no-op (local-first) implementation; expose entitlement
+  state (`isPro`) reactively and wire it through `AppDependencies` + providers.
+- [x] Configure RevenueCat at bootstrap (public SDK key) and identify the user
+  with the Firebase uid on sign-in/out (`logIn`/`logOut`).
+- [x] Build a paywall screen + Cubit driven by RevenueCat offerings, with
+  purchase and restore flows; log paywall/purchase analytics events.
+- [x] Gate adding a second pet behind Pro (free limit = 1), routing to the
+  paywall; grandfather existing pets.
+- [x] Gate Smart Input and AI document scanning behind Pro, routing to the
+  paywall.
+- [ ] Set up store products: an annual auto-renewable subscription with a free
+  trial in App Store Connect (and Play Console), plus the RevenueCat
+  entitlement (`pro`), offering, and a dashboard **Paywall** for that offering;
+  document the setup (docs/MONETIZATION.md).
+- [x] Run a Phase 14 architecture boundary review to confirm widgets/Cubits use
+  the subscription port and never the RevenueCat SDK directly.
