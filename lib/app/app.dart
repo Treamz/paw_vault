@@ -8,6 +8,7 @@ import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/di/app_dependencies.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/core/subscription/domain/services/paywall_presenter.dart';
 import 'package:paw_vault/core/subscription/domain/services/subscription_service.dart';
 import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
 import 'package:paw_vault/features/document_extraction/domain/repositories/document_extraction_ai_repository.dart';
@@ -109,6 +110,9 @@ class _PawVaultAppState extends State<PawVaultApp> {
         ),
         RepositoryProvider<SubscriptionService>.value(
           value: widget.dependencies.subscriptionService,
+        ),
+        RepositoryProvider<PaywallPresenter>.value(
+          value: widget.dependencies.paywallPresenter,
         ),
       ],
       child: BlocProvider<SubscriptionCubit>(

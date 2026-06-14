@@ -14,7 +14,9 @@ import 'package:paw_vault/core/storage/data/datasources/flutter_fire_storage_dat
 import 'package:paw_vault/core/storage/data/datasources/noop_firebase_storage_data_source.dart';
 import 'package:paw_vault/core/storage/data/repositories/firebase_ready_storage_repository.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/core/subscription/data/services/noop_paywall_presenter.dart';
 import 'package:paw_vault/core/subscription/data/services/noop_subscription_service.dart';
+import 'package:paw_vault/core/subscription/domain/services/paywall_presenter.dart';
 import 'package:paw_vault/core/subscription/domain/services/subscription_service.dart';
 import 'package:paw_vault/features/document_extraction/data/repositories/firebase_ready_document_extraction_ai_repository.dart';
 import 'package:paw_vault/features/document_extraction/data/services/document_source_picker_impl.dart';
@@ -73,6 +75,7 @@ class AppDependencies {
     required this.reminderNotificationScheduler,
     required this.analyticsService,
     required this.subscriptionService,
+    required this.paywallPresenter,
   });
 
   factory AppDependencies.localFirst() {
@@ -99,12 +102,14 @@ class AppDependencies {
           LocalReminderNotificationScheduler(FlutterLocalNotificationsPlugin()),
       analyticsService: const NoopAnalyticsService(),
       subscriptionService: const NoopSubscriptionService(),
+      paywallPresenter: const NoopPaywallPresenter(),
     );
   }
 
   factory AppDependencies.firebaseReady(
     FirebaseInstances firebase, {
     SubscriptionService subscriptionService = const NoopSubscriptionService(),
+    PaywallPresenter paywallPresenter = const NoopPaywallPresenter(),
   }) {
     final aiDataSource = FlutterFireAiLogicDataSource(firebase.ai);
     final aiRepository = FirebaseReadyAiRepository(aiDataSource);
@@ -144,6 +149,7 @@ class AppDependencies {
           LocalReminderNotificationScheduler(FlutterLocalNotificationsPlugin()),
       analyticsService: FirebaseAnalyticsService(firebase.analytics),
       subscriptionService: subscriptionService,
+      paywallPresenter: paywallPresenter,
     );
   }
 
@@ -162,6 +168,7 @@ class AppDependencies {
   final ReminderNotificationScheduler reminderNotificationScheduler;
   final AnalyticsService analyticsService;
   final SubscriptionService subscriptionService;
+  final PaywallPresenter paywallPresenter;
 
   /// The auth repository also satisfies account (non-anonymous) auth.
   AccountAuthRepository get accountAuthRepository =>

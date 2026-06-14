@@ -306,6 +306,7 @@
   paywall.
 - [ ] Set up store products: an annual auto-renewable subscription with a free
   trial in App Store Connect (and Play Console), plus the RevenueCat
-  entitlement (`pro`) and offering; document the setup (docs/MONETIZATION.md).
+  entitlement (`pro`), offering, and a dashboard **Paywall** for that offering;
+  document the setup (docs/MONETIZATION.md).
 - [x] Run a Phase 14 architecture boundary review to confirm widgets/Cubits use
   the subscription port and never the RevenueCat SDK directly.

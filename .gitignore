@@ -53,3 +53,6 @@ ios/fastlane/Preview.html
 ios/fastlane/screenshots
 ios/fastlane/test_output
 ios/vendor/bundle
+
+# Firebase hosting deploy cache
+.firebase/

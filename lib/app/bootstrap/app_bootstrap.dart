@@ -5,8 +5,11 @@ import 'package:paw_vault/core/di/app_dependencies.dart';
 import 'package:paw_vault/core/firebase/firebase_app_initializer.dart';
 import 'package:paw_vault/core/firebase/firebase_instances.dart';
 import 'package:paw_vault/core/firebase/firestore/firestore_offline_configurator.dart';
+import 'package:paw_vault/core/subscription/data/services/noop_paywall_presenter.dart';
 import 'package:paw_vault/core/subscription/data/services/noop_subscription_service.dart';
+import 'package:paw_vault/core/subscription/data/services/revenue_cat_paywall_presenter.dart';
 import 'package:paw_vault/core/subscription/data/services/revenue_cat_subscription_service.dart';
+import 'package:paw_vault/core/subscription/domain/services/paywall_presenter.dart';
 import 'package:paw_vault/core/subscription/domain/services/subscription_service.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
@@ -23,10 +26,12 @@ abstract final class AppBootstrap {
     await FirebaseAppInitializer.initialize();
     final firebase = FirebaseInstances();
     FirestoreOfflineConfigurator.configure(firebase.firestore);
-    final subscriptionService = await _configureSubscriptions();
+    final (subscriptionService, paywallPresenter) =
+        await _configureSubscriptions();
     final dependencies = AppDependencies.firebaseReady(
       firebase,
       subscriptionService: subscriptionService,
+      paywallPresenter: paywallPresenter,
     );
     await AnonymousAuthBootstrap.ensureSignedIn(dependencies.authRepository);
 
@@ -34,14 +39,19 @@ abstract final class AppBootstrap {
   }
 
   /// Configures RevenueCat when a public SDK key is provided via dart-define;
-  /// otherwise falls back to the no-op service so the app still runs.
-  static Future<SubscriptionService> _configureSubscriptions() async {
+  /// otherwise falls back to the no-op services so the app still runs. The
+  /// paywall UI itself is configured in the RevenueCat dashboard.
+  static Future<(SubscriptionService, PaywallPresenter)>
+      _configureSubscriptions() async {
     final apiKey = _revenueCatApiKey;
     if (apiKey.isEmpty) {
-      return const NoopSubscriptionService();
+      return (const NoopSubscriptionService(), const NoopPaywallPresenter());
     }
     await Purchases.configure(PurchasesConfiguration(apiKey));
-    return RevenueCatSubscriptionService();
+    return (
+      RevenueCatSubscriptionService(),
+      const RevenueCatPaywallPresenter(),
+    );
   }
 
   static String get _revenueCatApiKey {

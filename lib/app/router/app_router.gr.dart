@@ -201,22 +201,6 @@ class DocumentsRouteArgs {
 }
 
 /// generated route for
-/// [PaywallScreen]
-class PaywallRoute extends PageRouteInfo<void> {
-  const PaywallRoute({List<PageRouteInfo>? children})
-      : super(PaywallRoute.name, initialChildren: children);
-
-  static const String name = 'PaywallRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const PaywallScreen();
-    },
-  );
-}
-
-/// generated route for
 /// [PetFormScreen]
 class PetFormRoute extends PageRouteInfo<PetFormRouteArgs> {
   PetFormRoute({String? petId, Key? key, List<PageRouteInfo>? children})

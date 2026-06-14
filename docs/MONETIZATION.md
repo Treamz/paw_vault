@@ -27,7 +27,10 @@ offer). Existing data is grandfathered — gates only block *new* premium action
   entry call it; document scanning is reached only through Smart Input.
 - Identity: `AccountCubit` calls `identify(uid)` / `resetIdentity()` so Pro
   follows the Firebase account across devices.
-- Paywall: `features/paywall` (screen + cubit), route `/paywall`. Logs
+- Paywall: **designed in the RevenueCat dashboard** (not hard-coded). Presented
+  via a `PaywallPresenter` port → `RevenueCatPaywallPresenter`
+  (`purchases_ui_flutter` / `RevenueCatUI.presentPaywallIfNeeded('pro')`) /
+  `NoopPaywallPresenter` (local-first). `showPaywall` calls it and logs
   `paywall_viewed`, `purchase_completed`, `purchase_restored` analytics events.
 
 ## API keys (code-side)
@@ -55,15 +58,20 @@ TestFlight.
      `RevenueCatSubscriptionService.entitlementId`).
    - Add the store product and attach it to the `pro` entitlement.
    - Create an **offering** (the default one) containing the annual package.
+   - **Design a Paywall** for that offering (RevenueCat → Paywalls). This is the
+     UI the app shows — the app does not ship a hard-coded paywall. Add your
+     Terms of Use and Privacy Policy links there
+     (https://pawvault-e0cc5.web.app/terms and `/privacy`).
 3. Add the SDK keys as dart-defines / CI secrets.
 
 ## Testing
 
 - iOS: create a **StoreKit configuration file** in Xcode for local testing, or
-  use a **sandbox tester** account. Pro unlocks immediately after a sandbox
-  purchase; use the paywall's **Restore** to re-sync.
-- The no-op service makes local-first runs and all unit tests behave as Pro;
-  gating logic is covered by the paywall/subscription cubit tests with fakes.
+  use a **sandbox tester** account. The dashboard paywall is presented by
+  RevenueCatUI; Pro unlocks immediately after a sandbox purchase, and the
+  paywall's built-in **Restore** re-syncs.
+- The no-op services make local-first runs and all unit tests behave as Pro;
+  the subscription/presenter logic is covered by unit tests with fakes.
 
 ## Notes
 
