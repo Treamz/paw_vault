@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/app/router/app_router.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
@@ -23,6 +24,7 @@ class SmartInputScreen extends StatelessWidget {
       create: (context) => SmartInputCubit(
         smartInputRepository: context.read<SmartInputRepository>(),
         authRepository: context.read<AuthRepository>(),
+        analytics: context.read<AnalyticsService>(),
       )..load(petId),
       child: _SmartInputView(petId: petId),
     );

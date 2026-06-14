@@ -281,12 +281,12 @@
   `FirebaseInstances`/`AppDependencies`, and provide it to the widget tree.
 - [x] Track screen views automatically via an analytics route observer wired
   into the AutoRoute navigator.
-- [ ] Log key product events from the relevant Cubits (pet created, timeline
+- [x] Log key product events from the relevant Cubits (pet created, timeline
   event added, document uploaded, reminder created, smart input used, vet
   summary exported, sign-in) through the analytics port.
-- [ ] Set a non-identifying analytics user id from the signed-in user and clear
+- [x] Set a non-identifying analytics user id from the signed-in user and clear
   it on sign-out.
-- [ ] Document the analytics event taxonomy and how to view it in the Firebase
+- [x] Document the analytics event taxonomy and how to view it in the Firebase
   console (docs/ANALYTICS.md).
-- [ ] Run a Phase 13 architecture boundary review to confirm widgets/Cubits use
+- [x] Run a Phase 13 architecture boundary review to confirm widgets/Cubits use
   the analytics port and never the Firebase Analytics SDK directly.

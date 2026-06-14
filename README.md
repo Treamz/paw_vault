@@ -108,6 +108,8 @@ user for confirmation before saving.
   App Store Connect API key secrets.
 - `docs/SCREENSHOTS.md` — generating App Store screenshots at Apple's required
   device sizes with seeded sample data.
+- `docs/ANALYTICS.md` — the analytics event taxonomy, privacy stance, and how to
+  view the data in Firebase.
 - `.ai/ROADMAP.md` and `.ai/TASKS.md` — the phased build plan (all phases
   complete) and task history.
 

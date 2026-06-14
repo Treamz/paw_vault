@@ -1,4 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
@@ -9,12 +12,15 @@ class PetProfileCubit extends Cubit<PetProfileState> {
   PetProfileCubit({
     required PetRepository petRepository,
     required AuthRepository authRepository,
+    AnalyticsService? analytics,
   })  : _petRepository = petRepository,
         _authRepository = authRepository,
+        _analytics = analytics ?? const NoopAnalyticsService(),
         super(const PetProfileState());
 
   final PetRepository _petRepository;
   final AuthRepository _authRepository;
+  final AnalyticsService _analytics;
 
   Future<void> load(String petId) async {
     emit(PetProfileState(status: PetProfileStatus.loading, petId: petId));
@@ -69,6 +75,7 @@ class PetProfileCubit extends Cubit<PetProfileState> {
       );
 
       await _petRepository.savePet(pet);
+      _analytics.logEvent(AnalyticsEvents.petCreated);
 
       emit(
         PetProfileState(

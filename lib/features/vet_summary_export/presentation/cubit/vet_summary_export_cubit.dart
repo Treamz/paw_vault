@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
@@ -21,12 +24,14 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
     required PdfShareService shareService,
     required StorageRepository storageRepository,
     required VetSummaryExportRepository exportRepository,
+    AnalyticsService? analytics,
   })  : _authRepository = authRepository,
         _loadVetSummaryData = loadVetSummaryData,
         _pdfGenerator = pdfGenerator,
         _shareService = shareService,
         _storageRepository = storageRepository,
         _exportRepository = exportRepository,
+        _analytics = analytics ?? const NoopAnalyticsService(),
         super(const VetSummaryExportState());
 
   final AuthRepository _authRepository;
@@ -35,6 +40,7 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
   final PdfShareService _shareService;
   final StorageRepository _storageRepository;
   final VetSummaryExportRepository _exportRepository;
+  final AnalyticsService _analytics;
   StreamSubscription<List<VetSummaryExport>>? _exportsSubscription;
 
   /// Subscribes to the pet's saved export history.
@@ -104,6 +110,7 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
         petId: EntityId(petId),
       );
       final bytes = await _pdfGenerator.build(data);
+      _analytics.logEvent(AnalyticsEvents.vetSummaryExported);
 
       emit(
         state.copyWith(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
@@ -28,6 +30,9 @@ Widget _app() {
   return MultiRepositoryProvider(
     providers: [
       RepositoryProvider<AuthRepository>.value(value: _FakeAuthRepository()),
+      RepositoryProvider<AnalyticsService>.value(
+        value: const NoopAnalyticsService(),
+      ),
       RepositoryProvider<SmartInputRepository>.value(
         value: _FakeSmartInputRepository(),
       ),
