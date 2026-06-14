@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/documents/application/document_upload_service.dart';
@@ -34,6 +35,7 @@ class DocumentFormScreen extends StatelessWidget {
             filePicker: context.read<FilePicker>(),
             storageRepository: context.read<StorageRepository>(),
           ),
+          analytics: context.read<AnalyticsService>(),
         );
         if (documentId != null) {
           cubit.load(petId, documentId!);

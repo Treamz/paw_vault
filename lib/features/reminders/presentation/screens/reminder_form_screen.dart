@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
@@ -28,6 +29,7 @@ class ReminderFormScreen extends StatelessWidget {
           reminderRepository: context.read<ReminderRepository>(),
           authRepository: context.read<AuthRepository>(),
           notificationScheduler: context.read<ReminderNotificationScheduler>(),
+          analytics: context.read<AnalyticsService>(),
         );
         if (reminderId != null) {
           cubit.load(petId, reminderId!);

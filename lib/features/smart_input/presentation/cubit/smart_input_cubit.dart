@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
@@ -12,12 +15,15 @@ class SmartInputCubit extends Cubit<SmartInputState> {
   SmartInputCubit({
     required SmartInputRepository smartInputRepository,
     required AuthRepository authRepository,
+    AnalyticsService? analytics,
   })  : _smartInputRepository = smartInputRepository,
         _authRepository = authRepository,
+        _analytics = analytics ?? const NoopAnalyticsService(),
         super(const SmartInputState());
 
   final SmartInputRepository _smartInputRepository;
   final AuthRepository _authRepository;
+  final AnalyticsService _analytics;
   StreamSubscription<List<SmartMessage>>? _messagesSubscription;
   EntityId? _userId;
 
@@ -82,6 +88,7 @@ class SmartInputCubit extends Cubit<SmartInputState> {
 
     try {
       final draft = await _smartInputRepository.createDraft(input);
+      _analytics.logEvent(AnalyticsEvents.smartInputUsed);
       emit(
         state.copyWith(
           status: SmartInputStatus.review,

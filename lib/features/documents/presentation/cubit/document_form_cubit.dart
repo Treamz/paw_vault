@@ -1,4 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
@@ -13,16 +16,19 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
     required AuthRepository authRepository,
     required DocumentUploadService uploadService,
     required StorageRepository storageRepository,
+    AnalyticsService? analytics,
   })  : _documentRepository = documentRepository,
         _authRepository = authRepository,
         _uploadService = uploadService,
         _storageRepository = storageRepository,
+        _analytics = analytics ?? const NoopAnalyticsService(),
         super(const DocumentFormState());
 
   final DocumentRepository _documentRepository;
   final AuthRepository _authRepository;
   final DocumentUploadService _uploadService;
   final StorageRepository _storageRepository;
+  final AnalyticsService _analytics;
 
   Future<void> load(String petId, String documentId) async {
     emit(
@@ -119,6 +125,10 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
       );
 
       await _documentRepository.saveDocument(document);
+      _analytics.logEvent(
+        AnalyticsEvents.documentUploaded,
+        parameters: {AnalyticsParams.type: document.type.name},
+      );
 
       emit(
         DocumentFormState(

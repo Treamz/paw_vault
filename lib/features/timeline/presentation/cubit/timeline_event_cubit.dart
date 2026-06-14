@@ -1,4 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
@@ -9,12 +12,15 @@ class TimelineEventCubit extends Cubit<TimelineEventState> {
   TimelineEventCubit({
     required TimelineRepository timelineRepository,
     required AuthRepository authRepository,
+    AnalyticsService? analytics,
   })  : _timelineRepository = timelineRepository,
         _authRepository = authRepository,
+        _analytics = analytics ?? const NoopAnalyticsService(),
         super(const TimelineEventState());
 
   final TimelineRepository _timelineRepository;
   final AuthRepository _authRepository;
+  final AnalyticsService _analytics;
 
   Future<void> load(String petId, String eventId) async {
     emit(
@@ -82,6 +88,10 @@ class TimelineEventCubit extends Cubit<TimelineEventState> {
       );
 
       await _timelineRepository.saveEvent(event);
+      _analytics.logEvent(
+        AnalyticsEvents.timelineEventAdded,
+        parameters: {AnalyticsParams.type: event.type.name},
+      );
 
       emit(
         TimelineEventState(

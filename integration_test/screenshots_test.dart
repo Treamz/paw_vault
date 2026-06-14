@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'package:paw_vault/app/theme/app_theme.dart';
+import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
@@ -44,6 +46,7 @@ void main() {
   final storage = FakeStorageRepository();
   final pdfGenerator = FakeVetSummaryPdfGenerator();
   final shareService = FakePdfShareService();
+  const analytics = NoopAnalyticsService();
 
   const petId = 'pet-1';
 
@@ -129,6 +132,7 @@ void main() {
       MultiRepositoryProvider(
         providers: [
           RepositoryProvider<AuthRepository>.value(value: auth),
+          RepositoryProvider<AnalyticsService>.value(value: analytics),
           RepositoryProvider<SmartInputRepository>.value(value: smartInput),
         ],
         child: wrap(const SmartInputScreen(petId: petId)),
@@ -140,6 +144,7 @@ void main() {
       MultiRepositoryProvider(
         providers: [
           RepositoryProvider<AuthRepository>.value(value: auth),
+          RepositoryProvider<AnalyticsService>.value(value: analytics),
           RepositoryProvider<StorageRepository>.value(value: storage),
           RepositoryProvider<VetSummaryExportRepository>.value(value: exports),
           RepositoryProvider<VetSummaryPdfGenerator>.value(value: pdfGenerator),

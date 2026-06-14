@@ -1,4 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
@@ -11,13 +14,16 @@ class ReminderFormCubit extends Cubit<ReminderFormCubitState> {
     required ReminderRepository reminderRepository,
     required AuthRepository authRepository,
     required ReminderNotificationScheduler notificationScheduler,
+    AnalyticsService? analytics,
   })  : _reminderRepository = reminderRepository,
         _authRepository = authRepository,
         _notificationScheduler = notificationScheduler,
+        _analytics = analytics ?? const NoopAnalyticsService(),
         super(const ReminderFormCubitState());
 
   final ReminderRepository _reminderRepository;
   final AuthRepository _authRepository;
+  final AnalyticsService _analytics;
   final ReminderNotificationScheduler _notificationScheduler;
 
   Future<void> load(String petId, String reminderId) async {
@@ -98,6 +104,7 @@ class ReminderFormCubit extends Cubit<ReminderFormCubitState> {
 
       await _reminderRepository.saveReminder(reminder);
       await _scheduleQuietly(reminder);
+      _analytics.logEvent(AnalyticsEvents.reminderCreated);
 
       emit(
         ReminderFormCubitState(

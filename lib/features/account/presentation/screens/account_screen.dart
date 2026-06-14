@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
 import 'package:paw_vault/features/account/presentation/cubit/account_cubit.dart';
 
@@ -11,7 +12,10 @@ class AccountScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => AccountCubit(context.read<AccountAuthRepository>()),
+      create: (context) => AccountCubit(
+        context.read<AccountAuthRepository>(),
+        analytics: context.read<AnalyticsService>(),
+      ),
       child: const _AccountView(),
     );
   }

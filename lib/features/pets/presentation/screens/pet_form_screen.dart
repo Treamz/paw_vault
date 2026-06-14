@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
@@ -25,6 +26,7 @@ class PetFormScreen extends StatelessWidget {
         final cubit = PetProfileCubit(
           petRepository: context.read<PetRepository>(),
           authRepository: context.read<AuthRepository>(),
+          analytics: context.read<AnalyticsService>(),
         );
         if (petId != null) {
           cubit.load(petId!);

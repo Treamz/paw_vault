@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
@@ -401,7 +402,49 @@ void main() {
 
       await cubit.close();
     });
+
+    test('logs a timeline_event_added analytics event on create', () async {
+      final analytics = _RecordingAnalytics();
+      final cubit = TimelineEventCubit(
+        timelineRepository: _FakeTimelineRepository(),
+        authRepository: _FakeAuthRepository(
+          currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+        ),
+        analytics: analytics,
+      );
+
+      await cubit.createEvent(
+        'pet-1',
+        PetEventFormState(
+          type: PetEventType.vaccination,
+          title: 'Rabies',
+          date: DateTime(2024, 1, 15),
+        ),
+      );
+
+      expect(analytics.events, ['timeline_event_added']);
+      expect(analytics.lastParameters?['type'], 'vaccination');
+
+      await cubit.close();
+    });
   });
+}
+
+class _RecordingAnalytics implements AnalyticsService {
+  final List<String> events = [];
+  Map<String, Object?>? lastParameters;
+
+  @override
+  Future<void> logEvent(String name, {Map<String, Object?>? parameters}) async {
+    events.add(name);
+    lastParameters = parameters;
+  }
+
+  @override
+  Future<void> logScreenView(String screenName) async {}
+
+  @override
+  Future<void> setUserId(String? userId) async {}
 }
 
 PetEvent _event({

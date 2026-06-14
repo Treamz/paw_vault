@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/vet_summary_export/application/load_vet_summary_data.dart';
@@ -29,6 +30,7 @@ class VetSummaryExportScreen extends StatelessWidget {
         shareService: context.read<PdfShareService>(),
         storageRepository: context.read<StorageRepository>(),
         exportRepository: context.read<VetSummaryExportRepository>(),
+        analytics: context.read<AnalyticsService>(),
       )..load(petId),
       child: _VetSummaryView(petId: petId),
     );
