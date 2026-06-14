@@ -1,108 +1,105 @@
 # PawVault — App Store Connect Listing (ASO Package)
 
-This is the conversion-optimized, keyword-rich App Store Connect listing for the
-iOS app. Every claim below is grounded in the actual feature set (pets, health
-timeline, documents, reminders, Smart Input, document scanning, vet summary
-export, accounts). AI claims are framed honestly: the AI only organizes
-user-provided information into drafts the user reviews and confirms. PawVault is
-a record-keeping tool, not a medical or veterinary service.
+Conversion-optimized, **keyword-data-backed** App Store listing. Keyword
+difficulty/traffic figures below come from the `mcp-appstore` MCP (US App Store,
+iOS). Every product claim is grounded in the real feature set; AI features are
+framed honestly (drafts the user confirms). PawVault is a record-keeping tool,
+not a medical or veterinary service.
+
+> iOS search indexes **Name + Subtitle + Keywords** (not the description), and
+> auto-combines tokens across all three into phrases. So those three fields are
+> optimized for ranking; the description is written for **conversion**.
 
 ---
 
-## 1. App Name
+## Keyword research (mcp-appstore, iOS US)
 
-**PawVault: Pet Health**
+Lower difficulty = easier to rank; higher traffic = more searches.
 
-- Character count: **20 / 30** ✅
-- Already decided — use exactly as written.
+| Keyword | Difficulty | Traffic | Verdict |
+| --- | --- | --- | --- |
+| **vet records** | **6.49** | 7.0 (High) | ⭐ best ratio — easiest + high traffic |
+| **dog health** | **6.62** | 7.2 (High) | ⭐ strong, easy |
+| dog health record | 7.04 | 7.1 (High) | strong |
+| pet vaccine | 7.08 | 7.0 (Mod) | good |
+| pet vaccine tracker | 7.29 | 6.6 (Mod) | good |
+| pet records | 7.30 | 6.8 (Mod) | ok |
+| pet medical history | 7.39 | 7.1 (High) | good |
+| vaccine reminder | 7.46 | 7.2 (High) | good traffic |
+| **pet health record** | 7.70 | **7.5 (High)** | highest traffic; harder |
+| pet passport | 7.91 | **8.4 (High)** | huge traffic; hardest |
+| pet health tracker | 8.43 | 6.1 (Mod) | avoid (hardest, lower traffic) |
+
+**Competitors** (search "pet health record"): VitusVet, VetVault, Wagly, Hubert,
+Mochii, MyLovet, PetFit — most lead with "Pet Health Records/Tracker," few own
+"**vet records**" or "**dog/cat health**." That's our opening.
+
+**Strategy:** put the highest-traffic phrase (*pet health records*) in the
+**Name**; capture the easiest high-value terms (*vet records*, *vaccine tracker*)
+in the **Subtitle**; fill the **Keyword field** with non-duplicated, data-backed
+singles (medical, history, passport, reminder, dog, cat, scanner…).
 
 ---
 
-## 2. Subtitle (≤30 chars)
+## 1. App Name / Title (≤30)
 
-Apple indexes the subtitle for search, so it should add new keywords the name
-doesn't already cover.
+> **PawVault: Pet Health Records**
 
-**Recommended:**
+- **28 / 30** ✅
+- Puts the **highest-traffic** phrase "pet health record(s)" (traffic 7.5) in the
+  strongest ranking field, while keeping the brand. (Update the App Store Name
+  field from "PawVault: Pet Health" to this.)
 
-> **Records, vaccines & reminders**
+---
 
-- Character count: **29 / 30** ✅
-- Adds high-value indexable terms: *records*, *vaccines*, *reminders*.
+## 2. Subtitle (≤30)
+
+> **Vaccine tracker & vet records**
+
+- **29 / 30** ✅
+- Captures the **easiest high-value** term "vet records" (difficulty 6.49) plus
+  "vaccine tracker." Combined with the Name, the store also forms "pet vaccine
+  tracker," "pet vet records," etc.
 
 **Alternates:**
 
-| Subtitle | Chars | Note |
+| Subtitle | Chars | Adds |
 | --- | --- | --- |
-| `Vaccine log, vet records & docs` | 31 ❌ | Over by 1 — trim if used (see below) |
-| `Vaccine & vet record organizer` | 30 ✅ | Leads with *vaccine*, adds *vet record*, *organizer* |
-| `Health log, vaccines & docs` | 27 ✅ | Adds *health log*, *vaccines*, *docs* |
-
-> Tip: if you want the first alternate, use `Vaccine log, vet records` (24) to
-> stay within the limit.
+| `Vaccines, vet records & dog log` | 30 | dog |
+| `Vet records, vaccines & reminders` | 33 ❌ | trim if used |
+| `Dog & cat health, vet records` | 29 | dog, cat |
 
 ---
 
-## 3. Keywords field (100 chars, comma-separated, no spaces)
+## 3. Keywords (100, comma-separated, no spaces)
 
-Rules applied: no spaces after commas; no words already used in the app name
-("pet", "health") or recommended subtitle ("records", "vaccine", "reminders");
-singular forms only (Apple matches plurals automatically); no filler words.
-
-**Exact string:**
+Rules: no spaces after commas; **no words already in Name/Subtitle** (pawvault,
+pet, health, records, vaccine, tracker, vet — already indexed); singular forms
+(Apple matches plurals).
 
 ```
-dog,cat,vet,medical,history,vaccination,document,scanner,pdf,passport,insurance,care,tracker,log,pet
+dog,cat,medical,history,reminder,passport,insurance,document,scanner,pdf,puppy,kitten,care,log,breed
 ```
 
-- Character count: **100 / 100** ✅
-
-> Note: `pet` is included as a separate broad token even though the name uses
-> "Pet" inside the brand lockup ("PawVault: Pet Health"); the standalone token
-> reinforces the category and there is room. Drop it to `...tracker,log` (96)
-> if you prefer a stricter no-repeat policy and want headroom for post-launch
-> keyword iteration.
-
-**Keyword themes targeted (and why):**
-
-- **Pet health record / medical history** — `medical,history,log,tracker` —
-  core positioning: a searchable health archive.
-- **Vaccine / immunization tracker** — `vaccination` — top-intent query for pet
-  owners; `vaccine` already lives in the subtitle.
-- **Species reach** — `dog,cat,pets` — covers the two highest-volume animal
-  searches plus a broad category token.
-- **Vet & visit records** — `vet,care` — captures "vet records / vet visit"
-  long-tail combinations with the name + subtitle.
-- **Documents & scanning** — `document,scanner,pdf,passport,insurance` — the
-  storage + AI-scan + export differentiators; `passport`/`insurance` are
-  concrete document types users search by.
-
-(The App Store automatically forms multi-word phrases by combining tokens across
-the name, subtitle, and keyword field — e.g. "pet vaccine tracker", "dog medical
-history", "vet records pdf" — so single tokens are deliberately not duplicated.)
+- **100 / 100** ✅
+- Targets, by data: **medical, history** (pet medical history 7.4/High),
+  **passport** (8.4 traffic), **reminder** (vaccine reminder 7.2/High), **dog,
+  cat, puppy, kitten** (species reach; "dog health" 6.6), and the
+  differentiators **document, scanner, pdf, insurance, breed**.
+- Spare-capacity swaps to test post-launch: `prescription`, `microchip`,
+  `organizer`, `wellness`.
 
 ---
 
-## 4. Promotional Text (≤170 chars, updatable without review)
-
-**Recommended:**
+## 4. Promotional Text (≤170, updatable without review)
 
 > Keep every vaccination, vet visit, and document for all your pets in one place. Smart Input turns your notes into draft entries you review and confirm.
 
-- Character count: **151 / 170** ✅
-
-**Alternate:**
-
-> New: scan a vaccination certificate or lab result and PawVault drafts the entry for you to confirm. Plus reminders, PDF vet summaries, and cloud backup.
-
-- Character count: **152 / 170** ✅
+- **151 / 170** ✅
 
 ---
 
-## 5. Description (≤4000 chars)
-
-> The first two lines below are what shows above the "more" fold — they lead
-> with the core benefit and primary keywords.
+## 5. Description (≤4000) — conversion (not indexed by iOS search)
 
 ```
 PawVault is the simple, private home for your pet's health records — vaccinations, vet visits, medications, documents, and reminders, all in one organized archive you actually keep up to date.
@@ -132,6 +129,10 @@ PRIVATE BY DEFAULT
 
 PawVault starts working immediately with no account required. When you choose to sign in, your data is backed up securely to the cloud and synced across your devices.
 
+PAWVAULT PRO
+
+Upgrade to Pro for unlimited pets and the AI features (Smart Input and document scanning). Pro is an annual subscription with a free trial; the core record-keeping features are free.
+
 A NOTE ON AI
 
 The AI features in PawVault only organize information you provide into editable drafts. You always review and confirm before anything is saved. PawVault helps you keep records — it does not diagnose conditions, give medical or veterinary advice, or replace your veterinarian. Always consult a qualified vet for health decisions.
@@ -139,11 +140,12 @@ The AI features in PawVault only organize information you provide into editable 
 Bring order to your pet's health records. Download PawVault and build your pet's complete health archive today.
 ```
 
-- Character count: **2,617 / 4000** ✅ (counted including line breaks)
+- ~**2,650 / 4000** ✅ (leads with the core keywords for conversion; includes the
+  Pro/subscription disclosure and the medical-safety note).
 
 ---
 
-## 6. What's New — Release Notes (v1.0.0, ≤4000 chars)
+## 6. What's New — Release Notes (v1.0.0)
 
 ```
 Welcome to PawVault 1.0!
@@ -161,78 +163,44 @@ Your pet's complete health archive, ready to go:
 Thanks for installing PawVault. We'd love your feedback — and a rating helps other pet owners find us!
 ```
 
-- Character count: **678 / 4000** ✅
+---
+
+## 7. Screenshot captions (in order)
+
+1. All your pets in one place
+2. Every detail, one tidy profile
+3. A full health timeline, filterable
+4. Certificates & records, safely stored
+5. Never miss a vaccine or dose
+6. Notes into drafts you confirm
+7. Share a vet summary PDF
 
 ---
 
-## 7. Screenshot Caption Ideas (7 lines, ≤~40 chars each)
+## 8. Category & age rating
 
-In screenshot order: pet list → pet profile → health timeline → documents →
-reminders → Smart Input (AI) → vet summary export.
-
-| # | Screenshot | Caption | Chars |
-| --- | --- | --- | --- |
-| 1 | Pet list | `All your pets in one place` | 26 |
-| 2 | Pet profile | `Every detail, one tidy profile` | 31 |
-| 3 | Health timeline | `A full health timeline, filterable` | 35 |
-| 4 | Documents | `Certificates & records, safely stored` | 38 |
-| 5 | Reminders | `Never miss a vaccine or dose` | 28 |
-| 6 | Smart Input (AI) | `Notes into drafts you confirm` | 30 |
-| 7 | Vet summary export | `Share a vet summary PDF` | 24 |
+**Primary: Medical** · **Secondary: Lifestyle** · Age **4+**
+(Record-keeping for medical-type data; no in-app advice. If Medical review feels
+heavy, swap primary to Lifestyle and keep Medical secondary.)
 
 ---
 
-## 8. Category & Age Rating Suggestion
+## 9. Post-launch ASO (data-driven)
 
-**Primary category: Medical**
-**Secondary category: Lifestyle** (alternate: Productivity)
-
-Reasoning: PawVault is a health-record and document-management tool centered on
-medical-type records (vaccinations, vet visits, lab results, prescriptions), so
-**Medical** best matches search intent and competitor placement for pet health
-trackers. *Lifestyle* fits the broader pet-care, organization, and reminders
-angle and widens discovery; *Productivity* is a reasonable alternate given the
-document vault, reminders, and PDF export. If charts in Medical look too
-clinical for the brand, swap primary to **Lifestyle** and keep **Medical** as
-secondary.
-
-**Age rating: 4+ (no objectionable content).**
-
-Reasoning: PawVault contains no mature, violent, or restricted content and no
-in-app medical advice. It includes user-generated documents and uses the camera
-and photo library for scanning, plus cloud sync — none of which raise the rating
-on Apple's questionnaire. Expect **4+**. (Apple may surface a "Medical"
-informational note for the category, but that does not change the age rating.)
-
----
-
-## 9. ASO Notes — Next Steps
-
-- **A/B test the subtitle** via Product Page Optimization once you have install
-  volume: pit "Records, vaccines & reminders" against the "Vaccine & vet record
-  organizer" alternate to see which keyword mix converts better.
-- **Iterate keywords after ~4 weeks** using App Store Connect search-term and
-  impression data; reallocate the spare characters (and the optional `pets`
-  token) toward whatever queries actually drive impressions and conversions.
-- **Localize** the listing for top markets (e.g., Spanish, German, French,
-  Portuguese-BR) — localized keyword fields unlock entirely new index space and
-  are one of the highest-ROI ASO moves.
-- **Drive ratings & reviews** with a well-timed in-app `SKStoreReviewController`
-  prompt (e.g., after a user exports their first vet summary or logs several
-  events) — rating volume strongly influences ranking and tap-through.
-- **Refresh Promotional Text** (no review needed) around seasonal hooks — annual
-  vaccine season, "new puppy/kitten" season, pet insurance renewal — to lift
-  conversion without touching the binary.
-- **Optimize the first screenshot** as the biggest conversion lever; test the
-  pet-list vs. health-timeline image in the lead slot, since most users decide
-  from the first one or two thumbnails in search results.
-
----
+- After ~4 weeks, pull App Store Connect **search-term** + impression data and
+  re-score with `mcp-appstore`; reallocate the keyword field toward queries that
+  actually convert.
+- **A/B test the subtitle** (Product Page Optimization): "Vaccine tracker & vet
+  records" vs "Dog & cat health, vet records."
+- Test the spare keyword swaps (`prescription`, `microchip`, `wellness`).
+- **Localize** Name/Subtitle/Keywords for top markets — localized keyword fields
+  unlock entirely new index space (highest-ROI ASO move).
+- Drive **ratings** with a well-timed in-app prompt (e.g. after the first vet
+  summary export) — rating volume strongly influences ranking.
 
 ### Quick reference
 
-- **Name:** PawVault: Pet Health (20 chars)
-- **Subtitle:** Records, vaccines & reminders (29 chars)
-- **Keywords:** `dog,cat,vet,medical,history,vaccination,document,scanner,pdf,passport,insurance,care,tracker,log,pet` (100 chars)
-- **Description:** 2,617 chars
-- **Category:** Medical (primary) / Lifestyle (secondary) · Age 4+
+- **Name:** PawVault: Pet Health Records (28)
+- **Subtitle:** Vaccine tracker & vet records (29)
+- **Keywords:** `dog,cat,medical,history,reminder,passport,insurance,document,scanner,pdf,puppy,kitten,care,log,breed` (100)
+- **Category:** Medical / Lifestyle · 4+
