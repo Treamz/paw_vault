@@ -27,6 +27,21 @@ platform :ios do
       in_house: false,
     )
 
+    # Apply manual signing to ONLY the Runner app target. Passing these settings
+    # globally via xcargs makes Xcode force the provisioning profile onto every
+    # Swift Package dependency (Firebase, GoogleSignIn, …), which fails because
+    # SPM package targets don't support provisioning profiles. Editing the
+    # project per-target leaves those dependencies on their default signing.
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Runner.xcodeproj",
+      targets: ["Runner"],
+      team_id: TEAM_ID,
+      code_sign_identity: "Apple Distribution",
+      profile_name: PROFILE_NAME,
+      bundle_identifier: APP_IDENTIFIER,
+    )
+
     # Manual signing with the certificate + profile installed by the workflow.
     # The Flutter artefacts are precompiled by the workflow
     # (`flutter build ios --release --no-codesign`); this archives + signs.
@@ -35,12 +50,6 @@ platform :ios do
       scheme: "Runner",
       configuration: "Release",
       export_method: "app-store",
-      xcargs: [
-        "CODE_SIGN_STYLE=Manual",
-        "DEVELOPMENT_TEAM=#{TEAM_ID}",
-        "PROVISIONING_PROFILE_SPECIFIER=#{PROFILE_NAME}",
-        "CODE_SIGN_IDENTITY=Apple\\ Distribution",
-      ].join(" "),
       export_options: {
         signingStyle: "manual",
         teamID: TEAM_ID,
