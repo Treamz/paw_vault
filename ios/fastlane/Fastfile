@@ -1,13 +1,14 @@
 require "base64"
-require "shellwords"
 
 default_platform(:ios)
 
-# Build identifiers for PawVault. These mirror ios/Runner.xcodeproj so signing
-# happens with the App Store Connect API key (automatic cloud signing) — no
-# certificates or provisioning profiles are stored in the repo or CI secrets.
+# Build identifiers for PawVault. Signing uses a fixed Apple Distribution
+# certificate + App Store provisioning profile imported into the keychain by the
+# CI workflow (from secrets). This reuses one certificate across builds instead
+# of creating a new one each run (which exhausts Apple's certificate limit).
 APP_IDENTIFIER = "com.treamz.pawVault".freeze
 TEAM_ID = "64QDKH3589".freeze
+PROFILE_NAME = "PawVaultAppStore".freeze
 
 platform :ios do
   desc "Build the signed app and upload it to TestFlight"
@@ -15,14 +16,10 @@ platform :ios do
     key_id = ENV.fetch("ASC_KEY_ID")
     issuer_id = ENV.fetch("ASC_ISSUER_ID")
 
-    # Write the .p8 key to disk so xcodebuild can authenticate with App Store
-    # Connect for `-allowProvisioningUpdates` (gym/build_app has no api_key
-    # option, so the auth flags are passed via xcargs below). The secret holds
-    # the key base64-encoded.
+    # Write the .p8 key to disk for the App Store Connect upload (pilot).
     key_path = File.expand_path("AuthKey_#{key_id}.p8")
     File.write(key_path, Base64.decode64(ENV.fetch("ASC_KEY_CONTENT")))
 
-    # Same key, used by pilot for the TestFlight upload.
     api_key = app_store_connect_api_key(
       key_id: key_id,
       issuer_id: issuer_id,
@@ -30,29 +27,24 @@ platform :ios do
       in_house: false,
     )
 
-    auth_args = [
-      "-allowProvisioningUpdates",
-      "-authenticationKeyPath", key_path.shellescape,
-      "-authenticationKeyID", key_id,
-      "-authenticationKeyIssuerID", issuer_id,
-    ].join(" ")
-
+    # Manual signing with the certificate + profile installed by the workflow.
     # The Flutter artefacts are precompiled by the workflow
-    # (`flutter build ios --release --no-codesign`) so this archive step reuses
-    # them and only handles signing + export.
+    # (`flutter build ios --release --no-codesign`); this archives + signs.
     build_app(
       workspace: "Runner.xcworkspace",
       scheme: "Runner",
       configuration: "Release",
       export_method: "app-store",
-      # Auth flags are needed on the archive command (gym does not add them
-      # there). gym adds them to the export command itself from the API key in
-      # lane context, so passing export_xcargs would duplicate
-      # `-authenticationKeyPath` and xcodebuild errors out.
-      xcargs: auth_args,
+      xcargs: [
+        "CODE_SIGN_STYLE=Manual",
+        "DEVELOPMENT_TEAM=#{TEAM_ID}",
+        "PROVISIONING_PROFILE_SPECIFIER=#{PROFILE_NAME}",
+        "CODE_SIGN_IDENTITY=Apple\\ Distribution",
+      ].join(" "),
       export_options: {
-        signingStyle: "automatic",
+        signingStyle: "manual",
         teamID: TEAM_ID,
+        provisioningProfiles: { APP_IDENTIFIER => PROFILE_NAME },
       },
       output_directory: "build/ios/ipa",
       output_name: "PawVault.ipa",
