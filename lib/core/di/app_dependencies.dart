@@ -18,6 +18,9 @@ import 'package:paw_vault/core/subscription/data/services/noop_paywall_presenter
 import 'package:paw_vault/core/subscription/data/services/noop_subscription_service.dart';
 import 'package:paw_vault/core/subscription/domain/services/paywall_presenter.dart';
 import 'package:paw_vault/core/subscription/domain/services/subscription_service.dart';
+import 'package:paw_vault/core/tracking/data/services/att_tracking_authorization_service.dart';
+import 'package:paw_vault/core/tracking/data/services/noop_tracking_authorization_service.dart';
+import 'package:paw_vault/core/tracking/domain/services/tracking_authorization_service.dart';
 import 'package:paw_vault/features/document_extraction/data/repositories/firebase_ready_document_extraction_ai_repository.dart';
 import 'package:paw_vault/features/document_extraction/data/services/document_source_picker_impl.dart';
 import 'package:paw_vault/features/document_extraction/domain/repositories/document_extraction_ai_repository.dart';
@@ -76,6 +79,7 @@ class AppDependencies {
     required this.analyticsService,
     required this.subscriptionService,
     required this.paywallPresenter,
+    required this.trackingAuthorizationService,
   });
 
   factory AppDependencies.localFirst() {
@@ -103,6 +107,7 @@ class AppDependencies {
       analyticsService: const NoopAnalyticsService(),
       subscriptionService: const NoopSubscriptionService(),
       paywallPresenter: const NoopPaywallPresenter(),
+      trackingAuthorizationService: const NoopTrackingAuthorizationService(),
     );
   }
 
@@ -150,6 +155,7 @@ class AppDependencies {
       analyticsService: FirebaseAnalyticsService(firebase.analytics),
       subscriptionService: subscriptionService,
       paywallPresenter: paywallPresenter,
+      trackingAuthorizationService: const AttTrackingAuthorizationService(),
     );
   }
 
@@ -169,6 +175,7 @@ class AppDependencies {
   final AnalyticsService analyticsService;
   final SubscriptionService subscriptionService;
   final PaywallPresenter paywallPresenter;
+  final TrackingAuthorizationService trackingAuthorizationService;
 
   /// The auth repository also satisfies account (non-anonymous) auth.
   AccountAuthRepository get accountAuthRepository =>
