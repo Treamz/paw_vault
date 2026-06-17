@@ -48,6 +48,13 @@ class _PawVaultAppState extends State<PawVaultApp> {
     _appRouter = AppRouter();
     _analyticsObserver =
         AnalyticsRouteObserver(widget.dependencies.analyticsService);
+
+    // Ask for App Tracking Transparency permission once the first frame is up,
+    // so iOS shows the system prompt while the app is active. Required before
+    // collecting any data Apple treats as tracking (Guideline 5.1.2(i)).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.dependencies.trackingAuthorizationService.requestAuthorization();
+    });
   }
 
   @override
