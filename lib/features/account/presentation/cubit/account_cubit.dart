@@ -4,8 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
+import 'package:paw_vault/core/auth/data/services/noop_account_deletion_service.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
+import 'package:paw_vault/core/auth/domain/services/account_deletion_service.dart';
 import 'package:paw_vault/core/subscription/data/services/noop_subscription_service.dart';
 import 'package:paw_vault/core/subscription/domain/services/subscription_service.dart';
 
@@ -14,9 +16,12 @@ class AccountCubit extends Cubit<AccountState> {
     this._repository, {
     AnalyticsService? analytics,
     SubscriptionService? subscriptionService,
+    AccountDeletionService? accountDeletionService,
   })  : _analytics = analytics ?? const NoopAnalyticsService(),
         _subscriptionService =
             subscriptionService ?? const NoopSubscriptionService(),
+        _accountDeletionService =
+            accountDeletionService ?? const NoopAccountDeletionService(),
         super(const AccountState()) {
     _subscription = _repository.watchCurrentUser().listen((user) {
       // Tie analytics + subscriptions to the current (possibly anonymous) uid.
@@ -33,6 +38,7 @@ class AccountCubit extends Cubit<AccountState> {
   final AccountAuthRepository _repository;
   final AnalyticsService _analytics;
   final SubscriptionService _subscriptionService;
+  final AccountDeletionService _accountDeletionService;
   StreamSubscription<AppUser?>? _subscription;
 
   Future<void> registerWithEmail({
@@ -71,6 +77,34 @@ class AccountCubit extends Cubit<AccountState> {
       // Re-establish a fresh anonymous session so the app keeps working and
       // the previous account's data is no longer shown.
       await _repository.signInAnonymously();
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: AccountStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  /// Permanently deletes the signed-in account and its data, then starts a
+  /// fresh anonymous session so the app keeps working.
+  Future<void> deleteAccount() async {
+    emit(
+      state.copyWith(status: AccountStatus.authenticating, clearError: true),
+    );
+    try {
+      await _accountDeletionService.deleteAccount();
+      await _repository.signInAnonymously();
+      emit(state.copyWith(status: AccountStatus.idle, clearUser: true));
+    } on ReauthenticationRequiredException {
+      emit(
+        state.copyWith(
+          status: AccountStatus.failure,
+          errorMessage: 'For your security, please sign in again, then delete '
+              'your account.',
+        ),
+      );
     } catch (error) {
       emit(
         state.copyWith(

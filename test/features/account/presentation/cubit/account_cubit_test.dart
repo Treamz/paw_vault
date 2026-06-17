@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
+import 'package:paw_vault/core/auth/domain/services/account_deletion_service.dart';
 import 'package:paw_vault/features/account/presentation/cubit/account_cubit.dart';
 
 void main() {
@@ -88,7 +89,53 @@ void main() {
 
       await cubit.close();
     });
+
+    test('deleteAccount deletes then starts a fresh anonymous session',
+        () async {
+      final repository = _FakeAccountAuthRepository();
+      final deletion = _FakeAccountDeletionService();
+      final cubit = AccountCubit(repository, accountDeletionService: deletion);
+
+      await cubit.deleteAccount();
+
+      expect(deletion.deleteCallCount, 1);
+      expect(repository.anonymousCallCount, 1);
+      expect(cubit.state.status, AccountStatus.idle);
+      expect(cubit.state.isSignedIn, isFalse);
+
+      await cubit.close();
+    });
+
+    test('deleteAccount surfaces a friendly message on reauth required',
+        () async {
+      final repository = _FakeAccountAuthRepository();
+      final deletion = _FakeAccountDeletionService(throwsReauth: true);
+      final cubit = AccountCubit(repository, accountDeletionService: deletion);
+
+      await cubit.deleteAccount();
+
+      expect(cubit.state.status, AccountStatus.failure);
+      expect(cubit.state.errorMessage, contains('sign in again'));
+      expect(repository.anonymousCallCount, 0);
+
+      await cubit.close();
+    });
   });
+}
+
+class _FakeAccountDeletionService implements AccountDeletionService {
+  _FakeAccountDeletionService({this.throwsReauth = false});
+
+  final bool throwsReauth;
+  int deleteCallCount = 0;
+
+  @override
+  Future<void> deleteAccount() async {
+    deleteCallCount++;
+    if (throwsReauth) {
+      throw const ReauthenticationRequiredException();
+    }
+  }
 }
 
 class _FakeAccountAuthRepository implements AccountAuthRepository {
@@ -100,6 +147,7 @@ class _FakeAccountAuthRepository implements AccountAuthRepository {
   String? registeredEmail;
   int googleCallCount = 0;
   int signOutCallCount = 0;
+  int anonymousCallCount = 0;
 
   void emitUser(AppUser? user) => _controller.add(user);
 
@@ -113,8 +161,10 @@ class _FakeAccountAuthRepository implements AccountAuthRepository {
   Future<AppUser?> currentUser() async => null;
 
   @override
-  Future<AppUser> signInAnonymously() async =>
-      const AppUser(id: 'anon', isAnonymous: true);
+  Future<AppUser> signInAnonymously() async {
+    anonymousCallCount++;
+    return const AppUser(id: 'anon', isAnonymous: true);
+  }
 
   @override
   Future<void> signOut() async {
