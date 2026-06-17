@@ -7,8 +7,11 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart'
 import 'package:paw_vault/core/auth/data/datasources/flutter_fire_auth_data_source.dart';
 import 'package:paw_vault/core/auth/data/datasources/noop_firebase_auth_data_source.dart';
 import 'package:paw_vault/core/auth/data/repositories/firebase_ready_auth_repository.dart';
+import 'package:paw_vault/core/auth/data/services/firebase_account_deletion_service.dart';
+import 'package:paw_vault/core/auth/data/services/noop_account_deletion_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/auth/domain/services/account_deletion_service.dart';
 import 'package:paw_vault/core/firebase/firebase_instances.dart';
 import 'package:paw_vault/core/storage/data/datasources/flutter_fire_storage_data_source.dart';
 import 'package:paw_vault/core/storage/data/datasources/noop_firebase_storage_data_source.dart';
@@ -80,6 +83,7 @@ class AppDependencies {
     required this.subscriptionService,
     required this.paywallPresenter,
     required this.trackingAuthorizationService,
+    required this.accountDeletionService,
   });
 
   factory AppDependencies.localFirst() {
@@ -108,6 +112,7 @@ class AppDependencies {
       subscriptionService: const NoopSubscriptionService(),
       paywallPresenter: const NoopPaywallPresenter(),
       trackingAuthorizationService: const NoopTrackingAuthorizationService(),
+      accountDeletionService: const NoopAccountDeletionService(),
     );
   }
 
@@ -156,6 +161,11 @@ class AppDependencies {
       subscriptionService: subscriptionService,
       paywallPresenter: paywallPresenter,
       trackingAuthorizationService: const AttTrackingAuthorizationService(),
+      accountDeletionService: FirebaseAccountDeletionService(
+        firebase.auth,
+        firebase.firestore,
+        firebase.storage,
+      ),
     );
   }
 
@@ -176,6 +186,7 @@ class AppDependencies {
   final SubscriptionService subscriptionService;
   final PaywallPresenter paywallPresenter;
   final TrackingAuthorizationService trackingAuthorizationService;
+  final AccountDeletionService accountDeletionService;
 
   /// The auth repository also satisfies account (non-anonymous) auth.
   AccountAuthRepository get accountAuthRepository =>

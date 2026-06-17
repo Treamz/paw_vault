@@ -6,6 +6,7 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart'
 import 'package:paw_vault/core/analytics/presentation/analytics_route_observer.dart';
 import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/auth/domain/services/account_deletion_service.dart';
 import 'package:paw_vault/core/di/app_dependencies.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/core/subscription/domain/services/paywall_presenter.dart';
@@ -66,6 +67,9 @@ class _PawVaultAppState extends State<PawVaultApp> {
         ),
         RepositoryProvider<AccountAuthRepository>.value(
           value: widget.dependencies.accountAuthRepository,
+        ),
+        RepositoryProvider<AccountDeletionService>.value(
+          value: widget.dependencies.accountDeletionService,
         ),
         RepositoryProvider<StorageRepository>.value(
           value: widget.dependencies.storageRepository,
