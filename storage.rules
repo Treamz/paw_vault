@@ -1,0 +1,15 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // All PawVault files (pet documents, scans, profile photos, vet-summary
+    // exports) live under users/{uid}/... (see FirebaseStoragePaths). A
+    // signed-in user may read and write only their own files; everything else
+    // is denied.
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+  }
+}

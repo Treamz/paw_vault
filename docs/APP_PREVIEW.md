@@ -288,10 +288,85 @@ Knobs at the top of `marketing/app_preview/src/Ad.tsx`:
 
 ---
 
-## App Store App Preview (compliant version — checklist)
+## App Store App Preview (compliant, full-bleed) — `AppPreview`
 
-The montage above is for social/website. The App Store **App Preview** slot needs
-real screen-capture footage, not composited screenshots. To produce it later:
+This is the composition to **submit to the App Store App Preview slot**. It was
+created to resolve an Apple **Guideline 2.3.4** rejection: the previously
+submitted `Montage` render wrapped each screenshot in a floating device card
+(white border, rounded corners, drop shadow, inset on a gradient), and Apple
+rejected that "framing around the video screen capture."
+
+`AppPreview` (in `marketing/app_preview/src/AppPreview.tsx`, registered in
+`src/Root.tsx`) shows every app screenshot **full-bleed, edge-to-edge** —
+`objectFit: 'cover'`, **no** device frame, border, border-radius, drop shadow,
+gradient background, margin, or inset. The screenshot aspect (1320/2868 =
+0.4606) ≈ the frame (886/1920 = 0.4615), so `cover` crops only a negligible
+sliver and the app content cleanly fills the frame. Permitted extras only:
+a gentle Ken-Burns zoom (1.0→1.04), crossfade/slide transitions, and animated
+lower-third **caption overlays** (overlay text is not "framing around the
+capture"), plus a short (1.5s) branded end card.
+
+> This composition is intentionally **separate** from `Montage` / `MontageSquare`
+> (which keep their framed look for social/website) and from the `Ad*` paid-social
+> creatives. Do not re-point the App Store slot at any of those framed renders.
+
+### Structure (fps 30, `AppPreview` 886×1920)
+
+`AppPreview_TOTAL_FRAMES` is computed from the timing constants (accounting for
+transition overlap), so length stays valid if you retune:
+
+1. **7 full-bleed screenshot segments** (`SEG_LEN` 90f / 3.0s each): screenshot
+   fills the whole frame via `objectFit: 'cover'` with a subtle Ken-Burns zoom;
+   a teal caption pill springs up in the lower third.
+2. **Branded end card** (`END_LEN` 45f / 1.5s): "🐾 PawVault: Pet Health" +
+   "Build your pet's health archive" on a teal gradient.
+
+Transitions: 15f (0.5s) crossfades, alternating `slide(from-right)` / `fade()`.
+
+Captions are the same truthful, non-clinical lines as the montage `SCREENS`
+array (see medical-safety note above).
+
+### Render + verify
+
+```bash
+cd marketing/app_preview
+npx remotion render src/index.ts AppPreview out/pawvault_apppreview_886x1920.mp4 --codec=h264
+cp out/pawvault_apppreview_886x1920.mp4 ../../build/app_preview/
+
+ffprobe -v error -select_streams v:0 \
+  -show_entries stream=width,height,codec_name -show_entries format=duration \
+  -of default=noprint_wrappers=1 out/pawvault_apppreview_886x1920.mp4
+```
+
+### Output + verified specs
+
+| File | Resolution | Duration | Codec |
+|------|-----------|----------|-------|
+| `pawvault_apppreview_886x1920.mp4` | 886×1920 | 19.00 s | H.264 |
+
+Within the App Preview limits (15–30 s) and exactly 886×1920 portrait.
+
+### Tweaking
+
+Knobs at the top of `marketing/app_preview/src/AppPreview.tsx`: `SCREENS`
+(screenshots + captions), `SEG_LEN` / `END_LEN` / `TRANS` (frames @ 30fps),
+`kbScale` Ken-Burns range, brand colors. Keep the screenshot full-bleed — do
+**not** re-introduce any border/radius/shadow/background inset or Apple will
+reject again under 2.3.4.
+
+To add a poster frame / music, see the montage's audio section above (silent by
+default — App Previews don't require audio).
+
+---
+
+## (Historical) App Store App Preview — manual screen-capture route
+
+> Superseded by the programmatic `AppPreview` composition above, which is the
+> current compliant deliverable. Kept for reference if a real screen-capture
+> pass is ever preferred.
+
+The montage above is for social/website. A screen-capture App Preview uses
+real device footage instead of composited screenshots. To produce it that way:
 
 - **Length**: 15–30 seconds.
 - **Capture real footage** from a simulator (or device) — actual app navigation:
