@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
@@ -24,6 +25,30 @@ void main() {
 
       expect(find.text('Vaccination certificate'), findsOneWidget);
       expect(find.text('No documents yet'), findsNothing);
+    });
+
+    testWidgets('shows the issue date on the tile when present',
+        (tester) async {
+      final datedDocument = PetDocument(
+        id: const EntityId('doc-3'),
+        userId: const EntityId('user-1'),
+        petId: const EntityId('pet-1'),
+        title: 'Rabies certificate',
+        type: PetDocumentType.vaccinationCertificate,
+        fileUrl: Uri.parse('https://example.com/doc.pdf'),
+        storagePath: 'users/user-1/pets/pet-1/documents/doc-3/original.pdf',
+        issueDate: DateOnly.fromDateTime(DateTime(2026, 1, 5)),
+      );
+
+      await tester.pumpWidget(_app([datedDocument, _document()]));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Vaccination Certificate · Issued Jan 5, 2026'),
+        findsOneWidget,
+      );
+      // The undated document keeps the plain type label.
+      expect(find.text('Vaccination Certificate'), findsOneWidget);
     });
 
     testWidgets('shows a thumbnail for image documents and an icon otherwise',

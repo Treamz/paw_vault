@@ -50,6 +50,31 @@ void main() {
       expect(find.byType(Image), findsOneWidget);
     });
 
+    testWidgets(
+        'notes and issue date are not labeled optional and notes '
+        'is a large field', (tester) async {
+      await tester.pumpWidget(
+        _app(document: null, opener: _FakeDocumentFileOpener()),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Notes'), findsOneWidget);
+      expect(find.text('Notes (optional)'), findsNothing);
+      expect(find.text('Issue date'), findsOneWidget);
+      expect(find.text('Issue date (optional)'), findsNothing);
+
+      final notesField = tester.widget<TextField>(
+        find.descendant(
+          of: find.ancestor(
+            of: find.text('Notes'),
+            matching: find.byType(TextFormField),
+          ),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(notesField.maxLines, 6);
+    });
+
     testWidgets('create mode has no attached file section', (tester) async {
       await tester.pumpWidget(
         _app(document: null, opener: _FakeDocumentFileOpener()),

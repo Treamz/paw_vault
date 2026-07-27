@@ -121,7 +121,12 @@ class _DocumentsContent extends StatelessWidget {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_formatDocumentType(document.type)),
+                Text(
+                  document.issueDate != null
+                      ? '${_formatDocumentType(document.type)} · Issued '
+                          '${DateFormat.yMMMd().format(document.issueDate!.toUtcDateTime())}'
+                      : _formatDocumentType(document.type),
+                ),
                 if (expiry != null) ...[
                   const SizedBox(height: 4),
                   _ExpiryLabel(expiry: expiry),

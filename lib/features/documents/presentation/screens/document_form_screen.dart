@@ -296,7 +296,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
             ),
             const SizedBox(height: 16),
             _DateField(
-              label: 'Issue date (optional)',
+              label: 'Issue date',
               value: _issueDate,
               format: dateFormat,
               onTap: _pickIssueDate,
@@ -317,8 +317,11 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _notesController,
-              decoration: const InputDecoration(labelText: 'Notes (optional)'),
-              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Notes',
+                alignLabelWithHint: true,
+              ),
+              maxLines: 6,
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
