@@ -27,7 +27,11 @@ class AccountCubit extends Cubit<AccountState> {
       // Tie analytics + subscriptions to the current (possibly anonymous) uid.
       _analytics.setUserId(user?.id);
       if (user != null) {
-        _subscriptionService.identify(user.id);
+        _subscriptionService.identify(
+          user.id,
+          email: user.email,
+          displayName: user.displayName,
+        );
       } else {
         _subscriptionService.resetIdentity();
       }

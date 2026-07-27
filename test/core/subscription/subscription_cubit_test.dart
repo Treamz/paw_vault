@@ -52,7 +52,11 @@ class _FakeSubscriptionService implements SubscriptionService {
   Future<Entitlements> currentEntitlements() async => Entitlements.free;
 
   @override
-  Future<void> identify(String userId) async {}
+  Future<void> identify(
+    String userId, {
+    String? email,
+    String? displayName,
+  }) async {}
 
   @override
   Future<void> resetIdentity() async {}

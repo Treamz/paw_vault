@@ -59,8 +59,18 @@ class RevenueCatSubscriptionService implements SubscriptionService {
       _mapEntitlements(await Purchases.getCustomerInfo());
 
   @override
-  Future<void> identify(String userId) async {
+  Future<void> identify(
+    String userId, {
+    String? email,
+    String? displayName,
+  }) async {
     await Purchases.logIn(userId);
+    if (email != null && email.isNotEmpty) {
+      await Purchases.setEmail(email);
+    }
+    if (displayName != null && displayName.isNotEmpty) {
+      await Purchases.setDisplayName(displayName);
+    }
   }
 
   @override

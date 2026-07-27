@@ -4,6 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
 import 'package:paw_vault/core/auth/domain/services/account_deletion_service.dart';
+import 'package:paw_vault/core/subscription/domain/entities/entitlements.dart';
+import 'package:paw_vault/core/subscription/domain/entities/subscription_package.dart';
+import 'package:paw_vault/core/subscription/domain/services/subscription_service.dart';
 import 'package:paw_vault/features/account/presentation/cubit/account_cubit.dart';
 
 void main() {
@@ -19,6 +22,37 @@ void main() {
 
       expect(cubit.state.user?.email, 'a@b.com');
       expect(cubit.state.isSignedIn, isTrue);
+
+      await cubit.close();
+    });
+
+    test('identifies the user to the subscription service with their email',
+        () async {
+      final repository = _FakeAccountAuthRepository();
+      final subscriptions = _FakeSubscriptionService();
+      final cubit = AccountCubit(
+        repository,
+        subscriptionService: subscriptions,
+      );
+
+      repository.emitUser(
+        const AppUser(
+          id: 'u1',
+          isAnonymous: false,
+          email: 'a@b.com',
+          displayName: 'Emma',
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(subscriptions.identifiedUserId, 'u1');
+      expect(subscriptions.identifiedEmail, 'a@b.com');
+      expect(subscriptions.identifiedDisplayName, 'Emma');
+
+      repository.emitUser(null);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(subscriptions.resetCallCount, 1);
 
       await cubit.close();
     });
@@ -121,6 +155,46 @@ void main() {
       await cubit.close();
     });
   });
+}
+
+class _FakeSubscriptionService implements SubscriptionService {
+  String? identifiedUserId;
+  String? identifiedEmail;
+  String? identifiedDisplayName;
+  int resetCallCount = 0;
+
+  @override
+  Future<void> identify(
+    String userId, {
+    String? email,
+    String? displayName,
+  }) async {
+    identifiedUserId = userId;
+    identifiedEmail = email;
+    identifiedDisplayName = displayName;
+  }
+
+  @override
+  Future<void> resetIdentity() async {
+    resetCallCount++;
+  }
+
+  @override
+  Stream<Entitlements> watchEntitlements() =>
+      Stream<Entitlements>.value(Entitlements.free);
+
+  @override
+  Future<Entitlements> currentEntitlements() async => Entitlements.free;
+
+  @override
+  Future<List<SubscriptionPackage>> offerings() async => const [];
+
+  @override
+  Future<Entitlements> purchase(SubscriptionPackage package) async =>
+      Entitlements.free;
+
+  @override
+  Future<Entitlements> restore() async => Entitlements.free;
 }
 
 class _FakeAccountDeletionService implements AccountDeletionService {
