@@ -4,8 +4,6 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -24,14 +22,25 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.70756738260-517538s2u9i9hhng41ne1nr51e6jkmfn</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>PawVault uses the camera so you can photograph a pet document to add it to your records.</string>
+	<string>PawVault uses the camera so you can take a photo of your pet or photograph a pet document to add it to your records.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>PawVault accesses your photos so you can pick a pet document image to add to your records.</string>
+	<string>PawVault accesses your photos so you can pick a photo of your pet or a pet document image to add to your records.</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>PawVault asks for permission so your usage can be measured to improve the app. You can use all features whether you allow tracking or not.</string>
 	<key>UIApplicationSceneManifest</key>
@@ -74,14 +83,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>CFBundleURLTypes</key>
-    <array>
-       <dict>
-          <key>CFBundleURLSchemes</key>
-          <array>
-            <string>com.googleusercontent.apps.70756738260-517538s2u9i9hhng41ne1nr51e6jkmfn</string>
-          </array>
-       </dict>
-    </array>
 </dict>
 </plist>

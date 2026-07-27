@@ -37,7 +37,9 @@ import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/pets/data/datasources/flutter_fire_pet_data_source.dart';
 import 'package:paw_vault/features/pets/data/repositories/firebase_pet_repository.dart';
 import 'package:paw_vault/features/pets/data/repositories/local_pet_repository.dart';
+import 'package:paw_vault/features/pets/data/services/pet_photo_picker_impl.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
 import 'package:paw_vault/features/reminders/data/datasources/flutter_fire_reminder_data_source.dart';
 import 'package:paw_vault/features/reminders/data/repositories/firebase_reminder_repository.dart';
 import 'package:paw_vault/features/reminders/data/repositories/local_reminder_repository.dart';
@@ -78,6 +80,7 @@ class AppDependencies {
     required this.filePicker,
     required this.documentExtractionAiRepository,
     required this.documentSourcePicker,
+    required this.petPhotoPicker,
     required this.reminderNotificationScheduler,
     required this.analyticsService,
     required this.subscriptionService,
@@ -106,6 +109,7 @@ class AppDependencies {
       documentExtractionAiRepository:
           FirebaseReadyDocumentExtractionAiRepository(aiDataSource),
       documentSourcePicker: DocumentSourcePickerImpl(),
+      petPhotoPicker: PetPhotoPickerImpl(),
       reminderNotificationScheduler:
           LocalReminderNotificationScheduler(FlutterLocalNotificationsPlugin()),
       analyticsService: const NoopAnalyticsService(),
@@ -155,6 +159,7 @@ class AppDependencies {
       documentExtractionAiRepository:
           FirebaseReadyDocumentExtractionAiRepository(aiDataSource),
       documentSourcePicker: DocumentSourcePickerImpl(),
+      petPhotoPicker: PetPhotoPickerImpl(),
       reminderNotificationScheduler:
           LocalReminderNotificationScheduler(FlutterLocalNotificationsPlugin()),
       analyticsService: FirebaseAnalyticsService(firebase.analytics),
@@ -181,6 +186,7 @@ class AppDependencies {
   final FilePicker filePicker;
   final DocumentExtractionAiRepository documentExtractionAiRepository;
   final DocumentSourcePicker documentSourcePicker;
+  final PetPhotoPicker petPhotoPicker;
   final ReminderNotificationScheduler reminderNotificationScheduler;
   final AnalyticsService analyticsService;
   final SubscriptionService subscriptionService;

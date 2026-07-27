@@ -2,6 +2,7 @@ import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
+import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
 import 'package:paw_vault/features/pets/domain/value_objects/pet_weight.dart';
 
 class PetFormState {
@@ -15,6 +16,7 @@ class PetFormState {
     this.weightUnit = PetWeightUnit.kilogram,
     this.microchipNumber,
     this.photoUrl,
+    this.pickedPhoto,
     this.allergies = const [],
     this.chronicConditions = const [],
     this.notes,
@@ -45,7 +47,15 @@ class PetFormState {
   final double? weightValue;
   final PetWeightUnit weightUnit;
   final String? microchipNumber;
+
+  /// Photo URL already persisted on the pet (or produced by an upload).
+  /// Never user-typed; `null` means the pet has no photo.
   final String? photoUrl;
+
+  /// Freshly picked photo awaiting upload on save; takes precedence over
+  /// [photoUrl] once uploaded.
+  final PickedPetPhoto? pickedPhoto;
+
   final List<String> allergies;
   final List<String> chronicConditions;
   final String? notes;
@@ -60,6 +70,7 @@ class PetFormState {
     PetWeightUnit? weightUnit,
     String? microchipNumber,
     String? photoUrl,
+    PickedPetPhoto? pickedPhoto,
     List<String>? allergies,
     List<String>? chronicConditions,
     String? notes,
@@ -74,6 +85,7 @@ class PetFormState {
       weightUnit: weightUnit ?? this.weightUnit,
       microchipNumber: microchipNumber ?? this.microchipNumber,
       photoUrl: photoUrl ?? this.photoUrl,
+      pickedPhoto: pickedPhoto ?? this.pickedPhoto,
       allergies: allergies ?? this.allergies,
       chronicConditions: chronicConditions ?? this.chronicConditions,
       notes: notes ?? this.notes,
@@ -123,13 +135,6 @@ class PetFormState {
           'Microchip number must be 50 characters or less';
     }
 
-    if (photoUrl != null && photoUrl!.trim().isNotEmpty) {
-      final uri = Uri.tryParse(photoUrl!.trim());
-      if (uri == null || (!uri.isScheme('http') && !uri.isScheme('https'))) {
-        errors['photoUrl'] = 'Photo URL must be a valid HTTP or HTTPS URL';
-      }
-    }
-
     if (notes != null && notes!.trim().length > 5000) {
       errors['notes'] = 'Notes must be 5000 characters or less';
     }
@@ -176,7 +181,7 @@ class PetFormState {
           ? trimmedMicrochip
           : null,
       photoUrl: trimmedPhotoUrl != null && trimmedPhotoUrl.isNotEmpty
-          ? Uri.parse(trimmedPhotoUrl)
+          ? Uri.tryParse(trimmedPhotoUrl)
           : null,
       allergies: allergies,
       chronicConditions: chronicConditions,

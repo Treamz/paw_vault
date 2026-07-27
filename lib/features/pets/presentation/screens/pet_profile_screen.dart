@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
 import 'package:paw_vault/core/subscription/presentation/pro_gate.dart';
+import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/pets/presentation/cubit/pet_profile_cubit.dart';
 
@@ -23,6 +25,9 @@ class PetProfileScreen extends StatelessWidget {
       create: (context) => PetProfileCubit(
         petRepository: context.read<PetRepository>(),
         authRepository: context.read<AuthRepository>(),
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: context.read<StorageRepository>(),
+        ),
       )..load(petId),
       child: const _PetProfileView(),
     );

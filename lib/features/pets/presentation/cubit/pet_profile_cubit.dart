@@ -4,6 +4,7 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/pets/presentation/models/pet_form_state.dart';
@@ -12,15 +13,39 @@ class PetProfileCubit extends Cubit<PetProfileState> {
   PetProfileCubit({
     required PetRepository petRepository,
     required AuthRepository authRepository,
+    required PetPhotoUploadService photoUploadService,
     AnalyticsService? analytics,
   })  : _petRepository = petRepository,
         _authRepository = authRepository,
+        _photoUploadService = photoUploadService,
         _analytics = analytics ?? const NoopAnalyticsService(),
         super(const PetProfileState());
 
   final PetRepository _petRepository;
   final AuthRepository _authRepository;
+  final PetPhotoUploadService _photoUploadService;
   final AnalyticsService _analytics;
+
+  /// Uploads the form's freshly picked photo (if any) and returns the form
+  /// state with [PetFormState.photoUrl] pointing at the uploaded file.
+  Future<PetFormState> _withUploadedPhoto({
+    required PetFormState formState,
+    required EntityId userId,
+    required EntityId petId,
+  }) async {
+    final photo = formState.pickedPhoto;
+    if (photo == null) {
+      return formState;
+    }
+
+    final uploaded = await _photoUploadService.uploadProfilePhoto(
+      userId: userId,
+      petId: petId,
+      photo: photo,
+    );
+
+    return formState.copyWith(photoUrl: uploaded.downloadUrl.toString());
+  }
 
   Future<void> load(String petId) async {
     emit(PetProfileState(status: PetProfileStatus.loading, petId: petId));
@@ -67,7 +92,13 @@ class PetProfileCubit extends Cubit<PetProfileState> {
       final now = DateTime.now();
       final petId = EntityId('${now.microsecondsSinceEpoch}');
 
-      final pet = formState.toPet(
+      final formWithPhoto = await _withUploadedPhoto(
+        formState: formState,
+        userId: userId,
+        petId: petId,
+      );
+
+      final pet = formWithPhoto.toPet(
         id: petId,
         userId: userId,
         createdAt: now,
@@ -113,7 +144,13 @@ class PetProfileCubit extends Cubit<PetProfileState> {
       await _petRepository.initialize();
       final now = DateTime.now();
 
-      final updatedPet = formState.toPet(
+      final formWithPhoto = await _withUploadedPhoto(
+        formState: formState,
+        userId: currentPet.userId,
+        petId: currentPet.id,
+      );
+
+      final updatedPet = formWithPhoto.toPet(
         id: currentPet.id,
         userId: currentPet.userId,
         createdAt: currentPet.createdAt?.value,
