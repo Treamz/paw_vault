@@ -27,5 +27,9 @@
       "mcp__dart__flutter_driver_command",
       "mcp__dart__widget_inspector"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase",
+    "dart-flutter"
+  ]
 }
