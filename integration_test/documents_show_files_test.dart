@@ -18,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:paw_vault/app/app.dart';
 import 'package:paw_vault/core/di/app_dependencies.dart';
+import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
@@ -50,6 +51,7 @@ void main() {
         fileUrl: Uri.parse(imageUrl),
         storagePath:
             'users/local-anonymous-user/pets/pet-1/documents/doc-1/original.jpg',
+        issueDate: DateOnly.fromDateTime(DateTime(2026, 1, 5)),
       ),
       PetDocument(
         id: const EntityId('doc-2'),
@@ -104,9 +106,14 @@ void main() {
     await tester.tap(find.text('Documents'));
     await tester.pumpAndSettle();
 
-    // The list shows both documents; the image one with a thumbnail.
+    // The list shows both documents; the image one with a thumbnail and its
+    // issue date on the title row.
     expect(find.text('Scanned vaccination card'), findsOneWidget);
     expect(find.text('Insurance policy'), findsOneWidget);
+    expect(
+      find.text('Vaccination Certificate · Issued Jan 5, 2026'),
+      findsOneWidget,
+    );
     final imageTile = find.ancestor(
       of: find.text('Scanned vaccination card'),
       matching: find.byType(ListTile),
