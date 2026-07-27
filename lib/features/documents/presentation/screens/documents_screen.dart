@@ -109,7 +109,7 @@ class _DocumentsContent extends StatelessWidget {
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      document.fileUrl.toString(),
+                      document.fileUrl!.toString(),
                       width: 40,
                       height: 40,
                       fit: BoxFit.cover,

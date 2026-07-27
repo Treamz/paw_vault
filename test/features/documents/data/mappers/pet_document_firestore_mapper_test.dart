@@ -109,6 +109,29 @@ void main() {
       expect(document.updatedAt, isNull);
     });
 
+    test('round-trips a document without a file attachment', () {
+      const document = PetDocument(
+        id: EntityId('doc-1'),
+        userId: EntityId('user-1'),
+        petId: EntityId('pet-1'),
+        title: 'Metadata only',
+        type: PetDocumentType.other,
+      );
+
+      final data = PetDocumentFirestoreMapper.toFirestore(document);
+      expect(data.containsKey('fileUrl'), isFalse);
+      expect(data.containsKey('storagePath'), isFalse);
+
+      final restored = PetDocumentFirestoreMapper.fromFirestore(
+        id: document.id,
+        data: data,
+      );
+      expect(restored.fileUrl, isNull);
+      expect(restored.storagePath, isNull);
+      expect(restored.hasFile, isFalse);
+      expect(restored.title, 'Metadata only');
+    });
+
     test('rejects invalid required fields', () {
       expect(
         () => PetDocumentFirestoreMapper.fromFirestore(
