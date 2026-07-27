@@ -99,12 +99,24 @@ class _DocumentsContent extends StatelessWidget {
       itemBuilder: (context, index) {
         final document = documents[index];
         final expiry = document.expiryDate;
+        final iconAvatar = CircleAvatar(
+          child: Icon(_documentIcon(document.type)),
+        );
         return Card(
           child: ListTile(
             key: ValueKey('document-${document.id.value}'),
-            leading: CircleAvatar(
-              child: Icon(_documentIcon(document.type)),
-            ),
+            leading: document.hasImageFile
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      document.fileUrl.toString(),
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, _, __) => iconAvatar,
+                    ),
+                  )
+                : iconAvatar,
             title: Text(document.title),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

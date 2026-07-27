@@ -47,4 +47,20 @@ class PetDocument {
   final EntityId? linkedEventId;
   final UtcDateTime? createdAt;
   final UtcDateTime? updatedAt;
+
+  static const _imageExtensions = {'jpg', 'jpeg', 'png', 'heic', 'webp'};
+
+  /// File extension (without dot, lowercase) derived from [storagePath];
+  /// empty when the path has none. The content type is not persisted, so
+  /// this is how the stored file's kind is determined.
+  String get fileExtension {
+    final dot = storagePath.lastIndexOf('.');
+    if (dot == -1 || dot == storagePath.length - 1) {
+      return '';
+    }
+    return storagePath.substring(dot + 1).toLowerCase();
+  }
+
+  /// Whether the stored file is an image that can be previewed inline.
+  bool get hasImageFile => _imageExtensions.contains(fileExtension);
 }

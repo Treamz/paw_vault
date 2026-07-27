@@ -43,6 +43,7 @@ void main() {
       smartInputRepository: base.smartInputRepository,
       vetSummaryExportRepository: base.vetSummaryExportRepository,
       filePicker: base.filePicker,
+      documentFileOpener: base.documentFileOpener,
       documentExtractionAiRepository: base.documentExtractionAiRepository,
       documentSourcePicker: base.documentSourcePicker,
       petPhotoPicker: base.petPhotoPicker,
