@@ -4,10 +4,12 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/core/storage/domain/entities/storage_file.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/documents/application/document_upload_service.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
+import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/documents/presentation/models/pet_document_form_state.dart';
 
 class DocumentFormCubit extends Cubit<DocumentFormState> {
@@ -73,10 +75,13 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
     }
   }
 
+  /// Saves a new document. [file] is optional: when provided it is uploaded
+  /// and linked to the document; without it only the metadata is saved.
   Future<void> createDocument(
     String petId,
-    PetDocumentFormState formState,
-  ) async {
+    PetDocumentFormState formState, {
+    PickedFile? file,
+  }) async {
     // Validate before uploading so invalid metadata never leaves an orphaned
     // file in storage.
     final validation = formState.validate();
@@ -90,7 +95,6 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
       return;
     }
 
-    final priorStatus = state.status;
     emit(state.copyWith(status: DocumentFormStatus.saving));
 
     try {
@@ -102,24 +106,22 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
       final now = DateTime.now();
       final documentId = EntityId('${now.microsecondsSinceEpoch}');
 
-      final uploaded = await _uploadService.pickAndUploadDocument(
-        userId: userId,
-        petId: entityPetId,
-        documentId: documentId,
-      );
-
-      if (uploaded == null) {
-        // User cancelled the file picker; nothing was uploaded or saved.
-        emit(state.copyWith(status: priorStatus));
-        return;
+      StorageFile? uploaded;
+      if (file != null) {
+        uploaded = await _uploadService.uploadDocumentFile(
+          userId: userId,
+          petId: entityPetId,
+          documentId: documentId,
+          file: file,
+        );
       }
 
       final document = formState.toDocument(
         id: documentId,
         userId: userId,
         petId: entityPetId,
-        fileUrl: uploaded.downloadUrl,
-        storagePath: uploaded.path,
+        fileUrl: uploaded?.downloadUrl,
+        storagePath: uploaded?.path,
         createdAt: now,
         updatedAt: now,
       );
@@ -214,7 +216,10 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
       await _documentRepository.initialize();
       // Remove the stored file first; only drop the metadata once the file is
       // gone so a failed storage delete leaves a consistent, retryable record.
-      await _storageRepository.delete(currentDocument.storagePath);
+      final storagePath = currentDocument.storagePath;
+      if (storagePath != null) {
+        await _storageRepository.delete(storagePath);
+      }
       await _documentRepository.deleteDocument(
         userId: currentDocument.userId,
         petId: currentDocument.petId,

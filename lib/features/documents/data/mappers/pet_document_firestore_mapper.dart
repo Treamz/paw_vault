@@ -9,8 +9,9 @@ abstract final class PetDocumentFirestoreMapper {
       'petId': FirestoreMapping.entityIdToJson(document.petId),
       'title': document.title,
       'type': FirestoreMapping.enumToJson(document.type),
-      'fileUrl': FirestoreMapping.uriToJson(document.fileUrl),
-      'storagePath': document.storagePath,
+      if (document.fileUrl != null)
+        'fileUrl': FirestoreMapping.uriToJson(document.fileUrl!),
+      if (document.storagePath != null) 'storagePath': document.storagePath,
       if (document.extractedText != null)
         'extractedText': document.extractedText,
       'extractedData': document.extractedData,
@@ -44,8 +45,13 @@ abstract final class PetDocumentFirestoreMapper {
         'type',
         PetDocumentType.values,
       ),
-      fileUrl: FirestoreMapping.uriFromJson(data['fileUrl'], 'fileUrl'),
-      storagePath: _stringFromFirestore(data['storagePath'], 'storagePath'),
+      fileUrl: data['fileUrl'] == null
+          ? null
+          : FirestoreMapping.uriFromJson(data['fileUrl'], 'fileUrl'),
+      storagePath: _optionalStringFromFirestore(
+        data['storagePath'],
+        'storagePath',
+      ),
       extractedText: _optionalStringFromFirestore(
         data['extractedText'],
         'extractedText',

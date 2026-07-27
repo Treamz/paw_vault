@@ -20,8 +20,8 @@ class PetDocument {
     required this.petId,
     required this.title,
     required this.type,
-    required this.fileUrl,
-    required this.storagePath,
+    this.fileUrl,
+    this.storagePath,
     this.extractedText,
     this.extractedData = const {},
     this.issueDate,
@@ -37,8 +37,11 @@ class PetDocument {
   final EntityId petId;
   final String title;
   final PetDocumentType type;
-  final Uri fileUrl;
-  final String storagePath;
+
+  /// Download URL of the stored file; `null` when the document was saved
+  /// without a file attachment.
+  final Uri? fileUrl;
+  final String? storagePath;
   final String? extractedText;
   final Map<String, Object?> extractedData;
   final DateOnly? issueDate;
@@ -50,17 +53,25 @@ class PetDocument {
 
   static const _imageExtensions = {'jpg', 'jpeg', 'png', 'heic', 'webp'};
 
+  /// Whether the document has a stored file attached.
+  bool get hasFile => fileUrl != null;
+
   /// File extension (without dot, lowercase) derived from [storagePath];
-  /// empty when the path has none. The content type is not persisted, so
-  /// this is how the stored file's kind is determined.
+  /// empty when there is no file or the path has no extension. The content
+  /// type is not persisted, so this is how the stored file's kind is
+  /// determined.
   String get fileExtension {
-    final dot = storagePath.lastIndexOf('.');
-    if (dot == -1 || dot == storagePath.length - 1) {
+    final path = storagePath;
+    if (path == null) {
       return '';
     }
-    return storagePath.substring(dot + 1).toLowerCase();
+    final dot = path.lastIndexOf('.');
+    if (dot == -1 || dot == path.length - 1) {
+      return '';
+    }
+    return path.substring(dot + 1).toLowerCase();
   }
 
   /// Whether the stored file is an image that can be previewed inline.
-  bool get hasImageFile => _imageExtensions.contains(fileExtension);
+  bool get hasImageFile => hasFile && _imageExtensions.contains(fileExtension);
 }

@@ -72,9 +72,18 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
   PetDocumentType? _selectedType;
   DateTime? _issueDate;
   DateTime? _expiryDate;
+  PickedFile? _pickedFile;
   bool _populated = false;
   bool _submitted = false;
   bool _deleteRequested = false;
+
+  Future<void> _pickFile() async {
+    final picked = await context.read<FilePicker>().pickDocument();
+    if (picked == null || !mounted) {
+      return;
+    }
+    setState(() => _pickedFile = picked);
+  }
 
   @override
   void dispose() {
@@ -146,7 +155,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
     if (widget.isEditMode) {
       cubit.updateDocument(formState);
     } else {
-      cubit.createDocument(widget.petId, formState);
+      cubit.createDocument(widget.petId, formState, file: _pickedFile);
     }
   }
 
@@ -272,7 +281,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (document != null) ...[
+            if (document != null && document.hasFile) ...[
               _AttachedFileCard(document: document),
               const SizedBox(height: 16),
             ],
@@ -323,6 +332,33 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
               ),
               maxLines: 6,
             ),
+            if (!widget.isEditMode) ...[
+              const SizedBox(height: 16),
+              _pickedFile == null
+                  ? OutlinedButton.icon(
+                      onPressed: isSaving ? null : _pickFile,
+                      icon: const Icon(Icons.attach_file),
+                      label: const Text('Attach file (optional)'),
+                    )
+                  : Card(
+                      margin: EdgeInsets.zero,
+                      child: ListTile(
+                        leading: const Icon(Icons.attach_file),
+                        title: Text(
+                          _pickedFile!.fileName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.clear),
+                          tooltip: 'Remove attachment',
+                          onPressed: isSaving
+                              ? null
+                              : () => setState(() => _pickedFile = null),
+                        ),
+                      ),
+                    ),
+            ],
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: isSaving ? null : () => _submit(context),
@@ -332,10 +368,8 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Icon(widget.isEditMode ? Icons.save : Icons.upload_file),
-              label: Text(
-                widget.isEditMode ? 'Save changes' : 'Pick file & save',
-              ),
+                  : const Icon(Icons.save),
+              label: Text(widget.isEditMode ? 'Save changes' : 'Save'),
             ),
           ],
         ),
@@ -367,7 +401,7 @@ class _AttachedFileCard extends StatelessWidget {
 
   Future<void> _open(BuildContext context) async {
     final opened =
-        await context.read<DocumentFileOpener>().open(document.fileUrl);
+        await context.read<DocumentFileOpener>().open(document.fileUrl!);
     if (!opened && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not open the file')),
@@ -387,7 +421,7 @@ class _AttachedFileCard extends StatelessWidget {
         children: [
           if (document.hasImageFile)
             Image.network(
-              document.fileUrl.toString(),
+              document.fileUrl!.toString(),
               height: 180,
               fit: BoxFit.cover,
               errorBuilder: (context, _, __) => Container(

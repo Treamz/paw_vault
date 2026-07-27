@@ -29,6 +29,7 @@ void main() {
           type: PetDocumentType.passport,
           title: 'EU Pet Passport',
         ),
+        file: _pickedFile(),
       );
 
       expect(cubit.state.status, DocumentFormStatus.ready);
@@ -44,12 +45,14 @@ void main() {
       expect(cubit.state.document, saved);
     });
 
-    test('createDocument aborts without saving when picker is cancelled',
+    test('createDocument saves metadata only when no file is attached',
         () async {
       final documentRepository = _FakeDocumentRepository();
+      final storageRepository = _FakeStorageRepository();
       final cubit = _cubit(
         documentRepository: documentRepository,
         picked: null,
+        storageRepository: storageRepository,
       );
 
       await cubit.createDocument(
@@ -60,9 +63,14 @@ void main() {
         ),
       );
 
-      expect(documentRepository.savedDocument, isNull);
-      expect(documentRepository.saveCallCount, isZero);
-      expect(cubit.state.status, DocumentFormStatus.initial);
+      expect(cubit.state.status, DocumentFormStatus.ready);
+      expect(storageRepository.uploadCallCount, isZero);
+      final saved = documentRepository.savedDocument;
+      expect(saved, isNotNull);
+      expect(saved!.title, 'EU Pet Passport');
+      expect(saved.fileUrl, isNull);
+      expect(saved.storagePath, isNull);
+      expect(saved.hasFile, isFalse);
     });
 
     test('createDocument rejects invalid input before uploading', () async {
@@ -77,6 +85,7 @@ void main() {
       await cubit.createDocument(
         'pet-1',
         const PetDocumentFormState(),
+        file: _pickedFile(),
       );
 
       expect(cubit.state.status, DocumentFormStatus.failure);
@@ -98,6 +107,7 @@ void main() {
           type: PetDocumentType.passport,
           title: 'EU Pet Passport',
         ),
+        file: _pickedFile(),
       );
 
       expect(cubit.state.status, DocumentFormStatus.failure);
@@ -182,6 +192,31 @@ void main() {
       expect(documentRepository.deletedDocumentId, existing.id);
       expect(cubit.state.status, DocumentFormStatus.ready);
       expect(cubit.state.document, isNull);
+    });
+
+    test('deleteDocument skips storage when the document has no file',
+        () async {
+      const existing = PetDocument(
+        id: EntityId('doc-1'),
+        userId: EntityId('user-1'),
+        petId: EntityId('pet-1'),
+        title: 'Metadata only',
+        type: PetDocumentType.other,
+      );
+      final documentRepository = _FakeDocumentRepository(document: existing);
+      final storageRepository = _FakeStorageRepository();
+      final cubit = _cubit(
+        documentRepository: documentRepository,
+        picked: null,
+        storageRepository: storageRepository,
+      );
+
+      await cubit.load('pet-1', 'doc-1');
+      await cubit.deleteDocument();
+
+      expect(storageRepository.deletedPath, isNull);
+      expect(documentRepository.deleteCallCount, 1);
+      expect(cubit.state.status, DocumentFormStatus.ready);
     });
 
     test('deleteDocument fails when no document is loaded', () async {
