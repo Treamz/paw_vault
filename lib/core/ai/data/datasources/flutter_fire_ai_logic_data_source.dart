@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:firebase_ai/firebase_ai.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:paw_vault/core/ai/data/datasources/firebase_ai_logic_data_source.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/features/document_extraction/domain/entities/document_extraction_draft.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
+import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 
 class FlutterFireAiLogicDataSource implements FirebaseAiLogicDataSource {
   const FlutterFireAiLogicDataSource(
@@ -18,21 +20,96 @@ class FlutterFireAiLogicDataSource implements FirebaseAiLogicDataSource {
   final String modelName;
 
   @override
-  Future<SmartInputDraft> structureDocumentText(String text) async {
-    _createModel();
-    return SmartInputDraft(
-      originalText: text,
-      requiresConfirmation: true,
-    );
-  }
+  Future<SmartInputDraft> structureDocumentText(String text) =>
+      structureUserInput(text);
 
   @override
   Future<SmartInputDraft> structureUserInput(String input) async {
-    _createModel();
-    return SmartInputDraft(
-      originalText: input,
-      requiresConfirmation: true,
-    );
+    final model = _createModel();
+    final response = await model.generateContent([
+      Content.text('$_smartInputPrompt\n\nUser note:\n$input'),
+    ]);
+    return parseSmartInputDraft(response.text, originalText: input);
+  }
+
+  static const _smartInputPrompt = '''
+The user wrote a short note about their pet's health. Structure it and return
+ONLY a JSON object with these keys:
+- "intent": one of addAllergy, addMedication, addVaccination, addSymptom,
+  addVetVisit, addReminder, addNote, unknown
+- "extractedData": an object containing only details the note actually
+  mentions (e.g. "medication", "dose", "date", "allergen", "symptom",
+  "clinic")
+- "suggestedActions": an array with any of updatePetAllergies,
+  createTimelineEvent, createReminder, createDocument, updatePetNotes
+- "confidence": a number between 0 and 1
+Do not diagnose or give medical advice. Only structure what the user wrote.
+''';
+
+  /// Parses the model's JSON reply into a review-only draft. Unparseable
+  /// output falls back to just the original text flagged for low-confidence
+  /// review — the AI never produces anything that saves without confirmation.
+  @visibleForTesting
+  static SmartInputDraft parseSmartInputDraft(
+    String? text, {
+    required String originalText,
+  }) {
+    SmartInputDraft fallback() => SmartInputDraft(
+          originalText: originalText,
+          requiresConfirmation: true,
+          status: SmartInputDraftStatus.lowConfidenceReview,
+        );
+
+    if (text == null || text.trim().isEmpty) {
+      return fallback();
+    }
+
+    try {
+      final cleaned =
+          text.replaceAll('```json', '').replaceAll('```', '').trim();
+      final json = jsonDecode(cleaned) as Map<String, dynamic>;
+      final confidence = (json['confidence'] as num?)?.toDouble();
+      final extracted = json['extractedData'];
+      final actions = json['suggestedActions'];
+
+      return SmartInputDraft(
+        originalText: originalText,
+        requiresConfirmation: true,
+        detectedIntent: _parseIntent(json['intent'] as String?),
+        extractedData:
+            extracted is Map ? extracted.cast<String, Object?>() : const {},
+        suggestedActions: [
+          if (actions is List)
+            for (final action in actions)
+              SmartSuggestedAction(type: _parseActionType('$action')),
+        ],
+        confidence: confidence,
+        status: confidence != null && confidence < 0.6
+            ? SmartInputDraftStatus.lowConfidenceReview
+            : SmartInputDraftStatus.awaitingReview,
+      );
+    } catch (_) {
+      return fallback();
+    }
+  }
+
+  static SmartMessageIntent _parseIntent(String? value) {
+    if (value == null) return SmartMessageIntent.unknown;
+    for (final intent in SmartMessageIntent.values) {
+      if (intent.name.toLowerCase() == value.toLowerCase()) {
+        return intent;
+      }
+    }
+    return SmartMessageIntent.unknown;
+  }
+
+  static SmartSuggestedActionType _parseActionType(String value) {
+    for (final type in SmartSuggestedActionType.values) {
+      if (type.name.toLowerCase() == value.toLowerCase()) {
+        return type;
+      }
+    }
+    return SmartSuggestedActionType.unknown;
   }
 
   @override

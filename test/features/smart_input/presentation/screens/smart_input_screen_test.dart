@@ -23,6 +23,41 @@ void main() {
       expect(find.text('Attach document or photo'), findsOneWidget);
       expect(find.text('No saved entries yet.'), findsOneWidget);
     });
+
+    testWidgets('capitalizes sentences in the input field', (tester) async {
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.textCapitalization, TextCapitalization.sentences);
+    });
+
+    testWidgets('shows the draft above the input with a confirmation notice',
+        (tester) async {
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byType(TextField),
+        'Bella got her rabies shot today',
+      );
+      await tester.tap(find.text('Analyze'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('AI draft'), findsOneWidget);
+      expect(
+        find.text('Nothing is saved until you confirm. Review the draft '
+            'below.'),
+        findsOneWidget,
+      );
+      expect(find.text('Confirm'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+
+      // The draft renders above the text input.
+      final draftY = tester.getTopLeft(find.text('AI draft')).dy;
+      final inputY = tester.getTopLeft(find.byType(TextField)).dy;
+      expect(draftY, lessThan(inputY));
+    });
   });
 }
 
