@@ -25,6 +25,44 @@ void main() {
       expect(find.text('Vaccination certificate'), findsOneWidget);
       expect(find.text('No documents yet'), findsNothing);
     });
+
+    testWidgets('shows a thumbnail for image documents and an icon otherwise',
+        (tester) async {
+      final imageDocument = PetDocument(
+        id: const EntityId('doc-2'),
+        userId: const EntityId('user-1'),
+        petId: const EntityId('pet-1'),
+        title: 'Scanned receipt',
+        type: PetDocumentType.receipt,
+        fileUrl: Uri.parse('https://example.com/doc.jpg'),
+        storagePath: 'users/user-1/pets/pet-1/documents/doc-2/original.jpg',
+      );
+
+      await tester.pumpWidget(_app([_document(), imageDocument]));
+      await tester.pumpAndSettle();
+
+      final imageTile = find.ancestor(
+        of: find.text('Scanned receipt'),
+        matching: find.byType(ListTile),
+      );
+      expect(
+        find.descendant(of: imageTile, matching: find.byType(Image)),
+        findsOneWidget,
+      );
+
+      final pdfTile = find.ancestor(
+        of: find.text('Vaccination certificate'),
+        matching: find.byType(ListTile),
+      );
+      expect(
+        find.descendant(of: pdfTile, matching: find.byType(Image)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: pdfTile, matching: find.byType(CircleAvatar)),
+        findsOneWidget,
+      );
+    });
   });
 }
 

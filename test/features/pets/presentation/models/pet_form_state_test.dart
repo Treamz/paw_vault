@@ -184,16 +184,16 @@ void main() {
         );
       });
 
-      test('returns error when photo URL is invalid', () {
-        const formState = PetFormState(name: 'Fluffy', photoUrl: 'not-a-url');
+      test('does not validate photo URL (photo is picked, not typed)', () {
+        const formState = PetFormState(
+          name: 'Fluffy',
+          photoUrl: 'users/user-1/pets/pet-1/photos/profile.jpg',
+        );
 
         final validation = formState.validate();
 
-        expect(validation.isValid, false);
-        expect(
-          validation.errorFor('photoUrl'),
-          'Photo URL must be a valid HTTP or HTTPS URL',
-        );
+        expect(validation.isValid, true);
+        expect(validation.errorFor('photoUrl'), isNull);
       });
 
       test('accepts valid HTTP URL', () {

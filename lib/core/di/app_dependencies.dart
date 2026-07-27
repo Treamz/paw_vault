@@ -32,12 +32,16 @@ import 'package:paw_vault/features/documents/data/datasources/flutter_fire_docum
 import 'package:paw_vault/features/documents/data/repositories/firebase_document_repository.dart';
 import 'package:paw_vault/features/documents/data/repositories/local_document_repository.dart';
 import 'package:paw_vault/features/documents/data/services/file_picker_impl.dart';
+import 'package:paw_vault/features/documents/data/services/url_launcher_document_file_opener.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
+import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/pets/data/datasources/flutter_fire_pet_data_source.dart';
 import 'package:paw_vault/features/pets/data/repositories/firebase_pet_repository.dart';
 import 'package:paw_vault/features/pets/data/repositories/local_pet_repository.dart';
+import 'package:paw_vault/features/pets/data/services/pet_photo_picker_impl.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
 import 'package:paw_vault/features/reminders/data/datasources/flutter_fire_reminder_data_source.dart';
 import 'package:paw_vault/features/reminders/data/repositories/firebase_reminder_repository.dart';
 import 'package:paw_vault/features/reminders/data/repositories/local_reminder_repository.dart';
@@ -76,8 +80,10 @@ class AppDependencies {
     required this.smartInputRepository,
     required this.vetSummaryExportRepository,
     required this.filePicker,
+    required this.documentFileOpener,
     required this.documentExtractionAiRepository,
     required this.documentSourcePicker,
+    required this.petPhotoPicker,
     required this.reminderNotificationScheduler,
     required this.analyticsService,
     required this.subscriptionService,
@@ -103,9 +109,11 @@ class AppDependencies {
       smartInputRepository: NoopSmartInputRepository(aiRepository),
       vetSummaryExportRepository: LocalVetSummaryExportRepository(),
       filePicker: const FilePickerImpl(),
+      documentFileOpener: const UrlLauncherDocumentFileOpener(),
       documentExtractionAiRepository:
           FirebaseReadyDocumentExtractionAiRepository(aiDataSource),
       documentSourcePicker: DocumentSourcePickerImpl(),
+      petPhotoPicker: PetPhotoPickerImpl(),
       reminderNotificationScheduler:
           LocalReminderNotificationScheduler(FlutterLocalNotificationsPlugin()),
       analyticsService: const NoopAnalyticsService(),
@@ -152,9 +160,11 @@ class AppDependencies {
         FlutterFireVetSummaryExportDataSource(firebase.firestore),
       ),
       filePicker: const FilePickerImpl(),
+      documentFileOpener: const UrlLauncherDocumentFileOpener(),
       documentExtractionAiRepository:
           FirebaseReadyDocumentExtractionAiRepository(aiDataSource),
       documentSourcePicker: DocumentSourcePickerImpl(),
+      petPhotoPicker: PetPhotoPickerImpl(),
       reminderNotificationScheduler:
           LocalReminderNotificationScheduler(FlutterLocalNotificationsPlugin()),
       analyticsService: FirebaseAnalyticsService(firebase.analytics),
@@ -179,8 +189,10 @@ class AppDependencies {
   final SmartInputRepository smartInputRepository;
   final VetSummaryExportRepository vetSummaryExportRepository;
   final FilePicker filePicker;
+  final DocumentFileOpener documentFileOpener;
   final DocumentExtractionAiRepository documentExtractionAiRepository;
   final DocumentSourcePicker documentSourcePicker;
+  final PetPhotoPicker petPhotoPicker;
   final ReminderNotificationScheduler reminderNotificationScheduler;
   final AnalyticsService analyticsService;
   final SubscriptionService subscriptionService;

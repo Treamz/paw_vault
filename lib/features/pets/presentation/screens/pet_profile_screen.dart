@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
 import 'package:paw_vault/core/subscription/presentation/pro_gate.dart';
+import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/pets/presentation/cubit/pet_profile_cubit.dart';
 
@@ -23,6 +25,9 @@ class PetProfileScreen extends StatelessWidget {
       create: (context) => PetProfileCubit(
         petRepository: context.read<PetRepository>(),
         authRepository: context.read<AuthRepository>(),
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: context.read<StorageRepository>(),
+        ),
       )..load(petId),
       child: const _PetProfileView(),
     );
@@ -61,6 +66,12 @@ class _PetProfileView extends StatelessWidget {
     }
   }
 
+  Future<void> _openEdit(BuildContext context, String petId) async {
+    final cubit = context.read<PetProfileCubit>();
+    await context.router.push(PetFormRoute(petId: petId));
+    await cubit.load(petId);
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<PetProfileCubit, PetProfileState>(
@@ -88,14 +99,22 @@ class _PetProfileView extends StatelessWidget {
           actions: [
             BlocBuilder<PetProfileCubit, PetProfileState>(
               builder: (context, state) {
-                if (state.status == PetProfileStatus.ready &&
-                    state.pet != null) {
-                  return IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: state.status == PetProfileStatus.deleting
-                        ? null
-                        : () => _showDeleteConfirmation(context),
-                    tooltip: 'Delete pet',
+                final pet = state.pet;
+                if (state.status == PetProfileStatus.ready && pet != null) {
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined),
+                        onPressed: () => _openEdit(context, pet.id.value),
+                        tooltip: 'Edit pet',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => _showDeleteConfirmation(context),
+                        tooltip: 'Delete pet',
+                      ),
+                    ],
                   );
                 }
                 return const SizedBox.shrink();

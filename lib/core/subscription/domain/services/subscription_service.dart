@@ -14,8 +14,10 @@ abstract interface class SubscriptionService {
   Future<Entitlements> currentEntitlements();
 
   /// Associates purchases with a stable app user id (the Firebase uid) so the
-  /// subscription follows the account across devices.
-  Future<void> identify(String userId);
+  /// subscription follows the account across devices. [email] and
+  /// [displayName], when known, are attached as subscriber attributes so the
+  /// customer is identifiable in the store dashboard.
+  Future<void> identify(String userId, {String? email, String? displayName});
 
   /// Returns to an anonymous purchaser (on sign-out).
   Future<void> resetIdentity();

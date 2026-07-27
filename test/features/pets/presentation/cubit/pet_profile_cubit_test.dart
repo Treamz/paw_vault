@@ -1,9 +1,15 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/core/storage/domain/entities/storage_file.dart';
+import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
 import 'package:paw_vault/features/pets/presentation/cubit/pet_profile_cubit.dart';
 import 'package:paw_vault/features/pets/presentation/models/pet_form_state.dart';
 
@@ -18,6 +24,9 @@ void main() {
       final cubit = PetProfileCubit(
         petRepository: petRepository,
         authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
       final states = <PetProfileState>[];
       final subscription = cubit.stream.listen(states.add);
@@ -50,6 +59,9 @@ void main() {
       final cubit = PetProfileCubit(
         petRepository: petRepository,
         authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('pet-1');
@@ -70,6 +82,9 @@ void main() {
       final cubit = PetProfileCubit(
         petRepository: petRepository,
         authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('missing-pet');
@@ -89,6 +104,9 @@ void main() {
       final cubit = PetProfileCubit(
         petRepository: petRepository,
         authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('pet-1');
@@ -108,6 +126,9 @@ void main() {
       final cubit = PetProfileCubit(
         petRepository: petRepository,
         authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
       const formState = PetFormState(
         name: 'Fluffy',
@@ -145,6 +166,9 @@ void main() {
       final cubit = PetProfileCubit(
         petRepository: petRepository,
         authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
       const formState = PetFormState(name: 'Buddy');
 
@@ -165,6 +189,9 @@ void main() {
       final cubit = PetProfileCubit(
         petRepository: petRepository,
         authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
       const formState = PetFormState(name: 'Buddy');
 
@@ -190,6 +217,9 @@ void main() {
       final cubit = PetProfileCubit(
         petRepository: petRepository,
         authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('pet-1');
@@ -227,6 +257,9 @@ void main() {
       final cubit = PetProfileCubit(
         petRepository: petRepository,
         authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
       const formState = PetFormState(name: 'UpdatedName');
 
@@ -258,6 +291,9 @@ void main() {
       final cubit = PetProfileCubit(
         petRepository: petRepository,
         authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('pet-1');
@@ -268,6 +304,114 @@ void main() {
 
       expect(cubit.state.status, PetProfileStatus.failure);
       expect(cubit.state.errorMessage, contains('save failed'));
+
+      await cubit.close();
+    });
+
+    test('uploads a picked photo on create and stores its download URL',
+        () async {
+      final authRepository = _FakeAuthRepository(
+        currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+      );
+      final petRepository = _FakePetRepository();
+      final storageRepository = _FakeStorageRepository();
+      final cubit = PetProfileCubit(
+        petRepository: petRepository,
+        authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: storageRepository,
+        ),
+      );
+      final formState = PetFormState(
+        name: 'Fluffy',
+        pickedPhoto: PickedPetPhoto(
+          bytes: Uint8List.fromList([1, 2, 3]),
+          contentType: 'image/jpeg',
+        ),
+      );
+
+      await cubit.createPet(formState);
+
+      final savedPet = petRepository.savedPet!;
+      expect(storageRepository.uploadCallCount, 1);
+      expect(storageRepository.uploadedContentType, 'image/jpeg');
+      expect(
+        storageRepository.uploadedPath,
+        'users/user-1/pets/${savedPet.id.value}/photos/profile.jpg',
+      );
+      expect(
+        savedPet.photoUrl,
+        Uri.parse('https://cdn.example.com/${storageRepository.uploadedPath}'),
+      );
+      expect(cubit.state.status, PetProfileStatus.ready);
+
+      await cubit.close();
+    });
+
+    test('does not upload a photo when none was picked', () async {
+      final authRepository = _FakeAuthRepository(
+        currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+      );
+      final petRepository = _FakePetRepository();
+      final storageRepository = _FakeStorageRepository();
+      final cubit = PetProfileCubit(
+        petRepository: petRepository,
+        authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: storageRepository,
+        ),
+      );
+
+      await cubit.createPet(const PetFormState(name: 'Fluffy'));
+
+      expect(storageRepository.uploadCallCount, isZero);
+      expect(petRepository.savedPet!.photoUrl, isNull);
+
+      await cubit.close();
+    });
+
+    test('uploads a picked photo on update and stores its download URL',
+        () async {
+      const existingPet = Pet(
+        id: EntityId('pet-1'),
+        userId: EntityId('user-1'),
+        name: 'Fluffy',
+      );
+      final authRepository = _FakeAuthRepository(
+        currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+      );
+      final petRepository = _FakePetRepository(pet: existingPet);
+      final storageRepository = _FakeStorageRepository();
+      final cubit = PetProfileCubit(
+        petRepository: petRepository,
+        authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: storageRepository,
+        ),
+      );
+
+      await cubit.load('pet-1');
+
+      final formState = PetFormState(
+        name: 'Fluffy',
+        pickedPhoto: PickedPetPhoto(
+          bytes: Uint8List.fromList([4, 5, 6]),
+          contentType: 'image/png',
+        ),
+      );
+
+      await cubit.updatePet(formState);
+
+      expect(storageRepository.uploadCallCount, 1);
+      expect(
+        storageRepository.uploadedPath,
+        'users/user-1/pets/pet-1/photos/profile.jpg',
+      );
+      expect(
+        petRepository.savedPet!.photoUrl,
+        Uri.parse('https://cdn.example.com/${storageRepository.uploadedPath}'),
+      );
+      expect(cubit.state.status, PetProfileStatus.ready);
 
       await cubit.close();
     });
@@ -285,6 +429,9 @@ void main() {
       final cubit = PetProfileCubit(
         petRepository: petRepository,
         authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('pet-1');
@@ -315,6 +462,9 @@ void main() {
       final cubit = PetProfileCubit(
         petRepository: petRepository,
         authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.deletePet();
@@ -345,6 +495,9 @@ void main() {
       final cubit = PetProfileCubit(
         petRepository: petRepository,
         authRepository: authRepository,
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('pet-1');
@@ -467,5 +620,31 @@ class _FakePetRepository implements PetRepository {
   @override
   Stream<List<Pet>> watchPets(EntityId userId) {
     return Stream<List<Pet>>.value(const []);
+  }
+}
+
+class _FakeStorageRepository implements StorageRepository {
+  int uploadCallCount = 0;
+  String? uploadedPath;
+  Uint8List? uploadedBytes;
+  String? uploadedContentType;
+
+  @override
+  Future<void> delete(String path) async {}
+
+  @override
+  Future<StorageFile> uploadBytes({
+    required String path,
+    required Uint8List bytes,
+    required String contentType,
+  }) async {
+    uploadCallCount++;
+    uploadedPath = path;
+    uploadedBytes = bytes;
+    uploadedContentType = contentType;
+    return StorageFile(
+      path: path,
+      downloadUrl: Uri.parse('https://cdn.example.com/$path'),
+    );
   }
 }

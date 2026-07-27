@@ -4,8 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
+import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
 import 'package:paw_vault/features/pets/domain/value_objects/pet_weight.dart';
 import 'package:paw_vault/features/pets/presentation/cubit/pet_profile_cubit.dart';
 import 'package:paw_vault/features/pets/presentation/models/pet_form_state.dart';
@@ -26,6 +29,9 @@ class PetFormScreen extends StatelessWidget {
         final cubit = PetProfileCubit(
           petRepository: context.read<PetRepository>(),
           authRepository: context.read<AuthRepository>(),
+          photoUploadService: PetPhotoUploadService(
+            storageRepository: context.read<StorageRepository>(),
+          ),
           analytics: context.read<AnalyticsService>(),
         );
         if (petId != null) {
@@ -52,12 +58,15 @@ class _PetFormViewState extends State<_PetFormView> {
   late PetFormState _formState;
   PetFormValidation? _validation;
 
+  /// Whether the user has hit save; distinguishes a save-triggered `ready`
+  /// state from the initial edit-mode load, which also emits `ready`.
+  bool _saveRequested = false;
+
   final _nameController = TextEditingController();
   final _speciesController = TextEditingController();
   final _breedController = TextEditingController();
   final _weightController = TextEditingController();
   final _microchipController = TextEditingController();
-  final _photoUrlController = TextEditingController();
   final _notesController = TextEditingController();
   final _allergiesController = TextEditingController();
   final _conditionsController = TextEditingController();
@@ -65,6 +74,8 @@ class _PetFormViewState extends State<_PetFormView> {
   PetGender? _selectedGender;
   PetWeightUnit _selectedWeightUnit = PetWeightUnit.kilogram;
   DateTime? _selectedBirthDate;
+  String? _photoUrl;
+  PickedPetPhoto? _pickedPhoto;
 
   @override
   void initState() {
@@ -79,7 +90,6 @@ class _PetFormViewState extends State<_PetFormView> {
     _breedController.dispose();
     _weightController.dispose();
     _microchipController.dispose();
-    _photoUrlController.dispose();
     _notesController.dispose();
     _allergiesController.dispose();
     _conditionsController.dispose();
@@ -94,7 +104,8 @@ class _PetFormViewState extends State<_PetFormView> {
       _breedController.text = pet.breed ?? '';
       _weightController.text = pet.weight?.value.toString() ?? '';
       _microchipController.text = pet.microchipNumber ?? '';
-      _photoUrlController.text = pet.photoUrl?.toString() ?? '';
+      _photoUrl = pet.photoUrl?.toString();
+      _pickedPhoto = null;
       _notesController.text = pet.notes ?? '';
       _allergiesController.text = pet.allergies.join(', ');
       _conditionsController.text = pet.chronicConditions.join(', ');
@@ -134,8 +145,8 @@ class _PetFormViewState extends State<_PetFormView> {
         microchipNumber: _microchipController.text.isEmpty
             ? null
             : _microchipController.text,
-        photoUrl:
-            _photoUrlController.text.isEmpty ? null : _photoUrlController.text,
+        photoUrl: _photoUrl,
+        pickedPhoto: _pickedPhoto,
         allergies: allergies,
         chronicConditions: conditions,
         notes: _notesController.text.isEmpty ? null : _notesController.text,
@@ -162,6 +173,35 @@ class _PetFormViewState extends State<_PetFormView> {
     }
   }
 
+  Future<void> _pickPhoto(PetPhotoSource source) async {
+    final picker = context.read<PetPhotoPicker>();
+    try {
+      final photo = await picker.pick(source);
+      if (photo == null || !mounted) {
+        return;
+      }
+      setState(() {
+        _pickedPhoto = photo;
+        _updateFormState();
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not pick a photo')),
+      );
+    }
+  }
+
+  void _removePhoto() {
+    setState(() {
+      _pickedPhoto = null;
+      _photoUrl = null;
+      _updateFormState();
+    });
+  }
+
   void _savePet() {
     _updateFormState();
 
@@ -172,6 +212,7 @@ class _PetFormViewState extends State<_PetFormView> {
       return;
     }
 
+    _saveRequested = true;
     final cubit = context.read<PetProfileCubit>();
     if (widget.isEditMode) {
       cubit.updatePet(_formState);
@@ -184,16 +225,16 @@ class _PetFormViewState extends State<_PetFormView> {
   Widget build(BuildContext context) {
     return BlocListener<PetProfileCubit, PetProfileState>(
       listener: (context, state) {
-        if (state.status == PetProfileStatus.ready && widget.isEditMode) {
-          if (state.pet != null && _nameController.text.isEmpty) {
-            _loadPetData(state.pet!);
-          }
-          if (!widget.isEditMode && state.pet != null) {
-            context.router.back();
-          }
+        if (state.status == PetProfileStatus.ready &&
+            widget.isEditMode &&
+            !_saveRequested &&
+            state.pet != null &&
+            _nameController.text.isEmpty) {
+          _loadPetData(state.pet!);
         }
 
-        if (state.status == PetProfileStatus.ready && !widget.isEditMode) {
+        if (state.status == PetProfileStatus.ready && _saveRequested) {
+          _saveRequested = false;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Pet saved successfully')),
           );
@@ -201,6 +242,7 @@ class _PetFormViewState extends State<_PetFormView> {
         }
 
         if (state.status == PetProfileStatus.failure) {
+          _saveRequested = false;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.errorMessage ?? 'Failed to save pet'),
@@ -361,14 +403,12 @@ class _PetFormViewState extends State<_PetFormView> {
                       onChanged: (_) => _updateFormState(),
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _photoUrlController,
-                      decoration: InputDecoration(
-                        labelText: 'Photo URL',
-                        errorText: _validation?.errorFor('photoUrl'),
-                      ),
+                    _PhotoPickerField(
+                      photoUrl: _photoUrl,
+                      pickedPhoto: _pickedPhoto,
                       enabled: !isSaving,
-                      onChanged: (_) => _updateFormState(),
+                      onPick: _pickPhoto,
+                      onRemove: _removePhoto,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -425,6 +465,118 @@ class _PetFormViewState extends State<_PetFormView> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _PhotoPickerField extends StatelessWidget {
+  const _PhotoPickerField({
+    required this.photoUrl,
+    required this.pickedPhoto,
+    required this.enabled,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  final String? photoUrl;
+  final PickedPetPhoto? pickedPhoto;
+  final bool enabled;
+  final ValueChanged<PetPhotoSource> onPick;
+  final VoidCallback onRemove;
+
+  Uri? get _networkUrl {
+    final url = photoUrl;
+    if (url == null) {
+      return null;
+    }
+    final uri = Uri.tryParse(url);
+    if (uri == null || (!uri.isScheme('http') && !uri.isScheme('https'))) {
+      return null;
+    }
+    return uri;
+  }
+
+  bool get _hasPhoto => pickedPhoto != null || photoUrl != null;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _buildPreview(context),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Photo', style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed:
+                        enabled ? () => onPick(PetPhotoSource.camera) : null,
+                    icon: const Icon(Icons.photo_camera_outlined),
+                    label: const Text('Camera'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed:
+                        enabled ? () => onPick(PetPhotoSource.gallery) : null,
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: const Text('Gallery'),
+                  ),
+                  if (_hasPhoto)
+                    TextButton(
+                      onPressed: enabled ? onRemove : null,
+                      child: const Text('Remove'),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPreview(BuildContext context) {
+    final picked = pickedPhoto;
+    final networkUrl = _networkUrl;
+
+    Widget? image;
+    if (picked != null) {
+      image = Image.memory(
+        picked.bytes,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+      );
+    } else if (networkUrl != null) {
+      image = Image.network(
+        networkUrl.toString(),
+        fit: BoxFit.cover,
+        errorBuilder: (context, _, __) => _placeholder(context),
+      );
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: 72,
+        height: 72,
+        child: image ?? _placeholder(context),
+      ),
+    );
+  }
+
+  Widget _placeholder(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ColoredBox(
+      color: colorScheme.surfaceContainerHighest,
+      child: Icon(
+        Icons.pets,
+        size: 32,
+        color: colorScheme.onSurfaceVariant,
       ),
     );
   }

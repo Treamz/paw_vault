@@ -15,8 +15,10 @@ import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubi
 import 'package:paw_vault/features/document_extraction/domain/repositories/document_extraction_ai_repository.dart';
 import 'package:paw_vault/features/document_extraction/domain/services/document_source_picker.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
+import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
 import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/ai_repository.dart';
@@ -77,6 +79,9 @@ class _PawVaultAppState extends State<PawVaultApp> {
         RepositoryProvider<PetRepository>.value(
           value: widget.dependencies.petRepository,
         ),
+        RepositoryProvider<PetPhotoPicker>.value(
+          value: widget.dependencies.petPhotoPicker,
+        ),
         RepositoryProvider<TimelineRepository>.value(
           value: widget.dependencies.timelineRepository,
         ),
@@ -85,6 +90,9 @@ class _PawVaultAppState extends State<PawVaultApp> {
         ),
         RepositoryProvider<FilePicker>.value(
           value: widget.dependencies.filePicker,
+        ),
+        RepositoryProvider<DocumentFileOpener>.value(
+          value: widget.dependencies.documentFileOpener,
         ),
         RepositoryProvider<DocumentExtractionAiRepository>.value(
           value: widget.dependencies.documentExtractionAiRepository,

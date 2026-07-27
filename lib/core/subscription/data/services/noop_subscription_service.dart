@@ -15,7 +15,11 @@ class NoopSubscriptionService implements SubscriptionService {
   Future<Entitlements> currentEntitlements() async => Entitlements.unlocked;
 
   @override
-  Future<void> identify(String userId) async {}
+  Future<void> identify(
+    String userId, {
+    String? email,
+    String? displayName,
+  }) async {}
 
   @override
   Future<void> resetIdentity() async {}

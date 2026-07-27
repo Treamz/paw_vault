@@ -8,6 +8,7 @@ import 'package:paw_vault/core/storage/domain/repositories/storage_repository.da
 import 'package:paw_vault/features/documents/application/document_upload_service.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
+import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/documents/presentation/cubit/document_form_cubit.dart';
 import 'package:paw_vault/features/documents/presentation/models/pet_document_form_state.dart';
@@ -253,7 +254,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
 
             return AbsorbPointer(
               absorbing: isBusy,
-              child: _form(context, isBusy),
+              child: _form(context, isBusy, state.document),
             );
           },
         ),
@@ -261,7 +262,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
     );
   }
 
-  Widget _form(BuildContext context, bool isSaving) {
+  Widget _form(BuildContext context, bool isSaving, PetDocument? document) {
     final dateFormat = DateFormat.yMMMMd();
 
     return SingleChildScrollView(
@@ -271,6 +272,10 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (document != null) ...[
+              _AttachedFileCard(document: document),
+              const SizedBox(height: 16),
+            ],
             DropdownButtonFormField<PetDocumentType>(
               initialValue: _selectedType,
               decoration: const InputDecoration(labelText: 'Type'),
@@ -346,6 +351,64 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
       PetDocumentType.vetReport => 'Vet Report',
       PetDocumentType.other => 'Other',
     };
+  }
+}
+
+/// Shows the document's stored file (the original upload/scan): an inline
+/// preview for images, a labeled tile for other files, and an action to open
+/// the file externally.
+class _AttachedFileCard extends StatelessWidget {
+  const _AttachedFileCard({required this.document});
+
+  final PetDocument document;
+
+  Future<void> _open(BuildContext context) async {
+    final opened =
+        await context.read<DocumentFileOpener>().open(document.fileUrl);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the file')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final extension = document.fileExtension;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (document.hasImageFile)
+            Image.network(
+              document.fileUrl.toString(),
+              height: 180,
+              fit: BoxFit.cover,
+              errorBuilder: (context, _, __) => Container(
+                height: 180,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: const Icon(Icons.broken_image_outlined, size: 48),
+              ),
+            ),
+          ListTile(
+            leading: Icon(
+              document.hasImageFile
+                  ? Icons.image_outlined
+                  : Icons.picture_as_pdf_outlined,
+            ),
+            title: const Text('Attached file'),
+            subtitle: Text(
+              extension.isEmpty ? 'File' : extension.toUpperCase(),
+            ),
+            trailing: const Icon(Icons.open_in_new),
+            onTap: () => _open(context),
+          ),
+        ],
+      ),
+    );
   }
 }
 
