@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:paw_vault/core/subscription/domain/entities/entitlements.dart';
 import 'package:paw_vault/core/subscription/domain/entities/subscription_package.dart';
@@ -26,6 +27,7 @@ class RevenueCatSubscriptionService implements SubscriptionService {
 
   Future<void> _seed() async {
     try {
+      debugPrint('RevenueCat: app user id ${await Purchases.appUserID}');
       _onCustomerInfo(await Purchases.getCustomerInfo());
     } catch (_) {
       // Leave the seeded "free" value; updates will arrive via the listener.
@@ -64,7 +66,12 @@ class RevenueCatSubscriptionService implements SubscriptionService {
     String? email,
     String? displayName,
   }) async {
-    await Purchases.logIn(userId);
+    final result = await Purchases.logIn(userId);
+    debugPrint(
+      'RevenueCat: identified app user id ${await Purchases.appUserID} '
+      '(original ${result.customerInfo.originalAppUserId}, '
+      'created ${result.created})',
+    );
     if (email != null && email.isNotEmpty) {
       await Purchases.setEmail(email);
     }
@@ -76,6 +83,9 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   @override
   Future<void> resetIdentity() async {
     await Purchases.logOut();
+    debugPrint(
+      'RevenueCat: reset to anonymous app user id ${await Purchases.appUserID}',
+    );
   }
 
   @override
