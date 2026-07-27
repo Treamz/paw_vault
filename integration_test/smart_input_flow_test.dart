@@ -1,9 +1,11 @@
-// Drives the real app through creating a document WITHOUT attaching a file,
-// capturing verification screenshots. Run with the screenshot driver:
+// Drives the real app through the Smart Input flow: sentence-capitalized
+// input, Analyze producing a draft shown at the top with a confirmation
+// notice, and confirming the draft into saved entries. The AI boundary is
+// faked. Run with the screenshot driver:
 //
 //   SCREENSHOT_DIR=build/verify_screenshots flutter drive \
 //     --driver=test_driver/screenshots.dart \
-//     --target=integration_test/document_create_no_file_test.dart \
+//     --target=integration_test/smart_input_flow_test.dart \
 //     -d <simulator-udid>
 import 'dart:async';
 
@@ -13,16 +15,18 @@ import 'package:integration_test/integration_test.dart';
 import 'package:paw_vault/app/app.dart';
 import 'package:paw_vault/core/di/app_dependencies.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
-import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
-import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
+import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
+import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('a document is saved without a file attachment', (tester) async {
-    final documents = _MemoryDocumentRepository();
+  testWidgets('smart input shows the draft on top and saves on confirm',
+      (tester) async {
+    final smartInput = _FakeSmartInputRepository();
     final pets = _FakePetRepository(const [
       Pet(
         id: EntityId('pet-1'),
@@ -36,10 +40,10 @@ void main() {
       storageRepository: base.storageRepository,
       petRepository: pets,
       timelineRepository: base.timelineRepository,
-      documentRepository: documents,
+      documentRepository: base.documentRepository,
       reminderRepository: base.reminderRepository,
       aiRepository: base.aiRepository,
-      smartInputRepository: base.smartInputRepository,
+      smartInputRepository: smartInput,
       vetSummaryExportRepository: base.vetSummaryExportRepository,
       filePicker: base.filePicker,
       documentFileOpener: base.documentFileOpener,
@@ -59,94 +63,101 @@ void main() {
     await binding.convertFlutterSurfaceToImage();
     await tester.pumpAndSettle();
 
-    // Navigate: pet list -> profile -> Documents -> Add document.
+    // Navigate: pet list -> profile -> Smart Input.
     await tester.tap(find.text('Rex'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Documents'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Add document'));
+    final smartInputTile = find.text('Smart Input');
+    await tester.ensureVisible(smartInputTile);
+    await tester.tap(smartInputTile);
     await tester.pumpAndSettle();
 
-    // Attachment is optional; the save button no longer forces a file pick.
-    expect(find.text('Attach file (optional)'), findsOneWidget);
-    expect(find.text('Pick file & save'), findsNothing);
+    // The input capitalizes sentences.
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.textCapitalization, TextCapitalization.sentences);
 
-    // Fill the required fields.
-    await tester.tap(find.text('Type'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Insurance').last);
-    await tester.pumpAndSettle();
+    // Analyze produces a draft shown at the top with the notice.
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Title'),
-      'Liability insurance',
+      find.byType(TextField),
+      'Bella got her rabies shot today. Next one in a year.',
     );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
-    await binding.takeScreenshot('01_add_document_no_file_form');
-
-    // Save without attaching anything.
-    final saveButton = find.widgetWithText(FilledButton, 'Save');
-    await tester.ensureVisible(saveButton);
-    await tester.tap(saveButton);
+    await tester.tap(find.text('Analyze'));
     await tester.pumpAndSettle();
 
-    final saved = documents.savedDocument;
-    expect(saved, isNotNull);
-    expect(saved!.fileUrl, isNull);
-    expect(saved.storagePath, isNull);
-    expect(find.text('Liability insurance'), findsOneWidget);
-    await binding.takeScreenshot('02_documents_list_saved_no_file');
+    expect(find.text('AI draft'), findsOneWidget);
+    expect(
+      find.text('Nothing is saved until you confirm. Review the draft below.'),
+      findsOneWidget,
+    );
+    final draftY = tester.getTopLeft(find.text('AI draft')).dy;
+    final inputY = tester.getTopLeft(find.byType(TextField)).dy;
+    expect(draftY, lessThan(inputY));
+    await binding.takeScreenshot('01_smart_input_draft_on_top');
+
+    // Nothing is saved yet.
+    expect(smartInput.savedMessages, isEmpty);
+
+    // Confirm persists the entry into history.
+    await tester.tap(find.text('Confirm'));
+    await tester.pumpAndSettle();
+
+    expect(smartInput.savedMessages, hasLength(1));
+    expect(find.text('Saved to records'), findsOneWidget);
+    await binding.takeScreenshot('02_smart_input_saved_entry');
   });
 }
 
-class _MemoryDocumentRepository implements DocumentRepository {
-  final _documents = <PetDocument>[];
-  final _controller = StreamController<List<PetDocument>>.broadcast();
-
-  PetDocument? get savedDocument => _documents.isEmpty ? null : _documents.last;
+class _FakeSmartInputRepository implements SmartInputRepository {
+  final savedMessages = <SmartMessage>[];
+  final _controller = StreamController<List<SmartMessage>>.broadcast();
 
   @override
-  Future<void> initialize() async {}
+  Future<SmartInputDraft> createDraft(String input) async {
+    return SmartInputDraft(
+      originalText: input,
+      requiresConfirmation: true,
+      detectedIntent: SmartMessageIntent.addVaccination,
+      extractedData: const {'vaccine': 'rabies', 'next due': 'in a year'},
+      suggestedActions: const [
+        SmartSuggestedAction(
+          type: SmartSuggestedActionType.createTimelineEvent,
+        ),
+        SmartSuggestedAction(type: SmartSuggestedActionType.createReminder),
+      ],
+      confidence: 0.92,
+    );
+  }
 
   @override
-  Stream<List<PetDocument>> watchDocuments({
+  Stream<List<SmartMessage>> watchSmartMessages({
     required EntityId userId,
     required EntityId petId,
   }) async* {
-    yield List.of(_documents);
+    yield List.of(savedMessages);
     yield* _controller.stream;
   }
 
   @override
-  Future<PetDocument?> getDocument({
+  Future<SmartMessage?> getSmartMessage({
     required EntityId userId,
     required EntityId petId,
-    required EntityId documentId,
-  }) async {
-    for (final document in _documents) {
-      if (document.id == documentId) {
-        return document;
-      }
-    }
-    return null;
+    required EntityId messageId,
+  }) async =>
+      null;
+
+  @override
+  Future<void> saveSmartMessage(SmartMessage message) async {
+    savedMessages.add(message);
+    _controller.add(List.of(savedMessages));
   }
 
   @override
-  Future<void> saveDocument(PetDocument document) async {
-    _documents.removeWhere((existing) => existing.id == document.id);
-    _documents.add(document);
-    _controller.add(List.of(_documents));
-  }
-
-  @override
-  Future<void> deleteDocument({
+  Future<void> deleteSmartMessage({
     required EntityId userId,
     required EntityId petId,
-    required EntityId documentId,
-  }) async {
-    _documents.removeWhere((existing) => existing.id == documentId);
-    _controller.add(List.of(_documents));
-  }
+    required EntityId messageId,
+  }) async {}
 }
 
 class _FakePetRepository implements PetRepository {

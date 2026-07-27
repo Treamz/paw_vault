@@ -1,6 +1,7 @@
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
+import 'package:paw_vault/features/timeline/domain/services/event_photo_picker.dart';
 
 class PetEventFormState {
   const PetEventFormState({
@@ -10,6 +11,7 @@ class PetEventFormState {
     this.description,
     this.nextReminderDate,
     this.attachments = const [],
+    this.pendingPhotos = const [],
   });
 
   factory PetEventFormState.fromEvent(PetEvent event) {
@@ -28,7 +30,13 @@ class PetEventFormState {
   final DateTime? date;
   final String? description;
   final DateTime? nextReminderDate;
+
+  /// Attachment URLs already stored on the event (or produced by an upload).
+  /// Never user-typed.
   final List<String> attachments;
+
+  /// Freshly picked photos awaiting upload on save.
+  final List<PickedEventPhoto> pendingPhotos;
 
   PetEventFormState copyWith({
     PetEventType? type,
@@ -37,6 +45,7 @@ class PetEventFormState {
     String? description,
     DateTime? nextReminderDate,
     List<String>? attachments,
+    List<PickedEventPhoto>? pendingPhotos,
   }) {
     return PetEventFormState(
       type: type ?? this.type,
@@ -45,6 +54,7 @@ class PetEventFormState {
       description: description ?? this.description,
       nextReminderDate: nextReminderDate ?? this.nextReminderDate,
       attachments: attachments ?? this.attachments,
+      pendingPhotos: pendingPhotos ?? this.pendingPhotos,
     );
   }
 
@@ -80,10 +90,6 @@ class PetEventFormState {
     }
 
     if (nextReminderDate != null) {
-      if (date != null && nextReminderDate!.isBefore(date!)) {
-        errors['nextReminderDate'] =
-            'Reminder date cannot be before event date';
-      }
       final twoYearsFromNow = DateTime(
         DateTime.now().year + 2,
         DateTime.now().month,
@@ -92,19 +98,6 @@ class PetEventFormState {
       if (nextReminderDate!.isAfter(twoYearsFromNow)) {
         errors['nextReminderDate'] =
             'Reminder date cannot be more than 2 years in the future';
-      }
-    }
-
-    for (final attachment in attachments) {
-      if (attachment.trim().isNotEmpty) {
-        final uri = Uri.tryParse(attachment);
-        if (uri == null ||
-            (!uri.hasScheme ||
-                (uri.scheme != 'http' && uri.scheme != 'https'))) {
-          errors['attachments'] =
-              'All attachments must be valid HTTP/HTTPS URLs';
-          break;
-        }
       }
     }
 
@@ -129,7 +122,8 @@ class PetEventFormState {
     final validAttachments = attachments
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
-        .map(Uri.parse)
+        .map(Uri.tryParse)
+        .whereType<Uri>()
         .toList();
 
     return PetEvent(

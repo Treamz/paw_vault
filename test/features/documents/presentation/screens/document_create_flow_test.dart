@@ -13,41 +13,52 @@ import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 
 void main() {
+  testWidgets('shows a visible loading overlay while saving', (tester) async {
+    final documents = _SlowSaveDocumentRepository();
+    await tester.pumpWidget(
+      PawVaultApp(dependencies: _dependencies(documents)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Rex'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Documents'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add document'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Type'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Passport').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Title'),
+      'EU Pet Passport',
+    );
+    final save = find.widgetWithText(FilledButton, 'Save');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    while (!documents.saveStarted.isCompleted) {
+      await tester.pump();
+    }
+    await tester.pump();
+
+    expect(find.text('Saving…'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsWidgets);
+
+    documents.completeSave();
+    await tester.pumpAndSettle();
+    expect(find.text('Saving…'), findsNothing);
+    expect(find.text('Document saved'), findsOneWidget);
+  });
+
   testWidgets('a document can be saved without attaching a file',
       (tester) async {
     final documents = _MemoryDocumentRepository();
-    final pets = _FakePetRepository(const [
-      Pet(
-        id: EntityId('pet-1'),
-        userId: EntityId('local-anonymous-user'),
-        name: 'Rex',
-      ),
-    ]);
-    final base = AppDependencies.localFirst();
-    final dependencies = AppDependencies(
-      authRepository: base.authRepository,
-      storageRepository: base.storageRepository,
-      petRepository: pets,
-      timelineRepository: base.timelineRepository,
-      documentRepository: documents,
-      reminderRepository: base.reminderRepository,
-      aiRepository: base.aiRepository,
-      smartInputRepository: base.smartInputRepository,
-      vetSummaryExportRepository: base.vetSummaryExportRepository,
-      filePicker: base.filePicker,
-      documentFileOpener: base.documentFileOpener,
-      documentExtractionAiRepository: base.documentExtractionAiRepository,
-      documentSourcePicker: base.documentSourcePicker,
-      petPhotoPicker: base.petPhotoPicker,
-      reminderNotificationScheduler: base.reminderNotificationScheduler,
-      analyticsService: base.analyticsService,
-      subscriptionService: base.subscriptionService,
-      paywallPresenter: base.paywallPresenter,
-      trackingAuthorizationService: base.trackingAuthorizationService,
-      accountDeletionService: base.accountDeletionService,
-    );
 
-    await tester.pumpWidget(PawVaultApp(dependencies: dependencies));
+    await tester.pumpWidget(
+      PawVaultApp(dependencies: _dependencies(documents)),
+    );
     await tester.pumpAndSettle();
 
     // Navigate: pet list -> profile -> Documents -> Add document.
@@ -84,6 +95,54 @@ void main() {
     expect(saved.storagePath, isNull);
     expect(find.text('Liability insurance'), findsOneWidget);
   });
+}
+
+AppDependencies _dependencies(DocumentRepository documents) {
+  final pets = _FakePetRepository(const [
+    Pet(
+      id: EntityId('pet-1'),
+      userId: EntityId('local-anonymous-user'),
+      name: 'Rex',
+    ),
+  ]);
+  final base = AppDependencies.localFirst();
+  return AppDependencies(
+    authRepository: base.authRepository,
+    storageRepository: base.storageRepository,
+    petRepository: pets,
+    timelineRepository: base.timelineRepository,
+    documentRepository: documents,
+    reminderRepository: base.reminderRepository,
+    aiRepository: base.aiRepository,
+    smartInputRepository: base.smartInputRepository,
+    vetSummaryExportRepository: base.vetSummaryExportRepository,
+    filePicker: base.filePicker,
+    documentFileOpener: base.documentFileOpener,
+    documentExtractionAiRepository: base.documentExtractionAiRepository,
+    documentSourcePicker: base.documentSourcePicker,
+    petPhotoPicker: base.petPhotoPicker,
+    eventPhotoPicker: base.eventPhotoPicker,
+    reminderNotificationScheduler: base.reminderNotificationScheduler,
+    analyticsService: base.analyticsService,
+    subscriptionService: base.subscriptionService,
+    paywallPresenter: base.paywallPresenter,
+    trackingAuthorizationService: base.trackingAuthorizationService,
+    accountDeletionService: base.accountDeletionService,
+  );
+}
+
+class _SlowSaveDocumentRepository extends _MemoryDocumentRepository {
+  final saveStarted = Completer<void>();
+  final _saveGate = Completer<void>();
+
+  void completeSave() => _saveGate.complete();
+
+  @override
+  Future<void> saveDocument(PetDocument document) async {
+    saveStarted.complete();
+    await _saveGate.future;
+    await super.saveDocument(document);
+  }
 }
 
 class _MemoryDocumentRepository implements DocumentRepository {

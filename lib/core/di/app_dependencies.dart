@@ -57,7 +57,9 @@ import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_r
 import 'package:paw_vault/features/timeline/data/datasources/flutter_fire_timeline_data_source.dart';
 import 'package:paw_vault/features/timeline/data/repositories/firebase_timeline_repository.dart';
 import 'package:paw_vault/features/timeline/data/repositories/local_timeline_repository.dart';
+import 'package:paw_vault/features/timeline/data/services/event_photo_picker_impl.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
+import 'package:paw_vault/features/timeline/domain/services/event_photo_picker.dart';
 import 'package:paw_vault/features/vet_summary_export/application/load_vet_summary_data.dart';
 import 'package:paw_vault/features/vet_summary_export/data/datasources/flutter_fire_vet_summary_export_data_source.dart';
 import 'package:paw_vault/features/vet_summary_export/data/repositories/firebase_vet_summary_export_repository.dart';
@@ -84,6 +86,7 @@ class AppDependencies {
     required this.documentExtractionAiRepository,
     required this.documentSourcePicker,
     required this.petPhotoPicker,
+    required this.eventPhotoPicker,
     required this.reminderNotificationScheduler,
     required this.analyticsService,
     required this.subscriptionService,
@@ -114,6 +117,7 @@ class AppDependencies {
           FirebaseReadyDocumentExtractionAiRepository(aiDataSource),
       documentSourcePicker: DocumentSourcePickerImpl(),
       petPhotoPicker: PetPhotoPickerImpl(),
+      eventPhotoPicker: EventPhotoPickerImpl(),
       reminderNotificationScheduler:
           LocalReminderNotificationScheduler(FlutterLocalNotificationsPlugin()),
       analyticsService: const NoopAnalyticsService(),
@@ -165,6 +169,7 @@ class AppDependencies {
           FirebaseReadyDocumentExtractionAiRepository(aiDataSource),
       documentSourcePicker: DocumentSourcePickerImpl(),
       petPhotoPicker: PetPhotoPickerImpl(),
+      eventPhotoPicker: EventPhotoPickerImpl(),
       reminderNotificationScheduler:
           LocalReminderNotificationScheduler(FlutterLocalNotificationsPlugin()),
       analyticsService: FirebaseAnalyticsService(firebase.analytics),
@@ -193,6 +198,7 @@ class AppDependencies {
   final DocumentExtractionAiRepository documentExtractionAiRepository;
   final DocumentSourcePicker documentSourcePicker;
   final PetPhotoPicker petPhotoPicker;
+  final EventPhotoPicker eventPhotoPicker;
   final ReminderNotificationScheduler reminderNotificationScheduler;
   final AnalyticsService analyticsService;
   final SubscriptionService subscriptionService;

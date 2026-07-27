@@ -178,21 +178,19 @@ void main() {
       );
     });
 
-    test('validate returns error when reminder date is before event date', () {
+    test('validate allows a reminder date before the event date', () {
+      final now = DateTime.now();
       final formState = PetEventFormState(
         type: PetEventType.vaccination,
         title: 'Title',
-        date: DateTime(2024, 2),
-        nextReminderDate: DateTime(2024),
+        date: DateTime(now.year, now.month, now.day),
+        nextReminderDate: DateTime(now.year, now.month, now.day - 7),
       );
 
       final validation = formState.validate();
 
-      expect(validation.isValid, isFalse);
-      expect(
-        validation.errorFor('nextReminderDate'),
-        'Reminder date cannot be before event date',
-      );
+      expect(validation.isValid, isTrue);
+      expect(validation.errorFor('nextReminderDate'), isNull);
     });
 
     test('validate returns error when reminder date is too far in the future',
@@ -214,21 +212,19 @@ void main() {
       );
     });
 
-    test('validate returns error when attachment is invalid URL', () {
+    test('validate does not reject attachments (photos are picked, not typed)',
+        () {
       final formState = PetEventFormState(
         type: PetEventType.vaccination,
         title: 'Title',
         date: DateTime(2024, 1, 15),
-        attachments: ['not-a-url'],
+        attachments: ['users/u/pets/p/events/e/attachments/1.jpg'],
       );
 
       final validation = formState.validate();
 
-      expect(validation.isValid, isFalse);
-      expect(
-        validation.errorFor('attachments'),
-        'All attachments must be valid HTTP/HTTPS URLs',
-      );
+      expect(validation.isValid, isTrue);
+      expect(validation.errorFor('attachments'), isNull);
     });
 
     test('validate accepts valid HTTP URL in attachments', () {

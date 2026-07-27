@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
@@ -9,6 +10,7 @@ import 'package:paw_vault/core/subscription/presentation/pro_gate.dart';
 import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/pets/presentation/cubit/pet_profile_cubit.dart';
+import 'package:paw_vault/features/pets/presentation/models/pet_measurement_labels.dart';
 
 @RoutePage()
 class PetProfileScreen extends StatelessWidget {
@@ -201,20 +203,44 @@ class _PetProfileView extends StatelessWidget {
                           pet.gender!.name[0].toUpperCase() +
                               pet.gender!.name.substring(1),
                         ),
-                      if (pet.birthDate != null)
-                        _InfoRow('Birth Date', pet.birthDate.toString()),
+                      _InfoRow(
+                        'Birth Date',
+                        pet.birthDate != null
+                            ? DateFormat.yMMMd()
+                                .format(pet.birthDate!.toUtcDateTime())
+                            : 'Not set',
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  if (pet.weight != null) ...[
+                  if (state.owner != null && !state.owner!.isAnonymous) ...[
+                    _buildInfoCard(
+                      context,
+                      'Owner Information',
+                      [
+                        if (state.owner!.displayName != null)
+                          _InfoRow('Name', state.owner!.displayName!),
+                        if (state.owner!.email != null)
+                          _InfoRow('Email', state.owner!.email!),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (pet.weight != null || pet.measurements.isNotEmpty) ...[
                     _buildInfoCard(
                       context,
                       'Physical Details',
                       [
-                        _InfoRow(
-                          'Weight',
-                          '${pet.weight!.value} ${pet.weight!.unit.name}',
-                        ),
+                        if (pet.weight != null)
+                          _InfoRow(
+                            'Weight',
+                            '${pet.weight!.value} ${pet.weight!.unit.name}',
+                          ),
+                        for (final measurement in pet.measurements)
+                          _InfoRow(
+                            measurement.type.label,
+                            '${_formatCm(measurement.valueCm)} cm',
+                          ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -307,6 +333,10 @@ class _PetProfileView extends StatelessWidget {
       if (!unlocked) return;
     }
     if (context.mounted) context.router.push(route);
+  }
+
+  String _formatCm(double value) {
+    return value % 1 == 0 ? value.toInt().toString() : value.toString();
   }
 
   Widget _buildInfoCard(

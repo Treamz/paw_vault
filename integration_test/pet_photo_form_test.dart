@@ -56,6 +56,7 @@ void main() {
       documentExtractionAiRepository: base.documentExtractionAiRepository,
       documentSourcePicker: base.documentSourcePicker,
       petPhotoPicker: picker,
+      eventPhotoPicker: base.eventPhotoPicker,
       reminderNotificationScheduler: base.reminderNotificationScheduler,
       analyticsService: base.analyticsService,
       subscriptionService: base.subscriptionService,

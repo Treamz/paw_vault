@@ -24,6 +24,7 @@ import 'package:paw_vault/features/reminders/domain/services/reminder_notificati
 import 'package:paw_vault/features/smart_input/domain/repositories/ai_repository.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
+import 'package:paw_vault/features/timeline/domain/services/event_photo_picker.dart';
 import 'package:paw_vault/features/vet_summary_export/application/load_vet_summary_data.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/repositories/vet_summary_export_repository.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/services/pdf_share_service.dart';
@@ -85,6 +86,9 @@ class _PawVaultAppState extends State<PawVaultApp> {
         RepositoryProvider<TimelineRepository>.value(
           value: widget.dependencies.timelineRepository,
         ),
+        RepositoryProvider<EventPhotoPicker>.value(
+          value: widget.dependencies.eventPhotoPicker,
+        ),
         RepositoryProvider<DocumentRepository>.value(
           value: widget.dependencies.documentRepository,
         ),
@@ -143,6 +147,13 @@ class _PawVaultAppState extends State<PawVaultApp> {
           darkTheme: AppTheme.dark,
           routerConfig: _appRouter.config(
             navigatorObservers: () => [_analyticsObserver],
+          ),
+          // Dismiss the keyboard when tapping anywhere outside a text field;
+          // otherwise it stays open after entering text.
+          builder: (context, child) => GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+            child: child,
           ),
         ),
       ),

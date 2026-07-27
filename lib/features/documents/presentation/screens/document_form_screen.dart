@@ -263,7 +263,37 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
 
             return AbsorbPointer(
               absorbing: isBusy,
-              child: _form(context, isBusy, state.document),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _form(context, isBusy, state.document),
+                  if (isBusy)
+                    ColoredBox(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      child: Center(
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const CircularProgressIndicator(),
+                                const SizedBox(height: 16),
+                                Text(
+                                  state.status == DocumentFormStatus.deleting
+                                      ? 'Deleting…'
+                                      : _pickedFile != null
+                                          ? 'Uploading document…'
+                                          : 'Saving…',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             );
           },
         ),

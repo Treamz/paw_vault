@@ -9,9 +9,11 @@ import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dar
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
+import 'package:paw_vault/features/pets/domain/value_objects/pet_measurement.dart';
 import 'package:paw_vault/features/pets/domain/value_objects/pet_weight.dart';
 import 'package:paw_vault/features/pets/presentation/cubit/pet_profile_cubit.dart';
 import 'package:paw_vault/features/pets/presentation/models/pet_form_state.dart';
+import 'package:paw_vault/features/pets/presentation/models/pet_measurement_labels.dart';
 
 @RoutePage()
 class PetFormScreen extends StatelessWidget {
@@ -77,6 +79,11 @@ class _PetFormViewState extends State<_PetFormView> {
   String? _photoUrl;
   PickedPetPhoto? _pickedPhoto;
 
+  final List<PetMeasurementInput> _measurements = [];
+  final List<TextEditingController> _measurementControllers = [];
+  final List<int> _measurementRowIds = [];
+  int _nextMeasurementRowId = 0;
+
   @override
   void initState() {
     super.initState();
@@ -93,7 +100,53 @@ class _PetFormViewState extends State<_PetFormView> {
     _notesController.dispose();
     _allergiesController.dispose();
     _conditionsController.dispose();
+    for (final controller in _measurementControllers) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  void _addMeasurementRow() {
+    setState(() {
+      _measurements.add(const PetMeasurementInput());
+      _measurementControllers.add(TextEditingController());
+      _measurementRowIds.add(_nextMeasurementRowId++);
+      _updateFormState();
+    });
+  }
+
+  void _removeMeasurementRow(int index) {
+    setState(() {
+      _measurements.removeAt(index);
+      _measurementControllers.removeAt(index).dispose();
+      _measurementRowIds.removeAt(index);
+      _updateFormState();
+    });
+  }
+
+  void _setMeasurements(List<PetMeasurementInput> measurements) {
+    for (final controller in _measurementControllers) {
+      controller.dispose();
+    }
+    _measurementControllers.clear();
+    _measurements
+      ..clear()
+      ..addAll(measurements);
+    _measurementRowIds.clear();
+    for (final measurement in measurements) {
+      _measurementControllers.add(
+        TextEditingController(text: measurement.value),
+      );
+      _measurementRowIds.add(_nextMeasurementRowId++);
+    }
+  }
+
+  Set<PetMeasurementType> _usedMeasurementTypes({int? exceptIndex}) {
+    return {
+      for (var i = 0; i < _measurements.length; i++)
+        if (i != exceptIndex && _measurements[i].type != null)
+          _measurements[i].type!,
+    };
   }
 
   void _loadPetData(Pet pet) {
@@ -104,6 +157,7 @@ class _PetFormViewState extends State<_PetFormView> {
       _breedController.text = pet.breed ?? '';
       _weightController.text = pet.weight?.value.toString() ?? '';
       _microchipController.text = pet.microchipNumber ?? '';
+      _setMeasurements(_formState.measurements);
       _photoUrl = pet.photoUrl?.toString();
       _pickedPhoto = null;
       _notesController.text = pet.notes ?? '';
@@ -145,6 +199,7 @@ class _PetFormViewState extends State<_PetFormView> {
         microchipNumber: _microchipController.text.isEmpty
             ? null
             : _microchipController.text,
+        measurements: List.of(_measurements),
         photoUrl: _photoUrl,
         pickedPhoto: _pickedPhoto,
         allergies: allergies,
@@ -391,6 +446,107 @@ class _PetFormViewState extends State<_PetFormView> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Body Measurements',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    if (_validation?.errorFor('measurements') != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        _validation!.errorFor('measurements')!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                    for (var i = 0; i < _measurements.length; i++)
+                      KeyedSubtree(
+                        key: ValueKey('measurement-${_measurementRowIds[i]}'),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child:
+                                    DropdownButtonFormField<PetMeasurementType>(
+                                  initialValue: _measurements[i].type,
+                                  isExpanded: true,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Measurement',
+                                  ),
+                                  items: [
+                                    for (final type
+                                        in PetMeasurementType.values)
+                                      if (type == _measurements[i].type ||
+                                          !_usedMeasurementTypes(
+                                            exceptIndex: i,
+                                          ).contains(type))
+                                        DropdownMenuItem(
+                                          value: type,
+                                          child: Text(
+                                            type.label,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                  ],
+                                  onChanged: isSaving
+                                      ? null
+                                      : (value) {
+                                          setState(() {
+                                            _measurements[i] = _measurements[i]
+                                                .copyWith(type: value);
+                                            _updateFormState();
+                                          });
+                                        },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 2,
+                                child: TextFormField(
+                                  controller: _measurementControllers[i],
+                                  decoration: const InputDecoration(
+                                    labelText: 'Value',
+                                    suffixText: 'cm',
+                                  ),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                                  enabled: !isSaving,
+                                  onChanged: (value) {
+                                    _measurements[i] =
+                                        _measurements[i].copyWith(value: value);
+                                    _updateFormState();
+                                  },
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle_outline),
+                                tooltip: 'Remove measurement',
+                                onPressed: isSaving
+                                    ? null
+                                    : () => _removeMeasurementRow(i),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: isSaving ||
+                                _measurements.length >=
+                                    PetMeasurementType.values.length
+                            ? null
+                            : _addMeasurementRow,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add measurement'),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

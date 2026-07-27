@@ -74,47 +74,13 @@ class _SmartInputViewState extends State<_SmartInputView> {
                 children: [
                   const _AiDisclaimer(),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: _controller,
-                    enabled: !isProcessing && !isSaving,
-                    minLines: 3,
-                    maxLines: 6,
-                    decoration: const InputDecoration(
-                      labelText: 'Describe what happened',
-                      hintText: 'e.g. Bella got her rabies shot today',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: isProcessing || isSaving
-                        ? null
-                        : () => context
-                            .read<SmartInputCubit>()
-                            .submit(_controller.text),
-                    icon: isProcessing
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.auto_awesome),
-                    label: Text(isProcessing ? 'Analyzing…' : 'Analyze'),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: isProcessing || isSaving
-                        ? null
-                        : () => context.router.push(
-                              DocumentExtractionRoute(petId: widget.petId),
-                            ),
-                    icon: const Icon(Icons.document_scanner),
-                    label: const Text('Attach document or photo'),
-                  ),
-                  const SizedBox(height: 16),
+                  // The draft goes on top so the user immediately sees the
+                  // result and that nothing is saved without confirmation.
                   if (state.status == SmartInputStatus.failure &&
-                      state.errorMessage != null)
+                      state.errorMessage != null) ...[
                     _ErrorBanner(message: state.errorMessage!),
+                    const SizedBox(height: 16),
+                  ],
                   if (state.hasDraft) ...[
                     _DraftReview(draft: state.draft!),
                     const SizedBox(height: 12),
@@ -153,7 +119,46 @@ class _SmartInputViewState extends State<_SmartInputView> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
                   ],
+                  TextField(
+                    controller: _controller,
+                    enabled: !isProcessing && !isSaving,
+                    minLines: 3,
+                    maxLines: 6,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      labelText: 'Describe what happened',
+                      hintText: 'e.g. Bella got her rabies shot today',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: isProcessing || isSaving
+                        ? null
+                        : () => context
+                            .read<SmartInputCubit>()
+                            .submit(_controller.text),
+                    icon: isProcessing
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.auto_awesome),
+                    label: Text(isProcessing ? 'Analyzing…' : 'Analyze'),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: isProcessing || isSaving
+                        ? null
+                        : () => context.router.push(
+                              DocumentExtractionRoute(petId: widget.petId),
+                            ),
+                    icon: const Icon(Icons.document_scanner),
+                    label: const Text('Attach document or photo'),
+                  ),
                   const SizedBox(height: 24),
                   _HistorySection(state: state),
                 ],
@@ -285,6 +290,13 @@ class _DraftReview extends StatelessWidget {
                   ),
               ],
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Nothing is saved until you confirm. Review the draft below.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 12),
             _Field('Detected intent', _formatIntent(draft.detectedIntent)),
             if (draft.extractedData.isNotEmpty) ...[
@@ -327,8 +339,7 @@ class _DraftReview extends StatelessWidget {
             ],
             const SizedBox(height: 12),
             Text(
-              'AI-generated from your text. Review carefully; nothing is saved '
-              'until you confirm.',
+              'AI-generated from your text. Review carefully before saving.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

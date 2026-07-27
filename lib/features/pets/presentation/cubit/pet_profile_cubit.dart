@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
+import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
@@ -68,6 +69,7 @@ class PetProfileCubit extends Cubit<PetProfileState> {
           userId: userId,
           petId: petId,
           pet: pet,
+          owner: user,
         ),
       );
     } catch (error) {
@@ -231,6 +233,7 @@ class PetProfileState {
     this.userId,
     this.petId,
     this.pet,
+    this.owner,
     this.errorMessage,
   });
 
@@ -238,6 +241,10 @@ class PetProfileState {
   final EntityId? userId;
   final String? petId;
   final Pet? pet;
+
+  /// The signed-in account that owns this pet; anonymous sessions have no
+  /// owner details to show.
+  final AppUser? owner;
   final String? errorMessage;
 
   bool get isReady => status == PetProfileStatus.ready;
@@ -247,6 +254,7 @@ class PetProfileState {
     EntityId? userId,
     String? petId,
     Pet? pet,
+    AppUser? owner,
     String? errorMessage,
   }) {
     return PetProfileState(
@@ -254,6 +262,7 @@ class PetProfileState {
       userId: userId ?? this.userId,
       petId: petId ?? this.petId,
       pet: pet ?? this.pet,
+      owner: owner ?? this.owner,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
