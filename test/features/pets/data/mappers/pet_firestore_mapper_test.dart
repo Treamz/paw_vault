@@ -6,6 +6,7 @@ import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/core/firebase/firestore/firestore_mapping.dart';
 import 'package:paw_vault/features/pets/data/mappers/pet_firestore_mapper.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
+import 'package:paw_vault/features/pets/domain/value_objects/pet_measurement.dart';
 import 'package:paw_vault/features/pets/domain/value_objects/pet_weight.dart';
 
 void main() {
@@ -81,6 +82,43 @@ void main() {
       expect(roundTripped.notes, original.notes);
       expect(roundTripped.createdAt, original.createdAt);
       expect(roundTripped.updatedAt, original.updatedAt);
+    });
+
+    test('round-trips body measurements', () {
+      const original = Pet(
+        id: EntityId('pet-1'),
+        userId: EntityId('user-1'),
+        name: 'Bella',
+        measurements: [
+          PetMeasurement(
+            type: PetMeasurementType.headCircumference,
+            valueCm: 25,
+          ),
+          PetMeasurement(
+            type: PetMeasurementType.chestCircumference,
+            valueCm: 48.5,
+          ),
+        ],
+      );
+
+      final data = PetFirestoreMapper.toFirestore(original);
+      expect(data['measurements'], hasLength(2));
+
+      final roundTripped = PetFirestoreMapper.fromFirestore(
+        id: original.id,
+        data: data,
+      );
+      expect(roundTripped.measurements, hasLength(2));
+      expect(
+        roundTripped.measurements.first.type,
+        PetMeasurementType.headCircumference,
+      );
+      expect(roundTripped.measurements.first.valueCm, 25);
+      expect(
+        roundTripped.measurements.last.type,
+        PetMeasurementType.chestCircumference,
+      );
+      expect(roundTripped.measurements.last.valueCm, 48.5);
     });
 
     test('uses defaults for missing optional lists', () {

@@ -1,11 +1,17 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
+import 'package:paw_vault/core/storage/domain/entities/storage_file.dart';
+import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/features/timeline/application/event_attachment_upload_service.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
+import 'package:paw_vault/features/timeline/domain/services/event_photo_picker.dart';
 import 'package:paw_vault/features/timeline/presentation/cubit/timeline_event_cubit.dart';
 import 'package:paw_vault/features/timeline/presentation/models/pet_event_form_state.dart';
 
@@ -20,6 +26,9 @@ void main() {
       final cubit = TimelineEventCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
       final states = <TimelineEventState>[];
       final subscription = cubit.stream.listen(states.add);
@@ -54,6 +63,9 @@ void main() {
       final cubit = TimelineEventCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('pet-1', 'event-1');
@@ -77,6 +89,9 @@ void main() {
       final cubit = TimelineEventCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('pet-1', 'missing-event');
@@ -98,6 +113,9 @@ void main() {
       final cubit = TimelineEventCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('pet-1', 'event-1');
@@ -118,6 +136,9 @@ void main() {
       final cubit = TimelineEventCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
       final formState = PetEventFormState(
         type: PetEventType.vaccination,
@@ -158,6 +179,9 @@ void main() {
       final cubit = TimelineEventCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
       final formState = PetEventFormState(
         type: PetEventType.vetVisit,
@@ -182,6 +206,9 @@ void main() {
       final cubit = TimelineEventCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
       final formState = PetEventFormState(
         type: PetEventType.vaccination,
@@ -214,6 +241,9 @@ void main() {
       final cubit = TimelineEventCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('pet-1', 'event-1');
@@ -253,6 +283,9 @@ void main() {
       final cubit = TimelineEventCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
       final formState = PetEventFormState(
         type: PetEventType.vaccination,
@@ -292,6 +325,9 @@ void main() {
       final cubit = TimelineEventCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('pet-1', 'event-1');
@@ -327,6 +363,9 @@ void main() {
       final cubit = TimelineEventCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('pet-1', 'event-1');
@@ -357,6 +396,9 @@ void main() {
       final cubit = TimelineEventCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.deleteEvent();
@@ -391,6 +433,9 @@ void main() {
       final cubit = TimelineEventCubit(
         timelineRepository: timelineRepository,
         authRepository: authRepository,
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
       );
 
       await cubit.load('pet-1', 'event-1');
@@ -410,6 +455,9 @@ void main() {
         authRepository: _FakeAuthRepository(
           currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
         ),
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
         analytics: analytics,
       );
 
@@ -427,7 +475,109 @@ void main() {
 
       await cubit.close();
     });
+
+    test('uploads pending photos on create and stores their URLs', () async {
+      final timelineRepository = _FakeTimelineRepository();
+      final storageRepository = _FakeStorageRepository();
+      final cubit = TimelineEventCubit(
+        timelineRepository: timelineRepository,
+        authRepository: _FakeAuthRepository(
+          currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+        ),
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: storageRepository,
+        ),
+      );
+
+      await cubit.createEvent(
+        'pet-1',
+        PetEventFormState(
+          type: PetEventType.vaccination,
+          title: 'Vaccination',
+          date: DateTime(2024, 1, 15),
+          pendingPhotos: [
+            PickedEventPhoto(
+              bytes: Uint8List.fromList([1, 2, 3]),
+              contentType: 'image/jpeg',
+              extension: 'jpg',
+            ),
+          ],
+        ),
+      );
+
+      expect(cubit.state.status, TimelineEventStatus.ready);
+      expect(storageRepository.uploadCallCount, 1);
+      expect(
+        storageRepository.uploadedPath,
+        allOf(
+          startsWith('users/user-1/pets/pet-1/events/'),
+          contains('/attachments/'),
+          endsWith('.jpg'),
+        ),
+      );
+      expect(storageRepository.uploadedContentType, 'image/jpeg');
+      final saved = timelineRepository.savedEvent!;
+      expect(saved.attachments, hasLength(1));
+      expect(
+        saved.attachments.single.toString(),
+        'https://cdn.example.com/${storageRepository.uploadedPath}',
+      );
+
+      await cubit.close();
+    });
+
+    test('creates an event without photos and uploads nothing', () async {
+      final timelineRepository = _FakeTimelineRepository();
+      final storageRepository = _FakeStorageRepository();
+      final cubit = TimelineEventCubit(
+        timelineRepository: timelineRepository,
+        authRepository: _FakeAuthRepository(
+          currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+        ),
+        attachmentUploadService: EventAttachmentUploadService(
+          storageRepository: storageRepository,
+        ),
+      );
+
+      await cubit.createEvent(
+        'pet-1',
+        PetEventFormState(
+          type: PetEventType.vaccination,
+          title: 'Vaccination',
+          date: DateTime(2024, 1, 15),
+        ),
+      );
+
+      expect(storageRepository.uploadCallCount, isZero);
+      expect(timelineRepository.savedEvent!.attachments, isEmpty);
+
+      await cubit.close();
+    });
   });
+}
+
+class _FakeStorageRepository implements StorageRepository {
+  int uploadCallCount = 0;
+  String? uploadedPath;
+  String? uploadedContentType;
+
+  @override
+  Future<void> delete(String path) async {}
+
+  @override
+  Future<StorageFile> uploadBytes({
+    required String path,
+    required Uint8List bytes,
+    required String contentType,
+  }) async {
+    uploadCallCount++;
+    uploadedPath = path;
+    uploadedContentType = contentType;
+    return StorageFile(
+      path: path,
+      downloadUrl: Uri.parse('https://cdn.example.com/$path'),
+    );
+  }
 }
 
 class _RecordingAnalytics implements AnalyticsService {

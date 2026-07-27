@@ -4,6 +4,7 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/features/timeline/application/event_attachment_upload_service.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
 import 'package:paw_vault/features/timeline/presentation/models/pet_event_form_state.dart';
@@ -12,15 +13,49 @@ class TimelineEventCubit extends Cubit<TimelineEventState> {
   TimelineEventCubit({
     required TimelineRepository timelineRepository,
     required AuthRepository authRepository,
+    required EventAttachmentUploadService attachmentUploadService,
     AnalyticsService? analytics,
   })  : _timelineRepository = timelineRepository,
         _authRepository = authRepository,
+        _attachmentUploadService = attachmentUploadService,
         _analytics = analytics ?? const NoopAnalyticsService(),
         super(const TimelineEventState());
 
   final TimelineRepository _timelineRepository;
   final AuthRepository _authRepository;
+  final EventAttachmentUploadService _attachmentUploadService;
   final AnalyticsService _analytics;
+
+  /// Uploads the form's freshly picked photos (if any) and returns the form
+  /// state with their download URLs appended to the stored attachments.
+  Future<PetEventFormState> _withUploadedPhotos({
+    required PetEventFormState formState,
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId eventId,
+  }) async {
+    if (formState.pendingPhotos.isEmpty) {
+      return formState;
+    }
+
+    final baseId = DateTime.now().microsecondsSinceEpoch;
+    final urls = <String>[];
+    for (final (index, photo) in formState.pendingPhotos.indexed) {
+      final uploaded = await _attachmentUploadService.uploadAttachment(
+        userId: userId,
+        petId: petId,
+        eventId: eventId,
+        attachmentId: '${baseId}_$index',
+        photo: photo,
+      );
+      urls.add(uploaded.downloadUrl.toString());
+    }
+
+    return formState.copyWith(
+      attachments: [...formState.attachments, ...urls],
+      pendingPhotos: const [],
+    );
+  }
 
   Future<void> load(String petId, String eventId) async {
     emit(
@@ -79,7 +114,14 @@ class TimelineEventCubit extends Cubit<TimelineEventState> {
       final now = DateTime.now();
       final eventId = EntityId('${now.microsecondsSinceEpoch}');
 
-      final event = formState.toEvent(
+      final formWithPhotos = await _withUploadedPhotos(
+        formState: formState,
+        userId: userId,
+        petId: entityPetId,
+        eventId: eventId,
+      );
+
+      final event = formWithPhotos.toEvent(
         id: eventId,
         userId: userId,
         petId: entityPetId,
@@ -130,7 +172,14 @@ class TimelineEventCubit extends Cubit<TimelineEventState> {
       await _timelineRepository.initialize();
       final now = DateTime.now();
 
-      final updatedEvent = formState.toEvent(
+      final formWithPhotos = await _withUploadedPhotos(
+        formState: formState,
+        userId: currentEvent.userId,
+        petId: currentEvent.petId,
+        eventId: currentEvent.id,
+      );
+
+      final updatedEvent = formWithPhotos.toEvent(
         id: currentEvent.id,
         userId: currentEvent.userId,
         petId: currentEvent.petId,

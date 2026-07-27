@@ -1,6 +1,7 @@
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/firebase/firestore/firestore_mapping.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
+import 'package:paw_vault/features/pets/domain/value_objects/pet_measurement.dart';
 import 'package:paw_vault/features/pets/domain/value_objects/pet_weight.dart';
 
 abstract final class PetFirestoreMapper {
@@ -15,6 +16,14 @@ abstract final class PetFirestoreMapper {
       if (pet.gender != null)
         'gender': FirestoreMapping.enumToJson(pet.gender!),
       if (pet.weight != null) 'weight': _weightToFirestore(pet.weight!),
+      if (pet.measurements.isNotEmpty)
+        'measurements': [
+          for (final measurement in pet.measurements)
+            {
+              'type': FirestoreMapping.enumToJson(measurement.type),
+              'valueCm': measurement.valueCm,
+            },
+        ],
       if (pet.microchipNumber != null) 'microchipNumber': pet.microchipNumber,
       if (pet.photoUrl != null)
         'photoUrl': FirestoreMapping.uriToJson(pet.photoUrl!),
@@ -51,6 +60,10 @@ abstract final class PetFirestoreMapper {
       weight: data['weight'] == null
           ? null
           : _weightFromFirestore(data['weight'], 'weight'),
+      measurements: _measurementsFromFirestore(
+        data['measurements'],
+        'measurements',
+      ),
       microchipNumber: _optionalStringFromFirestore(
         data['microchipNumber'],
         'microchipNumber',
@@ -111,6 +124,59 @@ abstract final class PetFirestoreMapper {
         '$fieldName.unit',
         PetWeightUnit.values,
       ),
+    );
+  }
+
+  static List<PetMeasurement> _measurementsFromFirestore(
+    Object? value,
+    String fieldName,
+  ) {
+    if (value == null) {
+      return const [];
+    }
+
+    if (value is! List) {
+      throw FirestoreMappingException.expectedType(
+        fieldName: fieldName,
+        expectedType: 'List',
+        actualValue: value,
+      );
+    }
+
+    return [
+      for (final (index, item) in value.indexed)
+        _measurementFromFirestore(item, '$fieldName[$index]'),
+    ];
+  }
+
+  static PetMeasurement _measurementFromFirestore(
+    Object? value,
+    String fieldName,
+  ) {
+    if (value is! Map) {
+      throw FirestoreMappingException.expectedType(
+        fieldName: fieldName,
+        expectedType: 'Map',
+        actualValue: value,
+      );
+    }
+
+    final measurementValue = value['valueCm'];
+    if (measurementValue is! num) {
+      throw FirestoreMappingException.expectedType(
+        fieldName: '$fieldName.valueCm',
+        expectedType: 'number',
+        actualValue: measurementValue,
+      );
+    }
+
+    return PetMeasurement(
+      type: FirestoreMapping.enumFromJson(
+        value['type'],
+        '$fieldName.type',
+        PetMeasurementType.values,
+      ),
+      valueCm: measurementValue.toDouble(),
     );
   }
 

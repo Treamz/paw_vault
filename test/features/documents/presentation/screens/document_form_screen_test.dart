@@ -89,12 +89,13 @@ void main() {
 Widget _app({
   required PetDocument? document,
   required DocumentFileOpener opener,
+  DocumentRepository? repository,
 }) {
   return MultiRepositoryProvider(
     providers: [
       RepositoryProvider<AuthRepository>.value(value: _FakeAuthRepository()),
       RepositoryProvider<DocumentRepository>.value(
-        value: _FakeDocumentRepository(document),
+        value: repository ?? _FakeDocumentRepository(document),
       ),
       RepositoryProvider<StorageRepository>.value(
         value: _FakeStorageRepository(),

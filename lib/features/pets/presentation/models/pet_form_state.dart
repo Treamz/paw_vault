@@ -3,7 +3,32 @@ import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
+import 'package:paw_vault/features/pets/domain/value_objects/pet_measurement.dart';
 import 'package:paw_vault/features/pets/domain/value_objects/pet_weight.dart';
+
+/// One editable body-measurement row: a type picked from a dropdown and a
+/// centimeter value as typed.
+class PetMeasurementInput {
+  const PetMeasurementInput({this.type, this.value = ''});
+
+  factory PetMeasurementInput.fromMeasurement(PetMeasurement measurement) {
+    final value = measurement.valueCm;
+    return PetMeasurementInput(
+      type: measurement.type,
+      value: value % 1 == 0 ? value.toInt().toString() : value.toString(),
+    );
+  }
+
+  final PetMeasurementType? type;
+  final String value;
+
+  PetMeasurementInput copyWith({PetMeasurementType? type, String? value}) {
+    return PetMeasurementInput(
+      type: type ?? this.type,
+      value: value ?? this.value,
+    );
+  }
+}
 
 class PetFormState {
   const PetFormState({
@@ -14,6 +39,7 @@ class PetFormState {
     this.gender,
     this.weightValue,
     this.weightUnit = PetWeightUnit.kilogram,
+    this.measurements = const [],
     this.microchipNumber,
     this.photoUrl,
     this.pickedPhoto,
@@ -31,6 +57,10 @@ class PetFormState {
       gender: pet.gender,
       weightValue: pet.weight?.value,
       weightUnit: pet.weight?.unit ?? PetWeightUnit.kilogram,
+      measurements: [
+        for (final measurement in pet.measurements)
+          PetMeasurementInput.fromMeasurement(measurement),
+      ],
       microchipNumber: pet.microchipNumber,
       photoUrl: pet.photoUrl?.toString(),
       allergies: List.from(pet.allergies),
@@ -46,6 +76,7 @@ class PetFormState {
   final PetGender? gender;
   final double? weightValue;
   final PetWeightUnit weightUnit;
+  final List<PetMeasurementInput> measurements;
   final String? microchipNumber;
 
   /// Photo URL already persisted on the pet (or produced by an upload).
@@ -68,6 +99,7 @@ class PetFormState {
     PetGender? gender,
     double? weightValue,
     PetWeightUnit? weightUnit,
+    List<PetMeasurementInput>? measurements,
     String? microchipNumber,
     String? photoUrl,
     PickedPetPhoto? pickedPhoto,
@@ -83,6 +115,7 @@ class PetFormState {
       gender: gender ?? this.gender,
       weightValue: weightValue ?? this.weightValue,
       weightUnit: weightUnit ?? this.weightUnit,
+      measurements: measurements ?? this.measurements,
       microchipNumber: microchipNumber ?? this.microchipNumber,
       photoUrl: photoUrl ?? this.photoUrl,
       pickedPhoto: pickedPhoto ?? this.pickedPhoto,
@@ -126,6 +159,28 @@ class PetFormState {
     }
     if (weightValue != null && weightValue! > 10000) {
       errors['weight'] = 'Weight value seems too large';
+    }
+
+    final usedMeasurementTypes = <PetMeasurementType>{};
+    for (final measurement in measurements) {
+      final type = measurement.type;
+      if (type == null) {
+        errors['measurements'] = 'Select a type for each measurement';
+        break;
+      }
+      if (!usedMeasurementTypes.add(type)) {
+        errors['measurements'] = 'Each measurement type can only be used once';
+        break;
+      }
+      final value = double.tryParse(measurement.value.trim());
+      if (value == null || value <= 0) {
+        errors['measurements'] = 'Measurement values must be positive numbers';
+        break;
+      }
+      if (value > 1000) {
+        errors['measurements'] = 'Measurement value seems too large';
+        break;
+      }
     }
 
     if (microchipNumber != null &&
@@ -177,6 +232,13 @@ class PetFormState {
       weight: weightValue != null
           ? PetWeight(value: weightValue!, unit: weightUnit)
           : null,
+      measurements: [
+        for (final measurement in measurements)
+          PetMeasurement(
+            type: measurement.type!,
+            valueCm: double.parse(measurement.value.trim()),
+          ),
+      ],
       microchipNumber: trimmedMicrochip != null && trimmedMicrochip.isNotEmpty
           ? trimmedMicrochip
           : null,

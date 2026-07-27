@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
+import 'package:paw_vault/features/pets/domain/value_objects/pet_measurement.dart';
 import 'package:paw_vault/features/pets/domain/value_objects/pet_weight.dart';
 import 'package:paw_vault/features/pets/presentation/models/pet_form_state.dart';
 
@@ -348,6 +349,101 @@ void main() {
 
         expect(pet.createdAt, isNotNull);
         expect(pet.updatedAt, isNotNull);
+      });
+    });
+
+    group('measurements', () {
+      test('round-trips measurements through toPet', () {
+        const formState = PetFormState(
+          name: 'Fluffy',
+          measurements: [
+            PetMeasurementInput(
+              type: PetMeasurementType.headCircumference,
+              value: '25',
+            ),
+            PetMeasurementInput(
+              type: PetMeasurementType.withersHeight,
+              value: '38.5',
+            ),
+          ],
+        );
+
+        final pet = formState.toPet(
+          id: const EntityId('pet-1'),
+          userId: const EntityId('user-1'),
+        );
+
+        expect(pet.measurements, hasLength(2));
+        expect(
+          pet.measurements.first.type,
+          PetMeasurementType.headCircumference,
+        );
+        expect(pet.measurements.first.valueCm, 25);
+        expect(pet.measurements.last.valueCm, 38.5);
+
+        final restored = PetFormState.fromPet(pet);
+        expect(restored.measurements, hasLength(2));
+        expect(restored.measurements.first.value, '25');
+        expect(restored.measurements.last.value, '38.5');
+      });
+
+      test('rejects a measurement row without a type', () {
+        const formState = PetFormState(
+          name: 'Fluffy',
+          measurements: [PetMeasurementInput(value: '25')],
+        );
+
+        final validation = formState.validate();
+
+        expect(validation.isValid, isFalse);
+        expect(
+          validation.errorFor('measurements'),
+          'Select a type for each measurement',
+        );
+      });
+
+      test('rejects duplicate measurement types', () {
+        const formState = PetFormState(
+          name: 'Fluffy',
+          measurements: [
+            PetMeasurementInput(
+              type: PetMeasurementType.neckCircumference,
+              value: '20',
+            ),
+            PetMeasurementInput(
+              type: PetMeasurementType.neckCircumference,
+              value: '22',
+            ),
+          ],
+        );
+
+        final validation = formState.validate();
+
+        expect(validation.isValid, isFalse);
+        expect(
+          validation.errorFor('measurements'),
+          'Each measurement type can only be used once',
+        );
+      });
+
+      test('rejects non-positive measurement values', () {
+        const formState = PetFormState(
+          name: 'Fluffy',
+          measurements: [
+            PetMeasurementInput(
+              type: PetMeasurementType.backLength,
+              value: 'abc',
+            ),
+          ],
+        );
+
+        final validation = formState.validate();
+
+        expect(validation.isValid, isFalse);
+        expect(
+          validation.errorFor('measurements'),
+          'Measurement values must be positive numbers',
+        );
       });
     });
   });

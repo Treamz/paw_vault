@@ -23,6 +23,17 @@ abstract final class FirebaseStoragePaths {
     return 'users/$userId/pets/$petId/photos/profile.jpg';
   }
 
+  static String eventAttachment({
+    required String userId,
+    required String petId,
+    required String eventId,
+    required String attachmentId,
+    required String extension,
+  }) {
+    return 'users/$userId/pets/$petId/events/$eventId/attachments/'
+        '$attachmentId.$extension';
+  }
+
   static String vetSummaryExport({
     required String userId,
     required String petId,
