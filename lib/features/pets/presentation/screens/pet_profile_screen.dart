@@ -66,6 +66,12 @@ class _PetProfileView extends StatelessWidget {
     }
   }
 
+  Future<void> _openEdit(BuildContext context, String petId) async {
+    final cubit = context.read<PetProfileCubit>();
+    await context.router.push(PetFormRoute(petId: petId));
+    await cubit.load(petId);
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<PetProfileCubit, PetProfileState>(
@@ -93,14 +99,22 @@ class _PetProfileView extends StatelessWidget {
           actions: [
             BlocBuilder<PetProfileCubit, PetProfileState>(
               builder: (context, state) {
-                if (state.status == PetProfileStatus.ready &&
-                    state.pet != null) {
-                  return IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: state.status == PetProfileStatus.deleting
-                        ? null
-                        : () => _showDeleteConfirmation(context),
-                    tooltip: 'Delete pet',
+                final pet = state.pet;
+                if (state.status == PetProfileStatus.ready && pet != null) {
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined),
+                        onPressed: () => _openEdit(context, pet.id.value),
+                        tooltip: 'Edit pet',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => _showDeleteConfirmation(context),
+                        tooltip: 'Delete pet',
+                      ),
+                    ],
                   );
                 }
                 return const SizedBox.shrink();

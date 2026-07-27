@@ -58,6 +58,10 @@ class _PetFormViewState extends State<_PetFormView> {
   late PetFormState _formState;
   PetFormValidation? _validation;
 
+  /// Whether the user has hit save; distinguishes a save-triggered `ready`
+  /// state from the initial edit-mode load, which also emits `ready`.
+  bool _saveRequested = false;
+
   final _nameController = TextEditingController();
   final _speciesController = TextEditingController();
   final _breedController = TextEditingController();
@@ -208,6 +212,7 @@ class _PetFormViewState extends State<_PetFormView> {
       return;
     }
 
+    _saveRequested = true;
     final cubit = context.read<PetProfileCubit>();
     if (widget.isEditMode) {
       cubit.updatePet(_formState);
@@ -220,16 +225,16 @@ class _PetFormViewState extends State<_PetFormView> {
   Widget build(BuildContext context) {
     return BlocListener<PetProfileCubit, PetProfileState>(
       listener: (context, state) {
-        if (state.status == PetProfileStatus.ready && widget.isEditMode) {
-          if (state.pet != null && _nameController.text.isEmpty) {
-            _loadPetData(state.pet!);
-          }
-          if (!widget.isEditMode && state.pet != null) {
-            context.router.back();
-          }
+        if (state.status == PetProfileStatus.ready &&
+            widget.isEditMode &&
+            !_saveRequested &&
+            state.pet != null &&
+            _nameController.text.isEmpty) {
+          _loadPetData(state.pet!);
         }
 
-        if (state.status == PetProfileStatus.ready && !widget.isEditMode) {
+        if (state.status == PetProfileStatus.ready && _saveRequested) {
+          _saveRequested = false;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Pet saved successfully')),
           );
@@ -237,6 +242,7 @@ class _PetFormViewState extends State<_PetFormView> {
         }
 
         if (state.status == PetProfileStatus.failure) {
+          _saveRequested = false;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.errorMessage ?? 'Failed to save pet'),
