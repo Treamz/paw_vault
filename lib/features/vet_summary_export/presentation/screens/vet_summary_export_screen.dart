@@ -8,7 +8,9 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart'
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/vet_summary_export/application/load_vet_summary_data.dart';
+import 'package:paw_vault/features/vet_summary_export/domain/entities/vet_summary_export.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/repositories/vet_summary_export_repository.dart';
+import 'package:paw_vault/features/vet_summary_export/domain/services/pdf_download_service.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/services/pdf_share_service.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/services/vet_summary_pdf_generator.dart';
 import 'package:paw_vault/features/vet_summary_export/presentation/cubit/vet_summary_export_cubit.dart';
@@ -58,6 +60,35 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
   void dispose() {
     _fileNameController.dispose();
     super.dispose();
+  }
+
+  /// Downloads a previously saved export and opens it in the in-app viewer
+  /// (which offers sharing/saving from its toolbar).
+  Future<void> _openSavedExport(
+    BuildContext context,
+    VetSummaryExport export,
+  ) async {
+    final downloadService = context.read<PdfDownloadService>();
+    final messenger = ScaffoldMessenger.of(context);
+    final fileName =
+        'vet_summary_${DateFormat('yyyy-MM-dd').format(export.createdAt.value.toLocal())}.pdf';
+
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Opening saved summary…')),
+    );
+    try {
+      final bytes = await downloadService.download(export.fileUrl!);
+      messenger.hideCurrentSnackBar();
+      if (!mounted) {
+        return;
+      }
+      _openPreview(this.context, bytes, fileName);
+    } catch (error) {
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not open the summary: $error')),
+      );
+    }
   }
 
   void _openPreview(BuildContext context, Uint8List bytes, String fileName) {
@@ -194,7 +225,7 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
                       ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                _History(state: state),
+                _History(state: state, onOpenExport: _openSavedExport),
               ],
             );
           },
@@ -205,9 +236,11 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
 }
 
 class _History extends StatelessWidget {
-  const _History({required this.state});
+  const _History({required this.state, required this.onOpenExport});
 
   final VetSummaryExportState state;
+  final void Function(BuildContext context, VetSummaryExport export)
+      onOpenExport;
 
   @override
   Widget build(BuildContext context) {
@@ -232,8 +265,16 @@ class _History extends StatelessWidget {
                     child: ListTile(
                       key: ValueKey('export-${export.id.value}'),
                       leading: const Icon(Icons.picture_as_pdf),
-                      title: Text(dateFormat.format(export.createdAt.value)),
+                      title: Text(
+                        dateFormat.format(export.createdAt.value.toLocal()),
+                      ),
                       subtitle: const Text('Vet summary PDF'),
+                      trailing: export.fileUrl == null
+                          ? null
+                          : const Icon(Icons.chevron_right),
+                      onTap: export.fileUrl == null
+                          ? null
+                          : () => onOpenExport(context, export),
                     ),
                   ),
               ],

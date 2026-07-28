@@ -169,6 +169,7 @@ class _ExtractionViewState extends State<_ExtractionView> {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       initialDate: _issueDate ?? now,
       firstDate: DateTime(now.year - 100),
       lastDate: now,
@@ -182,6 +183,7 @@ class _ExtractionViewState extends State<_ExtractionView> {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       initialDate: _expiryDate ?? _issueDate ?? now,
       firstDate: _issueDate ?? DateTime(now.year - 100),
       lastDate: DateTime(now.year + 100),

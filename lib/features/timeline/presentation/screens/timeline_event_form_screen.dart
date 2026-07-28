@@ -153,8 +153,8 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
       _attachmentUrls = event.attachments.map((uri) => uri.toString()).toList();
       _pendingPhotos.clear();
       _selectedType = event.type;
-      _selectedDate = event.date.value;
-      _selectedReminderDate = event.nextReminderDate?.value;
+      _selectedDate = event.date.value.toLocal();
+      _selectedReminderDate = event.nextReminderDate?.value.toLocal();
     });
   }
 
@@ -171,7 +171,11 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
         attachments: List.of(_attachmentUrls),
         pendingPhotos: List.of(_pendingPhotos),
       );
-      _validation = _formState.validate();
+      // Field errors only appear after a save attempt; typing before that
+      // must not paint untouched fields red.
+      if (_validation != null) {
+        _validation = _formState.validate();
+      }
     });
   }
 
@@ -180,6 +184,7 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
     final initialDate = _selectedDate ?? now;
     final picked = await showDatePicker(
       context: context,
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       initialDate: initialDate,
       firstDate: DateTime(now.year - 100),
       lastDate: DateTime(now.year + 1, now.month, now.day),
@@ -201,6 +206,7 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
     final firstDate = DateTime(now.year - 100, now.month, now.day);
     final picked = await showDatePicker(
       context: context,
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       initialDate: initialDate.isBefore(firstDate) ? firstDate : initialDate,
       firstDate: firstDate,
       lastDate: DateTime(now.year + 2, now.month, now.day),
@@ -223,8 +229,10 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
 
   void _saveEvent() {
     _updateFormState();
+    final validation = _formState.validate();
 
-    if (_validation?.isValid != true) {
+    if (!validation.isValid) {
+      setState(() => _validation = validation);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fix validation errors')),
       );
@@ -467,13 +475,24 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
                           for (var i = 0; i < _pendingPhotos.length; i++)
                             _AttachmentThumbnail(
                               key: ValueKey('pending-$i'),
-                              image: Image.memory(
-                                _pendingPhotos[i].bytes,
-                                width: 72,
-                                height: 72,
-                                fit: BoxFit.cover,
-                                gaplessPlayback: true,
-                              ),
+                              image: _pendingPhotos[i].extension == 'pdf'
+                                  ? Container(
+                                      width: 72,
+                                      height: 72,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                      child: const Icon(
+                                        Icons.picture_as_pdf_outlined,
+                                      ),
+                                    )
+                                  : Image.memory(
+                                      _pendingPhotos[i].bytes,
+                                      width: 72,
+                                      height: 72,
+                                      fit: BoxFit.cover,
+                                      gaplessPlayback: true,
+                                    ),
                               onRemove: isSaving
                                   ? null
                                   : () => _removePendingPhoto(i),
@@ -502,6 +521,15 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
                                   ),
                           icon: const Icon(Icons.photo_library_outlined),
                           label: const Text('Gallery'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: isSaving
+                              ? null
+                              : () => _pickAttachmentPhoto(
+                                    EventPhotoSource.file,
+                                  ),
+                          icon: const Icon(Icons.attach_file),
+                          label: const Text('File'),
                         ),
                       ],
                     ),

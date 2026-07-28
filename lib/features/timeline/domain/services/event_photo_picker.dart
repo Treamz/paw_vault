@@ -1,9 +1,12 @@
 import 'dart:typed_data';
 
-/// Where the user is picking an event attachment photo from.
+/// Where the user is picking an event attachment from.
 enum EventPhotoSource {
   camera,
   gallery,
+
+  /// A file from the device (PDF or image).
+  file,
 }
 
 /// A photo selected by the user, ready to be uploaded as an event attachment.

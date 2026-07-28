@@ -77,7 +77,7 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
       _populated = true;
       _titleController.text = reminder.title;
       _descriptionController.text = reminder.description ?? '';
-      _dateTime = reminder.dateTime.value;
+      _dateTime = reminder.dateTime.value.toLocal();
       _repeatType = reminder.repeatType ?? ReminderRepeatType.none;
     });
   }

@@ -1,6 +1,7 @@
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
+import 'package:paw_vault/core/utils/parse_decimal.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
 import 'package:paw_vault/features/pets/domain/value_objects/pet_measurement.dart';
@@ -172,7 +173,7 @@ class PetFormState {
         errors['measurements'] = 'Each measurement type can only be used once';
         break;
       }
-      final value = double.tryParse(measurement.value.trim());
+      final value = parseDecimal(measurement.value);
       if (value == null || value <= 0) {
         errors['measurements'] = 'Measurement values must be positive numbers';
         break;
@@ -236,7 +237,7 @@ class PetFormState {
         for (final measurement in measurements)
           PetMeasurement(
             type: measurement.type!,
-            valueCm: double.parse(measurement.value.trim()),
+            valueCm: parseDecimal(measurement.value)!,
           ),
       ],
       microchipNumber: trimmedMicrochip != null && trimmedMicrochip.isNotEmpty

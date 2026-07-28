@@ -70,9 +70,11 @@ import 'package:paw_vault/features/vet_summary_export/application/load_vet_summa
 import 'package:paw_vault/features/vet_summary_export/data/datasources/flutter_fire_vet_summary_export_data_source.dart';
 import 'package:paw_vault/features/vet_summary_export/data/repositories/firebase_vet_summary_export_repository.dart';
 import 'package:paw_vault/features/vet_summary_export/data/repositories/local_vet_summary_export_repository.dart';
+import 'package:paw_vault/features/vet_summary_export/data/services/http_pdf_download_service.dart';
 import 'package:paw_vault/features/vet_summary_export/data/services/printing_pdf_share_service.dart';
 import 'package:paw_vault/features/vet_summary_export/data/services/vet_summary_pdf_builder.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/repositories/vet_summary_export_repository.dart';
+import 'package:paw_vault/features/vet_summary_export/domain/services/pdf_download_service.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/services/pdf_share_service.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/services/vet_summary_pdf_generator.dart';
 
@@ -240,4 +242,6 @@ class AppDependencies {
       const VetSummaryPdfBuilder();
 
   PdfShareService get pdfShareService => const PrintingPdfShareService();
+
+  PdfDownloadService get pdfDownloadService => const HttpPdfDownloadService();
 }

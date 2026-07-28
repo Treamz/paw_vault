@@ -5,6 +5,7 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart'
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/core/utils/parse_decimal.dart';
 import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
@@ -196,7 +197,7 @@ class _PetFormViewState extends State<_PetFormView> {
         gender: _selectedGender,
         weightValue: _weightController.text.isEmpty
             ? null
-            : double.tryParse(_weightController.text),
+            : parseDecimal(_weightController.text),
         weightUnit: _selectedWeightUnit,
         microchipNumber: _microchipController.text.isEmpty
             ? null
@@ -217,6 +218,7 @@ class _PetFormViewState extends State<_PetFormView> {
     final initialDate = _selectedBirthDate ?? now;
     final picked = await showDatePicker(
       context: context,
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       initialDate: initialDate,
       firstDate: DateTime(now.year - 100),
       lastDate: now,
