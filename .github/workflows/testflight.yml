@@ -110,6 +110,10 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+          # SwiftPM resolution makes `xcodebuild -showBuildSettings` slow on
+          # CI runners; fastlane's default 3s base timeout flakes the build.
+          FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: "180"
+          FASTLANE_XCODEBUILD_SETTINGS_RETRIES: "4"
         run: bundle exec fastlane beta
 
       - name: Upload IPA artifact
