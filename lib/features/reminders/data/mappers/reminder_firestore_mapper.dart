@@ -12,6 +12,8 @@ abstract final class ReminderFirestoreMapper {
       'dateTime': FirestoreMapping.utcDateTimeToJson(reminder.dateTime),
       if (reminder.repeatType != null)
         'repeatType': FirestoreMapping.enumToJson(reminder.repeatType!),
+      if (reminder.customRepeatDays != null)
+        'customRepeatDays': reminder.customRepeatDays,
       if (reminder.relatedEventId != null)
         'relatedEventId': FirestoreMapping.entityIdToJson(
           reminder.relatedEventId!,
@@ -48,6 +50,15 @@ abstract final class ReminderFirestoreMapper {
               'repeatType',
               ReminderRepeatType.values,
             ),
+      customRepeatDays: switch (data['customRepeatDays']) {
+        null => null,
+        final num value => value.toInt(),
+        final other => throw FirestoreMappingException.expectedType(
+            fieldName: 'customRepeatDays',
+            expectedType: 'number',
+            actualValue: other,
+          ),
+      },
       relatedEventId: data['relatedEventId'] == null
           ? null
           : FirestoreMapping.entityIdFromJson(

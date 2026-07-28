@@ -105,7 +105,10 @@ class _RemindersContent extends StatelessWidget {
         final reminder = reminders[index];
         final due = reminder.dateTime.value.toLocal();
         final isOverdue = !reminder.isCompleted && due.isBefore(now);
-        final repeat = _formatRepeat(reminder.repeatType);
+        final repeat = reminder.repeatType == ReminderRepeatType.custom &&
+                reminder.customRepeatDays != null
+            ? 'Every ${reminder.customRepeatDays} days'
+            : _formatRepeat(reminder.repeatType);
 
         return Card(
           child: ListTile(

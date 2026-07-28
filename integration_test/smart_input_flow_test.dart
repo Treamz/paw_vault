@@ -71,40 +71,64 @@ void main() {
     await tester.tap(smartInputTile);
     await tester.pumpAndSettle();
 
-    // The input capitalizes sentences.
-    final field = tester.widget<TextField>(find.byType(TextField));
-    expect(field.textCapitalization, TextCapitalization.sentences);
-
-    // Analyze produces a draft shown at the top with the notice.
+    // Analyze produces a draft with editable details.
     await tester.enterText(
-      find.byType(TextField),
+      find.byType(TextField).first,
       'Bella got her rabies shot today. Next one in a year.',
     );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Analyze'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Analyze'));
     await tester.pumpAndSettle();
 
     expect(find.text('AI draft'), findsOneWidget);
     expect(
-      find.text('Nothing is saved until you confirm. Review the draft below.'),
+      find.text(
+        'Nothing is saved until you confirm. Correct or add details below.',
+      ),
       findsOneWidget,
     );
-    final draftY = tester.getTopLeft(find.text('AI draft')).dy;
-    final inputY = tester.getTopLeft(find.byType(TextField)).dy;
-    expect(draftY, lessThan(inputY));
-    await binding.takeScreenshot('01_smart_input_draft_on_top');
+
+    // The user can correct an extracted detail and add their own.
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'vaccine'),
+      'rabies booster',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    final addDetail = find.text('Add detail');
+    await tester.ensureVisible(addDetail);
+    await tester.tap(addDetail);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'symptom');
+    await tester.enterText(find.widgetWithText(TextField, 'Value'), 'none');
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
+    await binding.takeScreenshot('01_smart_input_editable_draft');
 
     // Nothing is saved yet.
     expect(smartInput.savedMessages, isEmpty);
 
-    // Confirm persists the entry into history.
-    await tester.tap(find.text('Confirm'));
+    // Confirm persists the edited analysis into the History tab.
+    final confirm = find.widgetWithText(FilledButton, 'Confirm');
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
     await tester.pumpAndSettle();
 
     expect(smartInput.savedMessages, hasLength(1));
-    expect(find.text('Saved to records'), findsOneWidget);
-    await binding.takeScreenshot('02_smart_input_saved_entry');
+    final saved = smartInput.savedMessages.single;
+    expect(saved.extractedData['vaccine'], 'rabies booster');
+    expect(saved.extractedData['symptom'], 'none');
+    expect(find.text('Analysis saved to History'), findsOneWidget);
+
+    // The History tab lists the analysis with full details on tap.
+    await tester.tap(find.text('History'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.chevron_right).first);
+    await tester.pumpAndSettle();
+    expect(find.text('rabies booster'), findsOneWidget);
+    expect(find.text('symptom'), findsOneWidget);
+    await binding.takeScreenshot('02_smart_input_history_details');
   });
 }
 

@@ -35,6 +35,7 @@ class RemindersCubit extends Cubit<RemindersState> {
           description: reminder.description,
           dateTime: reminder.dateTime,
           repeatType: reminder.repeatType,
+          customRepeatDays: reminder.customRepeatDays,
           relatedEventId: reminder.relatedEventId,
           createdAt: reminder.createdAt,
         );

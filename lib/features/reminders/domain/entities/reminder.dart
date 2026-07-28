@@ -19,6 +19,7 @@ class Reminder {
     required this.dateTime,
     this.description,
     this.repeatType,
+    this.customRepeatDays,
     this.relatedEventId,
     this.isCompleted = false,
     this.createdAt,
@@ -32,6 +33,9 @@ class Reminder {
   final String? description;
   final UtcDateTime dateTime;
   final ReminderRepeatType? repeatType;
+
+  /// Interval in days for [ReminderRepeatType.custom] (e.g. every 5 days).
+  final int? customRepeatDays;
   final EntityId? relatedEventId;
   final bool isCompleted;
   final UtcDateTime? createdAt;

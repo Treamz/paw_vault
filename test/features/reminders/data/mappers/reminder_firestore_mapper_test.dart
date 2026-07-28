@@ -132,6 +132,26 @@ void main() {
         throwsA(isA<FirestoreMappingException>()),
       );
     });
+
+    test('round-trips a custom repeat interval', () {
+      final original = Reminder(
+        id: const EntityId('r-1'),
+        userId: const EntityId('user-1'),
+        petId: const EntityId('pet-1'),
+        title: 'Flea treatment',
+        dateTime: UtcDateTime(DateTime.utc(2027, 2, 1, 9)),
+        repeatType: ReminderRepeatType.custom,
+        customRepeatDays: 5,
+      );
+
+      final roundTripped = ReminderFirestoreMapper.fromFirestore(
+        id: original.id,
+        data: ReminderFirestoreMapper.toFirestore(original),
+      );
+
+      expect(roundTripped.repeatType, ReminderRepeatType.custom);
+      expect(roundTripped.customRepeatDays, 5);
+    });
   });
 }
 
