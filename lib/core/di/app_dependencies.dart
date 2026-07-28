@@ -41,9 +41,12 @@ import 'package:paw_vault/features/documents/domain/services/document_file_opene
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/pets/data/datasources/flutter_fire_pet_data_source.dart';
 import 'package:paw_vault/features/pets/data/repositories/firebase_pet_repository.dart';
+import 'package:paw_vault/features/pets/data/repositories/firebase_weight_entry_repository.dart';
 import 'package:paw_vault/features/pets/data/repositories/local_pet_repository.dart';
+import 'package:paw_vault/features/pets/data/repositories/local_weight_entry_repository.dart';
 import 'package:paw_vault/features/pets/data/services/pet_photo_picker_impl.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/pets/domain/repositories/weight_entry_repository.dart';
 import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
 import 'package:paw_vault/features/reminders/data/datasources/flutter_fire_reminder_data_source.dart';
 import 'package:paw_vault/features/reminders/data/repositories/firebase_reminder_repository.dart';
@@ -76,6 +79,7 @@ import 'package:paw_vault/features/vet_summary_export/domain/services/vet_summar
 class AppDependencies {
   AppDependencies({
     OwnerProfileRepository? ownerProfileRepository,
+    WeightEntryRepository? weightEntryRepository,
     required this.authRepository,
     required this.storageRepository,
     required this.petRepository,
@@ -97,8 +101,10 @@ class AppDependencies {
     required this.paywallPresenter,
     required this.trackingAuthorizationService,
     required this.accountDeletionService,
-  }) : ownerProfileRepository =
-            ownerProfileRepository ?? LocalOwnerProfileRepository();
+  })  : ownerProfileRepository =
+            ownerProfileRepository ?? LocalOwnerProfileRepository(),
+        weightEntryRepository =
+            weightEntryRepository ?? LocalWeightEntryRepository();
 
   factory AppDependencies.localFirst() {
     final authDataSource = NoopFirebaseAuthDataSource();
@@ -152,6 +158,9 @@ class AppDependencies {
         FlutterFirePetDataSource(firebase.firestore),
       ),
       ownerProfileRepository: FirebaseOwnerProfileRepository(
+        firebase.firestore,
+      ),
+      weightEntryRepository: FirebaseWeightEntryRepository(
         firebase.firestore,
       ),
       timelineRepository: FirebaseTimelineRepository(
@@ -214,6 +223,7 @@ class AppDependencies {
   final TrackingAuthorizationService trackingAuthorizationService;
   final AccountDeletionService accountDeletionService;
   final OwnerProfileRepository ownerProfileRepository;
+  final WeightEntryRepository weightEntryRepository;
 
   /// The auth repository also satisfies account (non-anonymous) auth.
   AccountAuthRepository get accountAuthRepository =>

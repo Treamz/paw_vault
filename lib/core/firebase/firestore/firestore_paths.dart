@@ -44,4 +44,11 @@ abstract final class FirestorePaths {
   }) {
     return '${pet(userId: userId, petId: petId)}/vetSummaryExports';
   }
+
+  static String weightEntries({
+    required String userId,
+    required String petId,
+  }) {
+    return '${pet(userId: userId, petId: petId)}/weightEntries';
+  }
 }

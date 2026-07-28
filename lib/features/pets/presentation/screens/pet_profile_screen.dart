@@ -10,6 +10,7 @@ import 'package:paw_vault/core/subscription/presentation/pro_gate.dart';
 import 'package:paw_vault/features/account/domain/repositories/owner_profile_repository.dart';
 import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/pets/domain/repositories/weight_entry_repository.dart';
 import 'package:paw_vault/features/pets/presentation/cubit/pet_profile_cubit.dart';
 import 'package:paw_vault/features/pets/presentation/models/pet_measurement_labels.dart';
 
@@ -32,6 +33,7 @@ class PetProfileScreen extends StatelessWidget {
           storageRepository: context.read<StorageRepository>(),
         ),
         ownerProfileRepository: context.read<OwnerProfileRepository>(),
+        weightEntryRepository: context.read<WeightEntryRepository>(),
       )..load(petId),
       child: const _PetProfileView(),
     );
@@ -285,6 +287,12 @@ class _PetProfileView extends StatelessWidget {
     // The last flag marks Pro-only (AI) destinations.
     final entries = <(IconData, String, PageRouteInfo, bool)>[
       (Icons.timeline, 'Timeline', TimelineRoute(petId: petId), false),
+      (
+        Icons.monitor_weight_outlined,
+        'Weight',
+        WeightHistoryRoute(petId: petId),
+        false,
+      ),
       (Icons.folder, 'Documents', DocumentsRoute(petId: petId), false),
       (Icons.notifications, 'Reminders', RemindersRoute(petId: petId), false),
       (Icons.bolt, 'Smart Input', SmartInputRoute(petId: petId), true),

@@ -4,12 +4,16 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/account/domain/entities/owner_profile.dart';
 import 'package:paw_vault/features/account/domain/repositories/owner_profile_repository.dart';
 import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
+import 'package:paw_vault/features/pets/domain/entities/weight_entry.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/pets/domain/repositories/weight_entry_repository.dart';
 import 'package:paw_vault/features/pets/presentation/models/pet_form_state.dart';
 
 class PetProfileCubit extends Cubit<PetProfileState> {
@@ -18,11 +22,13 @@ class PetProfileCubit extends Cubit<PetProfileState> {
     required AuthRepository authRepository,
     required PetPhotoUploadService photoUploadService,
     OwnerProfileRepository? ownerProfileRepository,
+    WeightEntryRepository? weightEntryRepository,
     AnalyticsService? analytics,
   })  : _petRepository = petRepository,
         _authRepository = authRepository,
         _photoUploadService = photoUploadService,
         _ownerProfileRepository = ownerProfileRepository,
+        _weightEntryRepository = weightEntryRepository,
         _analytics = analytics ?? const NoopAnalyticsService(),
         super(const PetProfileState());
 
@@ -30,7 +36,40 @@ class PetProfileCubit extends Cubit<PetProfileState> {
   final AuthRepository _authRepository;
   final PetPhotoUploadService _photoUploadService;
   final OwnerProfileRepository? _ownerProfileRepository;
+  final WeightEntryRepository? _weightEntryRepository;
   final AnalyticsService _analytics;
+
+  /// Appends a weight-history entry when the pet's weight was set or changed
+  /// through the form, so the graph builds itself.
+  Future<void> _logWeightChange({
+    required Pet saved,
+    Pet? previous,
+    required DateTime now,
+  }) async {
+    final repository = _weightEntryRepository;
+    final weight = saved.weight;
+    if (repository == null || weight == null) {
+      return;
+    }
+    final unchanged = previous?.weight != null &&
+        previous!.weight!.value == weight.value &&
+        previous.weight!.unit == weight.unit;
+    if (unchanged) {
+      return;
+    }
+
+    await repository.saveEntry(
+      WeightEntry(
+        id: EntityId('${now.microsecondsSinceEpoch}-weight'),
+        userId: saved.userId,
+        petId: saved.id,
+        value: weight.value,
+        unit: weight.unit,
+        date: DateOnly.fromDateTime(now),
+        createdAt: UtcDateTime(now),
+      ),
+    );
+  }
 
   /// Saves the owner's contact details and reflects them in the state.
   Future<void> saveOwnerInfo({String? name, String? phone}) async {
@@ -142,6 +181,7 @@ class PetProfileCubit extends Cubit<PetProfileState> {
       );
 
       await _petRepository.savePet(pet);
+      await _logWeightChange(saved: pet, now: now);
       _analytics.logEvent(AnalyticsEvents.petCreated);
 
       emit(
@@ -194,6 +234,11 @@ class PetProfileCubit extends Cubit<PetProfileState> {
       );
 
       await _petRepository.savePet(updatedPet);
+      await _logWeightChange(
+        saved: updatedPet,
+        previous: currentPet,
+        now: now,
+      );
 
       emit(
         state.copyWith(

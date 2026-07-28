@@ -659,3 +659,55 @@ class VetSummaryExportRouteArgs {
   @override
   int get hashCode => petId.hashCode ^ key.hashCode;
 }
+
+/// generated route for
+/// [WeightHistoryScreen]
+class WeightHistoryRoute extends PageRouteInfo<WeightHistoryRouteArgs> {
+  WeightHistoryRoute({
+    required String petId,
+    Key? key,
+    List<PageRouteInfo>? children,
+  }) : super(
+          WeightHistoryRoute.name,
+          args: WeightHistoryRouteArgs(petId: petId, key: key),
+          rawPathParams: {'petId': petId},
+          initialChildren: children,
+        );
+
+  static const String name = 'WeightHistoryRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final args = data.argsAs<WeightHistoryRouteArgs>(
+        orElse: () =>
+            WeightHistoryRouteArgs(petId: pathParams.getString('petId')),
+      );
+      return WeightHistoryScreen(petId: args.petId, key: args.key);
+    },
+  );
+}
+
+class WeightHistoryRouteArgs {
+  const WeightHistoryRouteArgs({required this.petId, this.key});
+
+  final String petId;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'WeightHistoryRouteArgs{petId: $petId, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! WeightHistoryRouteArgs) return false;
+    return petId == other.petId && key == other.key;
+  }
+
+  @override
+  int get hashCode => petId.hashCode ^ key.hashCode;
+}

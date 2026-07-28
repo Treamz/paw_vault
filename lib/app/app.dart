@@ -19,6 +19,7 @@ import 'package:paw_vault/features/documents/domain/repositories/document_reposi
 import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/pets/domain/repositories/weight_entry_repository.dart';
 import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
 import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
@@ -86,6 +87,9 @@ class _PawVaultAppState extends State<PawVaultApp> {
         ),
         RepositoryProvider<PetPhotoPicker>.value(
           value: widget.dependencies.petPhotoPicker,
+        ),
+        RepositoryProvider<WeightEntryRepository>.value(
+          value: widget.dependencies.weightEntryRepository,
         ),
         RepositoryProvider<TimelineRepository>.value(
           value: widget.dependencies.timelineRepository,

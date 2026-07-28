@@ -8,8 +8,11 @@ import 'package:paw_vault/core/storage/domain/entities/storage_file.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
+import 'package:paw_vault/features/pets/domain/entities/weight_entry.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/pets/domain/repositories/weight_entry_repository.dart';
 import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
+import 'package:paw_vault/features/pets/domain/value_objects/pet_weight.dart';
 import 'package:paw_vault/features/pets/presentation/cubit/pet_profile_cubit.dart';
 import 'package:paw_vault/features/pets/presentation/models/pet_form_state.dart';
 
@@ -416,6 +419,38 @@ void main() {
       await cubit.close();
     });
 
+    test('logs a weight history entry when the weight changes', () async {
+      const existingPet = Pet(
+        id: EntityId('pet-1'),
+        userId: EntityId('user-1'),
+        name: 'Rex',
+        weight: PetWeight(value: 5),
+      );
+      final weightEntries = _FakeWeightEntryRepository();
+      final cubit = PetProfileCubit(
+        petRepository: _FakePetRepository(pet: existingPet),
+        authRepository: _FakeAuthRepository(
+          currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+        ),
+        photoUploadService: PetPhotoUploadService(
+          storageRepository: _FakeStorageRepository(),
+        ),
+        weightEntryRepository: weightEntries,
+      );
+
+      await cubit.load('pet-1');
+      await cubit.updatePet(const PetFormState(name: 'Rex', weightValue: 6.5));
+
+      expect(weightEntries.savedEntries, hasLength(1));
+      expect(weightEntries.savedEntries.single.value, 6.5);
+
+      // Saving again without changing the weight logs nothing new.
+      await cubit.updatePet(const PetFormState(name: 'Rex', weightValue: 6.5));
+      expect(weightEntries.savedEntries, hasLength(1));
+
+      await cubit.close();
+    });
+
     test('deletes a loaded pet', () async {
       const existingPet = Pet(
         id: EntityId('pet-1'),
@@ -647,4 +682,30 @@ class _FakeStorageRepository implements StorageRepository {
       downloadUrl: Uri.parse('https://cdn.example.com/$path'),
     );
   }
+}
+
+class _FakeWeightEntryRepository implements WeightEntryRepository {
+  final savedEntries = <WeightEntry>[];
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Stream<List<WeightEntry>> watchEntries({
+    required EntityId userId,
+    required EntityId petId,
+  }) =>
+      Stream<List<WeightEntry>>.value(const []);
+
+  @override
+  Future<void> saveEntry(WeightEntry entry) async {
+    savedEntries.add(entry);
+  }
+
+  @override
+  Future<void> deleteEntry({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId entryId,
+  }) async {}
 }

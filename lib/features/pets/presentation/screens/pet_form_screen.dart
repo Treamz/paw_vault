@@ -8,6 +8,7 @@ import 'package:paw_vault/core/storage/domain/repositories/storage_repository.da
 import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/pets/domain/repositories/weight_entry_repository.dart';
 import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
 import 'package:paw_vault/features/pets/domain/value_objects/pet_measurement.dart';
 import 'package:paw_vault/features/pets/domain/value_objects/pet_weight.dart';
@@ -34,6 +35,7 @@ class PetFormScreen extends StatelessWidget {
           photoUploadService: PetPhotoUploadService(
             storageRepository: context.read<StorageRepository>(),
           ),
+          weightEntryRepository: context.read<WeightEntryRepository>(),
           analytics: context.read<AnalyticsService>(),
         );
         if (petId != null) {
