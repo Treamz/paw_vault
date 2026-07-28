@@ -68,7 +68,7 @@ void main() {
     await binding.takeScreenshot('01_profile_physical_details');
 
     // Open the edit form via the new edit action; weight is prefilled.
-    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.tap(find.byTooltip('Edit pet'));
     await tester.pumpAndSettle();
     expect(find.text('Edit Pet'), findsOneWidget);
     final weightField = find.widgetWithText(TextFormField, 'Weight');

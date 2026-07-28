@@ -7,6 +7,7 @@ import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/reminders/presentation/screens/reminders_screen.dart';
 
 void main() {
@@ -33,6 +34,9 @@ Widget _app(List<Reminder> reminders) {
   return MultiRepositoryProvider(
     providers: [
       RepositoryProvider<AuthRepository>.value(value: _FakeAuthRepository()),
+      RepositoryProvider<ReminderNotificationScheduler>.value(
+        value: _FakeNotificationScheduler(),
+      ),
       RepositoryProvider<ReminderRepository>.value(
         value: _FakeReminderRepository(reminders),
       ),
@@ -106,4 +110,12 @@ class _FakeReminderRepository implements ReminderRepository {
     required EntityId petId,
     required EntityId reminderId,
   }) async {}
+}
+
+class _FakeNotificationScheduler implements ReminderNotificationScheduler {
+  @override
+  Future<void> schedule(Reminder reminder) async {}
+
+  @override
+  Future<void> cancel(EntityId reminderId) async {}
 }

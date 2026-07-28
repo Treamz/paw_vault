@@ -8,6 +8,7 @@ import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 import 'package:paw_vault/features/smart_input/presentation/cubit/smart_input_cubit.dart';
+import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
 
 @RoutePage()
 class SmartInputScreen extends StatelessWidget {
@@ -24,6 +25,7 @@ class SmartInputScreen extends StatelessWidget {
       create: (context) => SmartInputCubit(
         smartInputRepository: context.read<SmartInputRepository>(),
         authRepository: context.read<AuthRepository>(),
+        timelineRepository: context.read<TimelineRepository>(),
         analytics: context.read<AnalyticsService>(),
       )..load(petId),
       child: _SmartInputView(petId: petId),
@@ -59,7 +61,14 @@ class _SmartInputViewState extends State<_SmartInputView> {
             if (state.status == SmartInputStatus.confirmed) {
               _controller.clear();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Saved to records')),
+                SnackBar(
+                  content: const Text('Saved — added to the pet\'s Timeline'),
+                  action: SnackBarAction(
+                    label: 'View',
+                    onPressed: () =>
+                        context.router.push(TimelineRoute(petId: widget.petId)),
+                  ),
+                ),
               );
             }
           },
@@ -160,7 +169,7 @@ class _SmartInputViewState extends State<_SmartInputView> {
                     label: const Text('Attach document or photo'),
                   ),
                   const SizedBox(height: 24),
-                  _HistorySection(state: state),
+                  _HistorySection(state: state, petId: widget.petId),
                 ],
               ),
             );
@@ -376,9 +385,10 @@ class _DraftReview extends StatelessWidget {
 }
 
 class _HistorySection extends StatelessWidget {
-  const _HistorySection({required this.state});
+  const _HistorySection({required this.state, required this.petId});
 
   final SmartInputState state;
+  final String petId;
 
   @override
   Widget build(BuildContext context) {
@@ -410,7 +420,7 @@ class _HistorySection extends StatelessWidget {
               : Column(
                   children: [
                     for (final message in state.messages)
-                      _HistoryTile(message: message),
+                      _HistoryTile(message: message, petId: petId),
                   ],
                 ),
         },
@@ -420,9 +430,10 @@ class _HistorySection extends StatelessWidget {
 }
 
 class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({required this.message});
+  const _HistoryTile({required this.message, required this.petId});
 
   final SmartMessage message;
+  final String petId;
 
   @override
   Widget build(BuildContext context) {
@@ -431,7 +442,10 @@ class _HistoryTile extends StatelessWidget {
         key: ValueKey('smart-message-${message.id.value}'),
         leading: const Icon(Icons.check_circle_outline),
         title: Text(message.originalText),
-        subtitle: Text(_formatIntent(message.detectedIntent)),
+        subtitle: Text('${_formatIntent(message.detectedIntent)} · saved to '
+            'Timeline'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => context.router.push(TimelineRoute(petId: petId)),
       ),
     );
   }

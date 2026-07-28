@@ -70,7 +70,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The file attachment is optional and the save button is plain "Save".
-    expect(find.text('Attach file (optional)'), findsOneWidget);
+    expect(find.text('Attach photo or file (optional)'), findsOneWidget);
     expect(find.text('Pick file & save'), findsNothing);
 
     // Fill the required fields and save without attaching anything.

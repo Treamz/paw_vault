@@ -58,7 +58,7 @@ void main() {
     expect(find.text('5.0 kilogram'), findsOneWidget);
 
     // The profile now has an edit action.
-    final editButton = find.byIcon(Icons.edit_outlined);
+    final editButton = find.byTooltip('Edit pet');
     expect(editButton, findsOneWidget);
 
     // Open the edit form; the weight is prefilled.

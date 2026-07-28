@@ -10,6 +10,8 @@ import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 import 'package:paw_vault/features/smart_input/presentation/screens/smart_input_screen.dart';
+import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
+import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
 
 void main() {
   group('SmartInputScreen', () {
@@ -71,6 +73,9 @@ Widget _app() {
       RepositoryProvider<SmartInputRepository>.value(
         value: _FakeSmartInputRepository(),
       ),
+      RepositoryProvider<TimelineRepository>.value(
+        value: _FakeTimelineRepository(),
+      ),
     ],
     child: const MaterialApp(home: SmartInputScreen(petId: 'pet-1')),
   );
@@ -122,5 +127,35 @@ class _FakeSmartInputRepository implements SmartInputRepository {
     required EntityId userId,
     required EntityId petId,
     required EntityId messageId,
+  }) async {}
+}
+
+class _FakeTimelineRepository implements TimelineRepository {
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Stream<List<PetEvent>> watchEvents({
+    required EntityId userId,
+    required EntityId petId,
+  }) =>
+      Stream<List<PetEvent>>.value(const []);
+
+  @override
+  Future<PetEvent?> getEvent({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId eventId,
+  }) async =>
+      null;
+
+  @override
+  Future<void> saveEvent(PetEvent event) async {}
+
+  @override
+  Future<void> deleteEvent({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId eventId,
   }) async {}
 }

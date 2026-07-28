@@ -89,7 +89,7 @@ void main() {
     await binding.takeScreenshot('01_profile_owner_birthdate');
 
     // --- Edit form: add a body measurement via the dropdown.
-    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.tap(find.byTooltip('Edit pet'));
     await tester.pumpAndSettle();
     final addMeasurement = find.text('Add measurement');
     await tester.ensureVisible(addMeasurement);

@@ -118,14 +118,103 @@ class _TimelineContent extends StatelessWidget {
               ],
             ),
             isThreeLine: true,
-            onTap: () {
-              context.router.push(
-                TimelineEventFormRoute(
-                  petId: petId,
-                  eventId: event.id.value,
+            onTap: () => _showEventDetails(context, event),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Full read-only details; editing is an explicit action from here.
+  void _showEventDetails(BuildContext context, PetEvent event) {
+    final router = context.router;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.6,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) => ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(child: Icon(_eventIcon(event.type))),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      event.title,
+                      style: theme.textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _DetailRow('Type', _formatEventType(event.type)),
+              _DetailRow(
+                'Date',
+                DateFormat.yMMMMd().format(event.date.value),
+              ),
+              if (event.nextReminderDate != null)
+                _DetailRow(
+                  'Reminder',
+                  DateFormat.yMMMMd().format(event.nextReminderDate!.value),
                 ),
-              );
-            },
+              if (event.description != null &&
+                  event.description!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text('Description', style: theme.textTheme.labelLarge),
+                const SizedBox(height: 4),
+                Text(event.description!),
+              ],
+              if (event.attachments.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text('Attachments', style: theme.textTheme.labelLarge),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final attachment in event.attachments)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          attachment.toString(),
+                          width: 110,
+                          height: 110,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, _, __) => Container(
+                            width: 110,
+                            height: 110,
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            child: const Icon(Icons.image_outlined),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(sheetContext).pop();
+                  router.push(
+                    TimelineEventFormRoute(
+                      petId: petId,
+                      eventId: event.id.value,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Edit event'),
+              ),
+            ],
           ),
         );
       },
@@ -162,5 +251,35 @@ class _TimelineContent extends StatelessWidget {
       PetEventType.documentAdded => 'Document Added',
       PetEventType.other => 'Other',
     };
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow(this.label, this.value);
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w500),
+            ),
+          ),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
   }
 }

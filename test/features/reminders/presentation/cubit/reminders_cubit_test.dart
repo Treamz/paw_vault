@@ -5,6 +5,7 @@ import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/reminders/presentation/cubit/reminders_cubit.dart';
 
 void main() {
@@ -19,6 +20,7 @@ void main() {
       final cubit = RemindersCubit(
         reminderRepository: reminderRepository,
         authRepository: authRepository,
+        notificationScheduler: _FakeNotificationScheduler(),
       );
 
       await cubit.load('pet-1');
@@ -41,6 +43,7 @@ void main() {
       final cubit = RemindersCubit(
         reminderRepository: reminderRepository,
         authRepository: authRepository,
+        notificationScheduler: _FakeNotificationScheduler(),
       );
 
       await cubit.load('pet-1');
@@ -57,6 +60,7 @@ void main() {
       final cubit = RemindersCubit(
         reminderRepository: _FakeReminderRepository(throwsOnInitialize: true),
         authRepository: _FakeAuthRepository(),
+        notificationScheduler: _FakeNotificationScheduler(),
       );
 
       await cubit.load('pet-1');
@@ -73,6 +77,7 @@ void main() {
         authRepository: _FakeAuthRepository(
           currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
         ),
+        notificationScheduler: _FakeNotificationScheduler(),
       );
 
       await cubit.load('pet-1');
@@ -108,6 +113,50 @@ void main() {
 
       expect(sorted.map((r) => r.id.value), ['r2', 'r1', 'r3']);
       expect(state.reminders, isEmpty);
+    });
+
+    test(
+        'toggleCompleted completes a pending reminder and cancels its '
+        'notification', () async {
+      final reminderRepository = _FakeReminderRepository();
+      final scheduler = _FakeNotificationScheduler();
+      final cubit = RemindersCubit(
+        reminderRepository: reminderRepository,
+        authRepository: _FakeAuthRepository(),
+        notificationScheduler: scheduler,
+      );
+      final reminder = _reminder();
+
+      await cubit.toggleCompleted(reminder);
+
+      expect(reminderRepository.completedReminderId, reminder.id);
+      expect(scheduler.cancelledId, reminder.id);
+      expect(reminderRepository.savedReminder, isNull);
+
+      await cubit.close();
+    });
+
+    test('toggleCompleted reopens a completed reminder and reschedules it',
+        () async {
+      final reminderRepository = _FakeReminderRepository();
+      final scheduler = _FakeNotificationScheduler();
+      final cubit = RemindersCubit(
+        reminderRepository: reminderRepository,
+        authRepository: _FakeAuthRepository(),
+        notificationScheduler: scheduler,
+      );
+      final reminder = _reminder(isCompleted: true);
+
+      await cubit.toggleCompleted(reminder);
+
+      expect(reminderRepository.completedReminderId, isNull);
+      final saved = reminderRepository.savedReminder;
+      expect(saved, isNotNull);
+      expect(saved!.id, reminder.id);
+      expect(saved.isCompleted, isFalse);
+      expect(scheduler.scheduledReminder?.id, reminder.id);
+
+      await cubit.close();
     });
   });
 }
@@ -199,15 +248,22 @@ class _FakeReminderRepository implements ReminderRepository {
   }) async =>
       null;
 
+  Reminder? savedReminder;
+  EntityId? completedReminderId;
+
   @override
-  Future<void> saveReminder(Reminder reminder) async {}
+  Future<void> saveReminder(Reminder reminder) async {
+    savedReminder = reminder;
+  }
 
   @override
   Future<void> completeReminder({
     required EntityId userId,
     required EntityId petId,
     required EntityId reminderId,
-  }) async {}
+  }) async {
+    completedReminderId = reminderId;
+  }
 
   @override
   Future<void> deleteReminder({
@@ -215,4 +271,19 @@ class _FakeReminderRepository implements ReminderRepository {
     required EntityId petId,
     required EntityId reminderId,
   }) async {}
+}
+
+class _FakeNotificationScheduler implements ReminderNotificationScheduler {
+  Reminder? scheduledReminder;
+  EntityId? cancelledId;
+
+  @override
+  Future<void> schedule(Reminder reminder) async {
+    scheduledReminder = reminder;
+  }
+
+  @override
+  Future<void> cancel(EntityId reminderId) async {
+    cancelledId = reminderId;
+  }
 }

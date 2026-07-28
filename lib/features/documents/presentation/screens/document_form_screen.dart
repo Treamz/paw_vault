@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/features/document_extraction/domain/services/document_source_picker.dart';
 import 'package:paw_vault/features/documents/application/document_upload_service.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
@@ -73,16 +74,65 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
   DateTime? _issueDate;
   DateTime? _expiryDate;
   PickedFile? _pickedFile;
+  PetDocumentFormValidation? _validation;
   bool _populated = false;
   bool _submitted = false;
   bool _deleteRequested = false;
 
-  Future<void> _pickFile() async {
-    final picked = await context.read<FilePicker>().pickDocument();
-    if (picked == null || !mounted) {
+  /// Lets the user attach a photo taken right now, one from the gallery, or
+  /// a file (PDF/image).
+  Future<void> _pickAttachment() async {
+    final source = await showModalBottomSheet<DocumentSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take photo'),
+              onTap: () => Navigator.of(context).pop(DocumentSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.of(context).pop(DocumentSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.attach_file),
+              title: const Text('Choose a file'),
+              onTap: () => Navigator.of(context).pop(DocumentSource.file),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !mounted) {
       return;
     }
-    setState(() => _pickedFile = picked);
+
+    try {
+      final picked = await context.read<DocumentSourcePicker>().pick(source);
+      if (picked == null || !mounted) {
+        return;
+      }
+      setState(() => _pickedFile = picked);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not pick a file')),
+      );
+    }
+  }
+
+  /// Keeps field-level errors fresh once the user has attempted a save.
+  void _revalidate() {
+    if (_validation == null) {
+      return;
+    }
+    setState(() => _validation = _buildFormState().validate());
   }
 
   @override
@@ -146,11 +196,14 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fix validation errors')),
       );
-      setState(() {}); // surface field errors
+      setState(() => _validation = validation); // surface field errors
       return;
     }
 
-    setState(() => _submitted = true);
+    setState(() {
+      _validation = null;
+      _submitted = true;
+    });
     final cubit = context.read<DocumentFormCubit>();
     if (widget.isEditMode) {
       cubit.updateDocument(formState);
@@ -306,6 +359,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       child: Form(
         key: _formKey,
         child: Column(
@@ -317,7 +371,10 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
             ],
             DropdownButtonFormField<PetDocumentType>(
               initialValue: _selectedType,
-              decoration: const InputDecoration(labelText: 'Type'),
+              decoration: InputDecoration(
+                labelText: 'Type',
+                errorText: _validation?.errorFor('type'),
+              ),
               items: [
                 for (final type in PetDocumentType.values)
                   DropdownMenuItem(
@@ -325,13 +382,20 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
                     child: Text(_formatType(type)),
                   ),
               ],
-              onChanged: (value) => setState(() => _selectedType = value),
+              onChanged: (value) {
+                setState(() => _selectedType = value);
+                _revalidate();
+              },
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
+              decoration: InputDecoration(
+                labelText: 'Title',
+                errorText: _validation?.errorFor('title'),
+              ),
               textInputAction: TextInputAction.next,
+              onChanged: (_) => _revalidate(),
             ),
             const SizedBox(height: 16),
             _DateField(
@@ -366,9 +430,9 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
               const SizedBox(height: 16),
               _pickedFile == null
                   ? OutlinedButton.icon(
-                      onPressed: isSaving ? null : _pickFile,
+                      onPressed: isSaving ? null : _pickAttachment,
                       icon: const Icon(Icons.attach_file),
-                      label: const Text('Attach file (optional)'),
+                      label: const Text('Attach photo or file (optional)'),
                     )
                   : Card(
                       margin: EdgeInsets.zero,

@@ -12,6 +12,7 @@ import 'package:paw_vault/core/storage/domain/repositories/storage_repository.da
 import 'package:paw_vault/core/subscription/domain/services/paywall_presenter.dart';
 import 'package:paw_vault/core/subscription/domain/services/subscription_service.dart';
 import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
+import 'package:paw_vault/features/account/domain/repositories/owner_profile_repository.dart';
 import 'package:paw_vault/features/document_extraction/domain/repositories/document_extraction_ai_repository.dart';
 import 'package:paw_vault/features/document_extraction/domain/services/document_source_picker.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
@@ -73,6 +74,9 @@ class _PawVaultAppState extends State<PawVaultApp> {
         ),
         RepositoryProvider<AccountDeletionService>.value(
           value: widget.dependencies.accountDeletionService,
+        ),
+        RepositoryProvider<OwnerProfileRepository>.value(
+          value: widget.dependencies.ownerProfileRepository,
         ),
         RepositoryProvider<StorageRepository>.value(
           value: widget.dependencies.storageRepository,

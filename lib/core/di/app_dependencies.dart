@@ -24,6 +24,9 @@ import 'package:paw_vault/core/subscription/domain/services/subscription_service
 import 'package:paw_vault/core/tracking/data/services/att_tracking_authorization_service.dart';
 import 'package:paw_vault/core/tracking/data/services/noop_tracking_authorization_service.dart';
 import 'package:paw_vault/core/tracking/domain/services/tracking_authorization_service.dart';
+import 'package:paw_vault/features/account/data/repositories/firebase_owner_profile_repository.dart';
+import 'package:paw_vault/features/account/data/repositories/local_owner_profile_repository.dart';
+import 'package:paw_vault/features/account/domain/repositories/owner_profile_repository.dart';
 import 'package:paw_vault/features/document_extraction/data/repositories/firebase_ready_document_extraction_ai_repository.dart';
 import 'package:paw_vault/features/document_extraction/data/services/document_source_picker_impl.dart';
 import 'package:paw_vault/features/document_extraction/domain/repositories/document_extraction_ai_repository.dart';
@@ -71,7 +74,8 @@ import 'package:paw_vault/features/vet_summary_export/domain/services/pdf_share_
 import 'package:paw_vault/features/vet_summary_export/domain/services/vet_summary_pdf_generator.dart';
 
 class AppDependencies {
-  const AppDependencies({
+  AppDependencies({
+    OwnerProfileRepository? ownerProfileRepository,
     required this.authRepository,
     required this.storageRepository,
     required this.petRepository,
@@ -93,7 +97,8 @@ class AppDependencies {
     required this.paywallPresenter,
     required this.trackingAuthorizationService,
     required this.accountDeletionService,
-  });
+  }) : ownerProfileRepository =
+            ownerProfileRepository ?? LocalOwnerProfileRepository();
 
   factory AppDependencies.localFirst() {
     final authDataSource = NoopFirebaseAuthDataSource();
@@ -145,6 +150,9 @@ class AppDependencies {
       ),
       petRepository: FirebasePetRepository(
         FlutterFirePetDataSource(firebase.firestore),
+      ),
+      ownerProfileRepository: FirebaseOwnerProfileRepository(
+        firebase.firestore,
       ),
       timelineRepository: FirebaseTimelineRepository(
         FlutterFireTimelineDataSource(firebase.firestore),
@@ -205,6 +213,7 @@ class AppDependencies {
   final PaywallPresenter paywallPresenter;
   final TrackingAuthorizationService trackingAuthorizationService;
   final AccountDeletionService accountDeletionService;
+  final OwnerProfileRepository ownerProfileRepository;
 
   /// The auth repository also satisfies account (non-anonymous) auth.
   AccountAuthRepository get accountAuthRepository =>

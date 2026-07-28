@@ -95,17 +95,22 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
 
   Future<void> _pickDateTime() async {
     final now = DateTime.now();
+    // Calendar/dial only: the material pickers' manual text entry expects a
+    // strict locale format (mm/dd/yyyy) and confused testers with
+    // "Invalid format" errors.
     final date = await showDatePicker(
       context: context,
       initialDate: _dateTime ?? now,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 10),
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
     );
     if (date == null || !mounted) return;
 
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_dateTime ?? now),
+      initialEntryMode: TimePickerEntryMode.dialOnly,
     );
     if (time == null) return;
 
@@ -292,11 +297,16 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
                       isExpanded: true,
                       decoration: const InputDecoration(labelText: 'Repeat'),
                       items: [
+                        // "custom" has no configuration behind it yet, so it
+                        // is hidden unless an existing reminder already uses
+                        // it (keeps old data displayable).
                         for (final type in ReminderRepeatType.values)
-                          DropdownMenuItem(
-                            value: type,
-                            child: Text(_formatRepeat(type)),
-                          ),
+                          if (type != ReminderRepeatType.custom ||
+                              _repeatType == ReminderRepeatType.custom)
+                            DropdownMenuItem(
+                              value: type,
+                              child: Text(_formatRepeat(type)),
+                            ),
                       ],
                       onChanged: (value) => setState(
                         () => _repeatType = value ?? ReminderRepeatType.none,

@@ -7,6 +7,7 @@ import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
 import 'package:paw_vault/core/subscription/presentation/pro_gate.dart';
+import 'package:paw_vault/features/account/domain/repositories/owner_profile_repository.dart';
 import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/pets/presentation/cubit/pet_profile_cubit.dart';
@@ -30,6 +31,7 @@ class PetProfileScreen extends StatelessWidget {
         photoUploadService: PetPhotoUploadService(
           storageRepository: context.read<StorageRepository>(),
         ),
+        ownerProfileRepository: context.read<OwnerProfileRepository>(),
       )..load(petId),
       child: const _PetProfileView(),
     );
@@ -213,19 +215,8 @@ class _PetProfileView extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  if (state.owner != null && !state.owner!.isAnonymous) ...[
-                    _buildInfoCard(
-                      context,
-                      'Owner Information',
-                      [
-                        if (state.owner!.displayName != null)
-                          _InfoRow('Name', state.owner!.displayName!),
-                        if (state.owner!.email != null)
-                          _InfoRow('Email', state.owner!.email!),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                  _buildOwnerCard(context, state),
+                  const SizedBox(height: 16),
                   if (pet.weight != null || pet.measurements.isNotEmpty) ...[
                     _buildInfoCard(
                       context,
@@ -339,6 +330,77 @@ class _PetProfileView extends StatelessWidget {
     return value % 1 == 0 ? value.toInt().toString() : value.toString();
   }
 
+  Widget _buildOwnerCard(BuildContext context, PetProfileState state) {
+    final owner = state.owner;
+    final profile = state.ownerProfile;
+    final name = profile?.name ??
+        (owner != null && !owner.isAnonymous ? owner.displayName : null);
+    final email = owner != null && !owner.isAnonymous ? owner.email : null;
+    final phone = profile?.phone;
+    final hasDetails = name != null || email != null || phone != null;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  'Owner Information',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  tooltip: 'Edit owner information',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => _editOwnerInfo(context, state),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (name != null)
+              _buildInfoRowWidget(context, _InfoRow('Name', name)),
+            if (email != null)
+              _buildInfoRowWidget(
+                context,
+                _InfoRow('Email', email, singleLine: true),
+              ),
+            if (phone != null)
+              _buildInfoRowWidget(context, _InfoRow('Phone', phone)),
+            if (!hasDetails)
+              Text(
+                'Add your contact details so vets can reach you.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editOwnerInfo(
+    BuildContext context,
+    PetProfileState state,
+  ) async {
+    final cubit = context.read<PetProfileCubit>();
+    final result = await showDialog<({String name, String phone})>(
+      context: context,
+      builder: (_) => _OwnerInfoDialog(
+        initialName: state.ownerProfile?.name ?? state.owner?.displayName ?? '',
+        initialPhone: state.ownerProfile?.phone ?? '',
+      ),
+    );
+
+    if (result != null) {
+      await cubit.saveOwnerInfo(name: result.name, phone: result.phone);
+    }
+  }
+
   Widget _buildInfoCard(
     BuildContext context,
     String title,
@@ -357,43 +419,115 @@ class _PetProfileView extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 12),
-            ...rows.map(
-              (row) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: row.label.isEmpty
-                    ? Text(row.value)
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 120,
-                            child: Text(
-                              row.label,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(row.value),
-                          ),
-                        ],
-                      ),
-              ),
-            ),
+            ...rows.map((row) => _buildInfoRowWidget(context, row)),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildInfoRowWidget(BuildContext context, _InfoRow row) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: row.label.isEmpty
+          ? Text(row.value)
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 120,
+                  child: Text(
+                    row.label,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                ),
+                Expanded(
+                  child: row.singleLine
+                      // Scale down instead of wrapping so long values such
+                      // as emails stay on one line.
+                      ? FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(row.value, maxLines: 1),
+                        )
+                      : Text(row.value),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+/// Owns its controllers so they outlive the dialog's exit animation.
+class _OwnerInfoDialog extends StatefulWidget {
+  const _OwnerInfoDialog({
+    required this.initialName,
+    required this.initialPhone,
+  });
+
+  final String initialName;
+  final String initialPhone;
+
+  @override
+  State<_OwnerInfoDialog> createState() => _OwnerInfoDialogState();
+}
+
+class _OwnerInfoDialogState extends State<_OwnerInfoDialog> {
+  late final _nameController = TextEditingController(text: widget.initialName);
+  late final _phoneController =
+      TextEditingController(text: widget.initialPhone);
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Owner Information'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _nameController,
+            decoration: const InputDecoration(labelText: 'Name'),
+            textCapitalization: TextCapitalization.words,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _phoneController,
+            decoration: const InputDecoration(labelText: 'Phone'),
+            keyboardType: TextInputType.phone,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(
+            (name: _nameController.text, phone: _phoneController.text),
+          ),
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
 }
 
 class _InfoRow {
-  const _InfoRow(this.label, this.value);
+  const _InfoRow(this.label, this.value, {this.singleLine = false});
 
   final String label;
   final String value;
+
+  /// Keep the value on a single line, scaling it down to fit (e.g. emails).
+  final bool singleLine;
 }
