@@ -7,6 +7,7 @@ import 'package:paw_vault/features/documents/presentation/screens/documents_scre
 import 'package:paw_vault/features/pets/presentation/screens/pet_form_screen.dart';
 import 'package:paw_vault/features/pets/presentation/screens/pet_list_screen.dart';
 import 'package:paw_vault/features/pets/presentation/screens/pet_profile_screen.dart';
+import 'package:paw_vault/features/pets/presentation/screens/weight_history_screen.dart';
 import 'package:paw_vault/features/reminders/presentation/screens/reminder_form_screen.dart';
 import 'package:paw_vault/features/reminders/presentation/screens/reminders_screen.dart';
 import 'package:paw_vault/features/smart_input/presentation/screens/smart_input_screen.dart';
@@ -24,6 +25,7 @@ class AppRouter extends RootStackRouter {
         AutoRoute(page: AccountRoute.page, path: '/account'),
         AutoRoute(page: PetFormRoute.page, path: '/pets/form'),
         AutoRoute(page: PetProfileRoute.page, path: '/pets/:petId'),
+        AutoRoute(page: WeightHistoryRoute.page, path: '/pets/:petId/weight'),
         AutoRoute(page: TimelineRoute.page, path: '/pets/:petId/timeline'),
         AutoRoute(
           page: TimelineEventFormRoute.page,
