@@ -60,6 +60,8 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
 
   DateTime? _dateTime;
   ReminderRepeatType _repeatType = ReminderRepeatType.none;
+  final _customRepeatController = TextEditingController();
+  ReminderFormValidation? _validation;
   bool _populated = false;
   bool _submitted = false;
   bool _deleteRequested = false;
@@ -69,6 +71,7 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _customRepeatController.dispose();
     super.dispose();
   }
 
@@ -77,8 +80,10 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
       _populated = true;
       _titleController.text = reminder.title;
       _descriptionController.text = reminder.description ?? '';
-      _dateTime = reminder.dateTime.value;
+      _dateTime = reminder.dateTime.value.toLocal();
       _repeatType = reminder.repeatType ?? ReminderRepeatType.none;
+      _customRepeatController.text =
+          reminder.customRepeatDays?.toString() ?? '';
     });
   }
 
@@ -87,6 +92,7 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
       title: _titleController.text,
       dateTime: _dateTime,
       repeatType: _repeatType,
+      customRepeatDays: int.tryParse(_customRepeatController.text.trim()),
       description: _descriptionController.text.isEmpty
           ? null
           : _descriptionController.text,
@@ -122,14 +128,19 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
 
   void _submit(BuildContext context) {
     final formState = _buildFormState();
-    if (!formState.validate().isValid) {
+    final validation = formState.validate();
+    if (!validation.isValid) {
+      setState(() => _validation = validation);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fix validation errors')),
       );
       return;
     }
 
-    setState(() => _submitted = true);
+    setState(() {
+      _validation = null;
+      _submitted = true;
+    });
     final cubit = context.read<ReminderFormCubit>();
     if (widget.isEditMode) {
       cubit.updateReminder(formState);
@@ -297,21 +308,28 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
                       isExpanded: true,
                       decoration: const InputDecoration(labelText: 'Repeat'),
                       items: [
-                        // "custom" has no configuration behind it yet, so it
-                        // is hidden unless an existing reminder already uses
-                        // it (keeps old data displayable).
                         for (final type in ReminderRepeatType.values)
-                          if (type != ReminderRepeatType.custom ||
-                              _repeatType == ReminderRepeatType.custom)
-                            DropdownMenuItem(
-                              value: type,
-                              child: Text(_formatRepeat(type)),
-                            ),
+                          DropdownMenuItem(
+                            value: type,
+                            child: Text(_formatRepeat(type)),
+                          ),
                       ],
                       onChanged: (value) => setState(
                         () => _repeatType = value ?? ReminderRepeatType.none,
                       ),
                     ),
+                    if (_repeatType == ReminderRepeatType.custom) ...[
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _customRepeatController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Repeat every (days)',
+                          hintText: 'e.g. 5',
+                          errorText: _validation?.errorFor('customRepeatDays'),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _descriptionController,

@@ -112,7 +112,7 @@ class _TimelineContent extends StatelessWidget {
                 Text(_formatEventType(event.type)),
                 const SizedBox(height: 4),
                 Text(
-                  DateFormat.yMMMd().format(event.date.value),
+                  DateFormat.yMMMd().format(event.date.value.toLocal()),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -159,12 +159,13 @@ class _TimelineContent extends StatelessWidget {
               _DetailRow('Type', _formatEventType(event.type)),
               _DetailRow(
                 'Date',
-                DateFormat.yMMMMd().format(event.date.value),
+                DateFormat.yMMMMd().format(event.date.value.toLocal()),
               ),
               if (event.nextReminderDate != null)
                 _DetailRow(
                   'Reminder',
-                  DateFormat.yMMMMd().format(event.nextReminderDate!.value),
+                  DateFormat.yMMMMd()
+                      .format(event.nextReminderDate!.value.toLocal()),
                 ),
               if (event.description != null &&
                   event.description!.isNotEmpty) ...[

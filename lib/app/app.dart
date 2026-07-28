@@ -29,6 +29,7 @@ import 'package:paw_vault/features/timeline/domain/repositories/timeline_reposit
 import 'package:paw_vault/features/timeline/domain/services/event_photo_picker.dart';
 import 'package:paw_vault/features/vet_summary_export/application/load_vet_summary_data.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/repositories/vet_summary_export_repository.dart';
+import 'package:paw_vault/features/vet_summary_export/domain/services/pdf_download_service.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/services/pdf_share_service.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/services/vet_summary_pdf_generator.dart';
 
@@ -135,6 +136,9 @@ class _PawVaultAppState extends State<PawVaultApp> {
         ),
         RepositoryProvider<PdfShareService>.value(
           value: widget.dependencies.pdfShareService,
+        ),
+        RepositoryProvider<PdfDownloadService>.value(
+          value: widget.dependencies.pdfDownloadService,
         ),
         RepositoryProvider<AnalyticsService>.value(
           value: widget.dependencies.analyticsService,

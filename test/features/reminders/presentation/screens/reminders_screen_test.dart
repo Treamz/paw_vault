@@ -27,6 +27,13 @@ void main() {
       expect(find.text('Annual vaccination'), findsOneWidget);
       expect(find.text('No reminders yet'), findsNothing);
     });
+
+    testWidgets('shows the custom repeat interval on the tile', (tester) async {
+      await tester.pumpWidget(_app([_customReminder()]));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Every 5 days'), findsOneWidget);
+    });
   });
 }
 
@@ -44,6 +51,16 @@ Widget _app(List<Reminder> reminders) {
     child: const MaterialApp(home: RemindersScreen(petId: 'pet-1')),
   );
 }
+
+Reminder _customReminder() => Reminder(
+      id: const EntityId('r-2'),
+      userId: const EntityId('user-1'),
+      petId: const EntityId('pet-1'),
+      title: 'Flea treatment',
+      dateTime: UtcDateTime(DateTime.utc(2027, 2, 1, 9)),
+      repeatType: ReminderRepeatType.custom,
+      customRepeatDays: 5,
+    );
 
 Reminder _reminder() => Reminder(
       id: const EntityId('r-1'),

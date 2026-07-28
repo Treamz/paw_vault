@@ -10,24 +10,19 @@ import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
-import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
-import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
 
 class SmartInputCubit extends Cubit<SmartInputState> {
   SmartInputCubit({
     required SmartInputRepository smartInputRepository,
     required AuthRepository authRepository,
-    required TimelineRepository timelineRepository,
     AnalyticsService? analytics,
   })  : _smartInputRepository = smartInputRepository,
         _authRepository = authRepository,
-        _timelineRepository = timelineRepository,
         _analytics = analytics ?? const NoopAnalyticsService(),
         super(const SmartInputState());
 
   final SmartInputRepository _smartInputRepository;
   final AuthRepository _authRepository;
-  final TimelineRepository _timelineRepository;
   final AnalyticsService _analytics;
   StreamSubscription<List<SmartMessage>>? _messagesSubscription;
   EntityId? _userId;
@@ -114,7 +109,10 @@ class SmartInputCubit extends Cubit<SmartInputState> {
 
   /// Persists the reviewed draft as a confirmed [SmartMessage]. Only called
   /// after the user explicitly approves the AI-generated draft.
-  Future<void> confirmDraft(String petId) async {
+  Future<void> confirmDraft(
+    String petId, {
+    Map<String, Object?>? extractedData,
+  }) async {
     final draft = state.draft;
     if (draft == null || state.status != SmartInputStatus.review) {
       emit(
@@ -138,7 +136,8 @@ class SmartInputCubit extends Cubit<SmartInputState> {
         petId: EntityId(petId),
         originalText: draft.originalText,
         detectedIntent: draft.detectedIntent,
-        extractedData: draft.extractedData,
+        // The user may have corrected or added details during review.
+        extractedData: extractedData ?? draft.extractedData,
         suggestedActions: draft.suggestedActions,
         confidence: draft.confidence ?? 0,
         status: SmartMessageStatus.confirmed,
@@ -146,24 +145,6 @@ class SmartInputCubit extends Cubit<SmartInputState> {
       );
 
       await _smartInputRepository.saveSmartMessage(message);
-
-      // The confirmed note becomes a real timeline record so it is findable
-      // outside Smart Input. This only happens after explicit confirmation.
-      await _timelineRepository.initialize();
-      await _timelineRepository.saveEvent(
-        PetEvent(
-          id: EntityId('${now.microsecondsSinceEpoch}-smart'),
-          userId: userId,
-          petId: EntityId(petId),
-          type: _eventTypeFor(draft.detectedIntent),
-          title: _eventTitle(draft.originalText),
-          description: draft.originalText,
-          date: UtcDateTime(now),
-          source: PetEventSource.smartText,
-          createdAt: UtcDateTime(now),
-          updatedAt: UtcDateTime(now),
-        ),
-      );
 
       emit(
         state.copyWith(
@@ -191,25 +172,6 @@ class SmartInputCubit extends Cubit<SmartInputState> {
         clearErrorMessage: true,
       ),
     );
-  }
-
-  static PetEventType _eventTypeFor(SmartMessageIntent intent) {
-    return switch (intent) {
-      SmartMessageIntent.addVaccination => PetEventType.vaccination,
-      SmartMessageIntent.addMedication => PetEventType.medication,
-      SmartMessageIntent.addSymptom => PetEventType.symptom,
-      SmartMessageIntent.addVetVisit => PetEventType.vetVisit,
-      SmartMessageIntent.addAllergy => PetEventType.allergy,
-      SmartMessageIntent.addReminder ||
-      SmartMessageIntent.addNote ||
-      SmartMessageIntent.unknown =>
-        PetEventType.other,
-    };
-  }
-
-  static String _eventTitle(String originalText) {
-    final text = originalText.trim();
-    return text.length <= 60 ? text : '${text.substring(0, 60)}…';
   }
 
   Future<EntityId> _currentUserId() async {

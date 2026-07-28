@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
@@ -8,7 +9,6 @@ import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 import 'package:paw_vault/features/smart_input/presentation/cubit/smart_input_cubit.dart';
-import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
 
 @RoutePage()
 class SmartInputScreen extends StatelessWidget {
@@ -25,7 +25,6 @@ class SmartInputScreen extends StatelessWidget {
       create: (context) => SmartInputCubit(
         smartInputRepository: context.read<SmartInputRepository>(),
         authRepository: context.read<AuthRepository>(),
-        timelineRepository: context.read<TimelineRepository>(),
         analytics: context.read<AnalyticsService>(),
       )..load(petId),
       child: _SmartInputView(petId: petId),
@@ -42,139 +41,167 @@ class _SmartInputView extends StatefulWidget {
   State<_SmartInputView> createState() => _SmartInputViewState();
 }
 
-class _SmartInputViewState extends State<_SmartInputView> {
+class _SmartInputViewState extends State<_SmartInputView>
+    with SingleTickerProviderStateMixin {
   final _controller = TextEditingController();
+  late final TabController _tabs = TabController(length: 2, vsync: this);
+
+  /// The extracted details as the user edited them during review; null until
+  /// the user changes something.
+  Map<String, Object?>? _editedDraftData;
 
   @override
   void dispose() {
     _controller.dispose();
+    _tabs.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Smart Input')),
+      appBar: AppBar(
+        title: const Text('Smart Input'),
+        bottom: TabBar(
+          controller: _tabs,
+          tabs: const [
+            Tab(text: 'Analyze'),
+            Tab(text: 'History'),
+          ],
+        ),
+      ),
       body: SafeArea(
         child: BlocConsumer<SmartInputCubit, SmartInputState>(
           listener: (context, state) {
             if (state.status == SmartInputStatus.confirmed) {
               _controller.clear();
+              _editedDraftData = null;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text('Saved — added to the pet\'s Timeline'),
+                  content: const Text('Analysis saved to History'),
                   action: SnackBarAction(
                     label: 'View',
-                    onPressed: () =>
-                        context.router.push(TimelineRoute(petId: widget.petId)),
+                    onPressed: () => _tabs.animateTo(1),
                   ),
                 ),
               );
             }
           },
           builder: (context, state) {
-            final isProcessing = state.isProcessing;
-            final isSaving = state.isSaving;
+            return TabBarView(
+              controller: _tabs,
+              children: [
+                _buildAnalyzeTab(context, state),
+                _HistoryTab(state: state),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _AiDisclaimer(),
-                  const SizedBox(height: 16),
-                  // The draft goes on top so the user immediately sees the
-                  // result and that nothing is saved without confirmation.
-                  if (state.status == SmartInputStatus.failure &&
-                      state.errorMessage != null) ...[
-                    _ErrorBanner(message: state.errorMessage!),
-                    const SizedBox(height: 16),
-                  ],
-                  if (state.hasDraft) ...[
-                    _DraftReview(draft: state.draft!),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: isSaving
-                                ? null
-                                : () => context
-                                    .read<SmartInputCubit>()
-                                    .dismissDraft(),
-                            icon: const Icon(Icons.close),
-                            label: const Text('Discard'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: isSaving
-                                ? null
-                                : () => context
-                                    .read<SmartInputCubit>()
-                                    .confirmDraft(widget.petId),
-                            icon: isSaving
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.check),
-                            label: Text(isSaving ? 'Saving…' : 'Confirm'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  TextField(
-                    controller: _controller,
-                    enabled: !isProcessing && !isSaving,
-                    minLines: 3,
-                    maxLines: 6,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      labelText: 'Describe what happened',
-                      hintText: 'e.g. Bella got her rabies shot today',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: isProcessing || isSaving
+  Widget _buildAnalyzeTab(BuildContext context, SmartInputState state) {
+    final isProcessing = state.isProcessing;
+    final isSaving = state.isSaving;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _AiDisclaimer(),
+          const SizedBox(height: 16),
+          // The draft goes on top so the user immediately sees the result
+          // and that nothing is saved without confirmation.
+          if (state.status == SmartInputStatus.failure &&
+              state.errorMessage != null) ...[
+            _ErrorBanner(message: state.errorMessage!),
+            const SizedBox(height: 16),
+          ],
+          if (state.hasDraft) ...[
+            _DraftReview(
+              draft: state.draft!,
+              onDataChanged: (data) => _editedDraftData = data,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: isSaving
                         ? null
-                        : () => context
-                            .read<SmartInputCubit>()
-                            .submit(_controller.text),
-                    icon: isProcessing
+                        : () {
+                            _editedDraftData = null;
+                            context.read<SmartInputCubit>().dismissDraft();
+                          },
+                    icon: const Icon(Icons.close),
+                    label: const Text('Discard'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: isSaving
+                        ? null
+                        : () => context.read<SmartInputCubit>().confirmDraft(
+                              widget.petId,
+                              extractedData: _editedDraftData,
+                            ),
+                    icon: isSaving
                         ? const SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.auto_awesome),
-                    label: Text(isProcessing ? 'Analyzing…' : 'Analyze'),
+                        : const Icon(Icons.check),
+                    label: Text(isSaving ? 'Saving…' : 'Confirm'),
                   ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: isProcessing || isSaving
-                        ? null
-                        : () => context.router.push(
-                              DocumentExtractionRoute(petId: widget.petId),
-                            ),
-                    icon: const Icon(Icons.document_scanner),
-                    label: const Text('Attach document or photo'),
-                  ),
-                  const SizedBox(height: 24),
-                  _HistorySection(state: state, petId: widget.petId),
-                ],
-              ),
-            );
-          },
-        ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+          TextField(
+            controller: _controller,
+            enabled: !isProcessing && !isSaving,
+            minLines: 3,
+            maxLines: 6,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              labelText: 'Describe what happened',
+              hintText: 'e.g. Bella got her rabies shot today',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: isProcessing || isSaving
+                ? null
+                : () => context.read<SmartInputCubit>().submit(
+                      _controller.text,
+                    ),
+            icon: isProcessing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.auto_awesome),
+            label: Text(isProcessing ? 'Analyzing…' : 'Analyze'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: isProcessing || isSaving
+                ? null
+                : () => context.router.push(
+                      DocumentExtractionRoute(petId: widget.petId),
+                    ),
+            icon: const Icon(Icons.document_scanner),
+            label: const Text('Attach document or photo'),
+          ),
+        ],
       ),
     );
   }
@@ -212,9 +239,9 @@ class _AiDisclaimer extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'This tool only structures what you write into a draft for '
-                    'you to review and confirm — it never saves anything on its '
-                    'own. It does not provide medical advice and is not a '
-                    'substitute for your veterinarian.',
+                    'you to review, correct, and confirm — it never saves '
+                    'anything on its own. It does not provide medical advice '
+                    'and is not a substitute for your veterinarian.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSecondaryContainer,
                     ),
@@ -261,18 +288,90 @@ class _ErrorBanner extends StatelessWidget {
   }
 }
 
-class _DraftReview extends StatelessWidget {
-  const _DraftReview({required this.draft});
+/// Review card for the AI draft. Extracted details are editable and new ones
+/// can be added, so the user controls exactly what gets saved.
+class _DraftReview extends StatefulWidget {
+  const _DraftReview({required this.draft, required this.onDataChanged});
 
   final SmartInputDraft draft;
+  final ValueChanged<Map<String, Object?>> onDataChanged;
+
+  @override
+  State<_DraftReview> createState() => _DraftReviewState();
+}
+
+class _DraftReviewState extends State<_DraftReview> {
+  final Map<String, TextEditingController> _controllers = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _initControllers();
+  }
+
+  @override
+  void didUpdateWidget(_DraftReview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.draft, widget.draft)) {
+      _initControllers();
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _initControllers() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    _controllers.clear();
+    for (final entry in widget.draft.extractedData.entries) {
+      _controllers[entry.key] =
+          TextEditingController(text: '${entry.value ?? ''}');
+    }
+  }
+
+  void _notify() {
+    widget.onDataChanged({
+      for (final entry in _controllers.entries)
+        if (entry.value.text.trim().isNotEmpty)
+          entry.key: entry.value.text.trim(),
+    });
+  }
+
+  Future<void> _addDetail() async {
+    final result = await showDialog<({String name, String value})>(
+      context: context,
+      builder: (_) => const _AddDetailDialog(),
+    );
+    if (result == null || result.name.trim().isEmpty) {
+      return;
+    }
+    setState(() {
+      _controllers[result.name.trim()] =
+          TextEditingController(text: result.value.trim());
+    });
+    _notify();
+  }
+
+  void _removeDetail(String key) {
+    setState(() => _controllers.remove(key)?.dispose());
+    _notify();
+  }
 
   bool get _isLowConfidence =>
-      draft.status == SmartInputDraftStatus.lowConfidenceReview ||
-      (draft.confidence != null && draft.confidence! < 0.6);
+      widget.draft.status == SmartInputDraftStatus.lowConfidenceReview ||
+      (widget.draft.confidence != null && widget.draft.confidence! < 0.6);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final draft = widget.draft;
 
     return Card(
       child: Padding(
@@ -301,29 +400,59 @@ class _DraftReview extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Nothing is saved until you confirm. Review the draft below.',
+              'Nothing is saved until you confirm. Correct or add details '
+              'below.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 12),
-            _Field('Detected intent', _formatIntent(draft.detectedIntent)),
-            if (draft.extractedData.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text('Extracted data', style: theme.textTheme.labelLarge),
-              const SizedBox(height: 4),
-              for (final entry in draft.extractedData.entries)
-                _Field(entry.key, '${entry.value}'),
-            ],
+            Text('Detected intent', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 4),
+            Text(formatSmartIntent(draft.detectedIntent)),
+            const SizedBox(height: 12),
+            Text('Details', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 4),
+            for (final key in _controllers.keys.toList())
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _controllers[key],
+                        decoration: InputDecoration(
+                          labelText: key,
+                          isDense: true,
+                        ),
+                        onChanged: (_) => _notify(),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline, size: 20),
+                      tooltip: 'Remove detail',
+                      onPressed: () => _removeDetail(key),
+                    ),
+                  ],
+                ),
+              ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _addDetail,
+                icon: const Icon(Icons.add),
+                label: const Text('Add detail'),
+              ),
+            ),
             if (draft.suggestedActions.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Text('Suggested actions', style: theme.textTheme.labelLarge),
               const SizedBox(height: 4),
               for (final action in draft.suggestedActions)
                 Row(
                   children: [
                     const Icon(Icons.arrow_right),
-                    Expanded(child: Text(_formatActionType(action.type))),
+                    Expanded(child: Text(formatSmartAction(action.type))),
                   ],
                 ),
             ],
@@ -346,150 +475,225 @@ class _DraftReview extends StatelessWidget {
                 ],
               ),
             ],
-            const SizedBox(height: 12),
-            Text(
-              'AI-generated from your text. Review carefully before saving.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
           ],
         ),
       ),
     );
   }
-
-  String _formatIntent(SmartMessageIntent intent) {
-    return switch (intent) {
-      SmartMessageIntent.addAllergy => 'Add allergy',
-      SmartMessageIntent.addMedication => 'Add medication',
-      SmartMessageIntent.addVaccination => 'Add vaccination',
-      SmartMessageIntent.addSymptom => 'Add symptom',
-      SmartMessageIntent.addVetVisit => 'Add vet visit',
-      SmartMessageIntent.addReminder => 'Add reminder',
-      SmartMessageIntent.addNote => 'Add note',
-      SmartMessageIntent.unknown => 'Unknown',
-    };
-  }
-
-  String _formatActionType(SmartSuggestedActionType type) {
-    return switch (type) {
-      SmartSuggestedActionType.updatePetAllergies => 'Update pet allergies',
-      SmartSuggestedActionType.createTimelineEvent => 'Create timeline event',
-      SmartSuggestedActionType.createReminder => 'Create reminder',
-      SmartSuggestedActionType.createDocument => 'Create document',
-      SmartSuggestedActionType.updatePetNotes => 'Update pet notes',
-      SmartSuggestedActionType.unknown => 'Unknown',
-    };
-  }
 }
 
-class _HistorySection extends StatelessWidget {
-  const _HistorySection({required this.state, required this.petId});
+/// Owns its controllers so they outlive the dialog's exit animation.
+class _AddDetailDialog extends StatefulWidget {
+  const _AddDetailDialog();
 
-  final SmartInputState state;
-  final String petId;
+  @override
+  State<_AddDetailDialog> createState() => _AddDetailDialogState();
+}
+
+class _AddDetailDialogState extends State<_AddDetailDialog> {
+  final _nameController = TextEditingController();
+  final _valueController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _valueController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Saved entries',
-          style: theme.textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
+    return AlertDialog(
+      title: const Text('Add Detail'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _nameController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Name',
+              hintText: 'e.g. symptom',
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _valueController,
+            decoration: const InputDecoration(
+              labelText: 'Value',
+              hintText: 'e.g. sneezing',
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
         ),
-        const SizedBox(height: 8),
-        switch (state.historyStatus) {
-          SmartHistoryStatus.loading => const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          SmartHistoryStatus.failure => Text(
-              state.historyError ?? 'Could not load saved entries',
-              style: TextStyle(color: theme.colorScheme.error),
-            ),
-          SmartHistoryStatus.ready => state.messages.isEmpty
-              ? Text(
-                  'No saved entries yet.',
-                  style: theme.textTheme.bodyMedium,
-                )
-              : Column(
-                  children: [
-                    for (final message in state.messages)
-                      _HistoryTile(message: message, petId: petId),
-                  ],
-                ),
-        },
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(
+            (name: _nameController.text, value: _valueController.text),
+          ),
+          child: const Text('Add'),
+        ),
       ],
     );
   }
 }
 
-class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({required this.message, required this.petId});
+/// The dedicated History tab: every confirmed analysis with its full details.
+class _HistoryTab extends StatelessWidget {
+  const _HistoryTab({required this.state});
 
-  final SmartMessage message;
-  final String petId;
+  final SmartInputState state;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        key: ValueKey('smart-message-${message.id.value}'),
-        leading: const Icon(Icons.check_circle_outline),
-        title: Text(message.originalText),
-        subtitle: Text('${_formatIntent(message.detectedIntent)} · saved to '
-            'Timeline'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => context.router.push(TimelineRoute(petId: petId)),
-      ),
-    );
+    final theme = Theme.of(context);
+
+    return switch (state.historyStatus) {
+      SmartHistoryStatus.loading =>
+        const Center(child: CircularProgressIndicator()),
+      SmartHistoryStatus.failure => Center(
+          child: Text(
+            state.historyError ?? 'Could not load saved analyses',
+            style: TextStyle(color: theme.colorScheme.error),
+          ),
+        ),
+      SmartHistoryStatus.ready => state.messages.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'No saved analyses yet. Confirmed AI drafts appear here.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                for (final message in state.messages)
+                  Card(
+                    child: ListTile(
+                      key: ValueKey('smart-message-${message.id.value}'),
+                      leading: const Icon(Icons.auto_awesome),
+                      title: Text(
+                        message.originalText,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(formatSmartIntent(message.detectedIntent)),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _showDetails(context, message),
+                    ),
+                  ),
+              ],
+            ),
+    };
   }
 
-  String _formatIntent(SmartMessageIntent intent) {
-    return switch (intent) {
-      SmartMessageIntent.addAllergy => 'Add allergy',
-      SmartMessageIntent.addMedication => 'Add medication',
-      SmartMessageIntent.addVaccination => 'Add vaccination',
-      SmartMessageIntent.addSymptom => 'Add symptom',
-      SmartMessageIntent.addVetVisit => 'Add vet visit',
-      SmartMessageIntent.addReminder => 'Add reminder',
-      SmartMessageIntent.addNote => 'Add note',
-      SmartMessageIntent.unknown => 'Unknown',
-    };
+  void _showDetails(BuildContext context, SmartMessage message) {
+    final theme = Theme.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+          children: [
+            Text(
+              'AI analysis',
+              style: theme.textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text('Your note', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 4),
+            Text(message.originalText),
+            const SizedBox(height: 12),
+            Text('Detected intent', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 4),
+            Text(formatSmartIntent(message.detectedIntent)),
+            if (message.extractedData.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('Details', style: theme.textTheme.labelLarge),
+              const SizedBox(height: 4),
+              for (final entry in message.extractedData.entries)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 140,
+                        child: Text(
+                          entry.key,
+                          style: theme.textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      Expanded(child: Text('${entry.value}')),
+                    ],
+                  ),
+                ),
+            ],
+            if (message.suggestedActions.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('Suggested actions', style: theme.textTheme.labelLarge),
+              const SizedBox(height: 4),
+              for (final action in message.suggestedActions)
+                Row(
+                  children: [
+                    const Icon(Icons.arrow_right),
+                    Expanded(child: Text(formatSmartAction(action.type))),
+                  ],
+                ),
+            ],
+            if (message.createdAt != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Saved '
+                '${DateFormat.yMMMd().add_jm().format(message.createdAt!.value.toLocal())}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 
-class _Field extends StatelessWidget {
-  const _Field(this.label, this.value);
+String formatSmartIntent(SmartMessageIntent intent) {
+  return switch (intent) {
+    SmartMessageIntent.addAllergy => 'Add allergy',
+    SmartMessageIntent.addMedication => 'Add medication',
+    SmartMessageIntent.addVaccination => 'Add vaccination',
+    SmartMessageIntent.addSymptom => 'Add symptom',
+    SmartMessageIntent.addVetVisit => 'Add vet visit',
+    SmartMessageIntent.addReminder => 'Add reminder',
+    SmartMessageIntent.addNote => 'Add note',
+    SmartMessageIntent.unknown => 'Unknown',
+  };
+}
 
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(
-              label,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w500),
-            ),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
+String formatSmartAction(SmartSuggestedActionType type) {
+  return switch (type) {
+    SmartSuggestedActionType.updatePetAllergies => 'Update pet allergies',
+    SmartSuggestedActionType.createTimelineEvent => 'Create timeline event',
+    SmartSuggestedActionType.createReminder => 'Create reminder',
+    SmartSuggestedActionType.createDocument => 'Create document',
+    SmartSuggestedActionType.updatePetNotes => 'Update pet notes',
+    SmartSuggestedActionType.unknown => 'Unknown',
+  };
 }

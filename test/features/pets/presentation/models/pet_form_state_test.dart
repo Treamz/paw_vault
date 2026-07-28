@@ -426,6 +426,25 @@ void main() {
         );
       });
 
+      test('accepts comma decimal separators in measurement values', () {
+        const formState = PetFormState(
+          name: 'Fluffy',
+          measurements: [
+            PetMeasurementInput(
+              type: PetMeasurementType.chestCircumference,
+              value: '48,5',
+            ),
+          ],
+        );
+
+        expect(formState.validate().isValid, isTrue);
+        final pet = formState.toPet(
+          id: const EntityId('pet-1'),
+          userId: const EntityId('user-1'),
+        );
+        expect(pet.measurements.single.valueCm, 48.5);
+      });
+
       test('rejects non-positive measurement values', () {
         const formState = PetFormState(
           name: 'Fluffy',

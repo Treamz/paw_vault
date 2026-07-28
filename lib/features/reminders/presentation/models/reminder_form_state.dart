@@ -7,6 +7,7 @@ class ReminderFormState {
     this.title = '',
     this.dateTime,
     this.repeatType = ReminderRepeatType.none,
+    this.customRepeatDays,
     this.description,
   });
 
@@ -15,6 +16,7 @@ class ReminderFormState {
       title: reminder.title,
       dateTime: reminder.dateTime.value,
       repeatType: reminder.repeatType ?? ReminderRepeatType.none,
+      customRepeatDays: reminder.customRepeatDays,
       description: reminder.description,
     );
   }
@@ -22,18 +24,21 @@ class ReminderFormState {
   final String title;
   final DateTime? dateTime;
   final ReminderRepeatType repeatType;
+  final int? customRepeatDays;
   final String? description;
 
   ReminderFormState copyWith({
     String? title,
     DateTime? dateTime,
     ReminderRepeatType? repeatType,
+    int? customRepeatDays,
     String? description,
   }) {
     return ReminderFormState(
       title: title ?? this.title,
       dateTime: dateTime ?? this.dateTime,
       repeatType: repeatType ?? this.repeatType,
+      customRepeatDays: customRepeatDays ?? this.customRepeatDays,
       description: description ?? this.description,
     );
   }
@@ -45,6 +50,13 @@ class ReminderFormState {
       errors['title'] = 'Reminder title is required';
     } else if (title.trim().length > 200) {
       errors['title'] = 'Reminder title must be 200 characters or less';
+    }
+
+    if (repeatType == ReminderRepeatType.custom) {
+      final days = customRepeatDays;
+      if (days == null || days < 1 || days > 365) {
+        errors['customRepeatDays'] = 'Enter how often to repeat (1-365 days)';
+      }
     }
 
     if (dateTime == null) {
@@ -91,6 +103,8 @@ class ReminderFormState {
           description?.trim().isEmpty == true ? null : description?.trim(),
       dateTime: UtcDateTime(dateTime!),
       repeatType: repeatType == ReminderRepeatType.none ? null : repeatType,
+      customRepeatDays:
+          repeatType == ReminderRepeatType.custom ? customRepeatDays : null,
       relatedEventId: relatedEventId,
       isCompleted: isCompleted,
       createdAt: createdAt != null ? UtcDateTime(createdAt) : null,

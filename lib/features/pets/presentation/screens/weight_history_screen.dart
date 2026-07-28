@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
+import 'package:paw_vault/core/utils/parse_decimal.dart';
 import 'package:paw_vault/features/pets/domain/entities/weight_entry.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/pets/domain/repositories/weight_entry_repository.dart';
@@ -355,7 +356,7 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
   }
 
   void _submit() {
-    final value = double.tryParse(_valueController.text.trim());
+    final value = parseDecimal(_valueController.text);
     if (value == null || value <= 0 || value > 10000) {
       setState(() => _error = 'Enter a valid weight');
       return;
