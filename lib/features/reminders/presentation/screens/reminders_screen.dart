@@ -7,6 +7,7 @@ import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/reminders/presentation/cubit/reminders_cubit.dart';
 
 @RoutePage()
@@ -24,6 +25,7 @@ class RemindersScreen extends StatelessWidget {
       create: (context) => RemindersCubit(
         reminderRepository: context.read<ReminderRepository>(),
         authRepository: context.read<AuthRepository>(),
+        notificationScheduler: context.read<ReminderNotificationScheduler>(),
       )..load(petId),
       child: const _RemindersView(),
     );
@@ -151,6 +153,11 @@ class _RemindersContent extends StatelessWidget {
               ],
             ),
             isThreeLine: repeat != null,
+            trailing: Checkbox(
+              value: reminder.isCompleted,
+              onChanged: (_) =>
+                  context.read<RemindersCubit>().toggleCompleted(reminder),
+            ),
             onTap: () => context.router.push(
               ReminderFormRoute(petId: petId, reminderId: reminder.id.value),
             ),

@@ -6,6 +6,8 @@ import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 import 'package:paw_vault/features/smart_input/presentation/cubit/smart_input_cubit.dart';
+import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
+import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
 
 void main() {
   group('SmartInputCubit', () {
@@ -70,6 +72,23 @@ void main() {
       expect(saved.originalText, 'Bella got her rabies shot today');
       expect(cubit.state.status, SmartInputStatus.confirmed);
       expect(cubit.state.hasDraft, isFalse);
+
+      await cubit.close();
+    });
+
+    test('confirmDraft also records the note as a timeline event', () async {
+      final repository = _FakeSmartInputRepository(draft: _draft());
+      final timelineRepository = _FakeTimelineRepository();
+      final cubit = _cubit(repository, timelineRepository: timelineRepository);
+
+      await cubit.submit('Bella got her rabies shot');
+      await cubit.confirmDraft('pet-1');
+
+      final event = timelineRepository.savedEvent;
+      expect(event, isNotNull);
+      expect(event!.petId, const EntityId('pet-1'));
+      expect(event.source, PetEventSource.smartText);
+      expect(event.description, 'Bella got her rabies shot today');
 
       await cubit.close();
     });
@@ -148,12 +167,16 @@ void main() {
   });
 }
 
-SmartInputCubit _cubit(_FakeSmartInputRepository repository) {
+SmartInputCubit _cubit(
+  _FakeSmartInputRepository repository, {
+  _FakeTimelineRepository? timelineRepository,
+}) {
   return SmartInputCubit(
     smartInputRepository: repository,
     authRepository: _FakeAuthRepository(
       currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
     ),
+    timelineRepository: timelineRepository ?? _FakeTimelineRepository(),
   );
 }
 
@@ -263,4 +286,38 @@ class _FakeSmartInputRepository implements SmartInputRepository {
     }
     return Stream<List<SmartMessage>>.value(watchedMessages);
   }
+}
+
+class _FakeTimelineRepository implements TimelineRepository {
+  PetEvent? savedEvent;
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Stream<List<PetEvent>> watchEvents({
+    required EntityId userId,
+    required EntityId petId,
+  }) =>
+      Stream<List<PetEvent>>.value(const []);
+
+  @override
+  Future<PetEvent?> getEvent({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId eventId,
+  }) async =>
+      null;
+
+  @override
+  Future<void> saveEvent(PetEvent event) async {
+    savedEvent = event;
+  }
+
+  @override
+  Future<void> deleteEvent({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId eventId,
+  }) async {}
 }

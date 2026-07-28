@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,6 +12,7 @@ import 'package:paw_vault/features/vet_summary_export/domain/repositories/vet_su
 import 'package:paw_vault/features/vet_summary_export/domain/services/pdf_share_service.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/services/vet_summary_pdf_generator.dart';
 import 'package:paw_vault/features/vet_summary_export/presentation/cubit/vet_summary_export_cubit.dart';
+import 'package:printing/printing.dart';
 
 @RoutePage()
 class VetSummaryExportScreen extends StatelessWidget {
@@ -37,10 +40,33 @@ class VetSummaryExportScreen extends StatelessWidget {
   }
 }
 
-class _VetSummaryView extends StatelessWidget {
+class _VetSummaryView extends StatefulWidget {
   const _VetSummaryView({required this.petId});
 
   final String petId;
+
+  @override
+  State<_VetSummaryView> createState() => _VetSummaryViewState();
+}
+
+class _VetSummaryViewState extends State<_VetSummaryView> {
+  final _fileNameController = TextEditingController();
+
+  String get petId => widget.petId;
+
+  @override
+  void dispose() {
+    _fileNameController.dispose();
+    super.dispose();
+  }
+
+  void _openPreview(BuildContext context, Uint8List bytes, String fileName) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _PdfPreviewScreen(bytes: bytes, fileName: fileName),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,12 +121,40 @@ class _VetSummaryView extends StatelessWidget {
                   ),
                 ),
                 if (state.hasPdf) ...[
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _fileNameController
+                      ..text = _fileNameController.text.isEmpty
+                          ? cubit.defaultFileName()
+                          : _fileNameController.text,
+                    decoration: const InputDecoration(
+                      labelText: 'File name',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => _openPreview(
+                      context,
+                      state.pdfBytes!,
+                      VetSummaryExportCubit.sanitizeFileName(
+                            _fileNameController.text,
+                          ) ??
+                          cubit.defaultFileName(),
+                    ),
+                    icon: const Icon(Icons.visibility_outlined),
+                    label: const Text('Preview'),
+                  ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: isSharing || isSaving ? null : cubit.share,
+                          onPressed: isSharing || isSaving
+                              ? null
+                              : () => cubit.share(
+                                    fileName: _fileNameController.text,
+                                  ),
                           icon: isSharing
                               ? const SizedBox(
                                   width: 18,
@@ -185,5 +239,28 @@ class _History extends StatelessWidget {
               ],
             ),
     };
+  }
+}
+
+/// In-app viewer for the generated summary. The preview toolbar also offers
+/// printing and sharing (which includes saving to a chosen location).
+class _PdfPreviewScreen extends StatelessWidget {
+  const _PdfPreviewScreen({required this.bytes, required this.fileName});
+
+  final Uint8List bytes;
+  final String fileName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(fileName)),
+      body: PdfPreview(
+        build: (format) async => bytes,
+        pdfFileName: fileName,
+        canChangeOrientation: false,
+        canChangePageFormat: false,
+        canDebug: false,
+      ),
+    );
   }
 }

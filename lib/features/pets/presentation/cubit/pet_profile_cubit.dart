@@ -5,6 +5,8 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart'
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/features/account/domain/entities/owner_profile.dart';
+import 'package:paw_vault/features/account/domain/repositories/owner_profile_repository.dart';
 import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
@@ -15,17 +17,42 @@ class PetProfileCubit extends Cubit<PetProfileState> {
     required PetRepository petRepository,
     required AuthRepository authRepository,
     required PetPhotoUploadService photoUploadService,
+    OwnerProfileRepository? ownerProfileRepository,
     AnalyticsService? analytics,
   })  : _petRepository = petRepository,
         _authRepository = authRepository,
         _photoUploadService = photoUploadService,
+        _ownerProfileRepository = ownerProfileRepository,
         _analytics = analytics ?? const NoopAnalyticsService(),
         super(const PetProfileState());
 
   final PetRepository _petRepository;
   final AuthRepository _authRepository;
   final PetPhotoUploadService _photoUploadService;
+  final OwnerProfileRepository? _ownerProfileRepository;
   final AnalyticsService _analytics;
+
+  /// Saves the owner's contact details and reflects them in the state.
+  Future<void> saveOwnerInfo({String? name, String? phone}) async {
+    final repository = _ownerProfileRepository;
+    final userId = state.userId;
+    if (repository == null || userId == null) {
+      return;
+    }
+
+    String? clean(String? value) {
+      final trimmed = value?.trim();
+      return trimmed == null || trimmed.isEmpty ? null : trimmed;
+    }
+
+    final profile = OwnerProfile(name: clean(name), phone: clean(phone));
+    try {
+      await repository.saveOwnerProfile(userId, profile);
+      emit(state.copyWith(ownerProfile: profile));
+    } catch (error) {
+      emit(state.copyWith(errorMessage: error.toString()));
+    }
+  }
 
   /// Uploads the form's freshly picked photo (if any) and returns the form
   /// state with [PetFormState.photoUrl] pointing at the uploaded file.
@@ -61,6 +88,12 @@ class PetProfileCubit extends Cubit<PetProfileState> {
         userId: userId,
         petId: entityPetId,
       );
+      OwnerProfile? ownerProfile;
+      try {
+        ownerProfile = await _ownerProfileRepository?.getOwnerProfile(userId);
+      } catch (_) {
+        // Owner details are auxiliary; the profile still renders without.
+      }
 
       emit(
         PetProfileState(
@@ -70,6 +103,7 @@ class PetProfileCubit extends Cubit<PetProfileState> {
           petId: petId,
           pet: pet,
           owner: user,
+          ownerProfile: ownerProfile,
         ),
       );
     } catch (error) {
@@ -234,6 +268,7 @@ class PetProfileState {
     this.petId,
     this.pet,
     this.owner,
+    this.ownerProfile,
     this.errorMessage,
   });
 
@@ -245,6 +280,9 @@ class PetProfileState {
   /// The signed-in account that owns this pet; anonymous sessions have no
   /// owner details to show.
   final AppUser? owner;
+
+  /// User-entered owner contact details (name/phone).
+  final OwnerProfile? ownerProfile;
   final String? errorMessage;
 
   bool get isReady => status == PetProfileStatus.ready;
@@ -255,6 +293,7 @@ class PetProfileState {
     String? petId,
     Pet? pet,
     AppUser? owner,
+    OwnerProfile? ownerProfile,
     String? errorMessage,
   }) {
     return PetProfileState(
@@ -263,6 +302,7 @@ class PetProfileState {
       petId: petId ?? this.petId,
       pet: pet ?? this.pet,
       owner: owner ?? this.owner,
+      ownerProfile: ownerProfile ?? this.ownerProfile,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }

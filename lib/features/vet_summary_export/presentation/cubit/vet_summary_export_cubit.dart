@@ -134,8 +134,10 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
     }
   }
 
-  /// Shares the generated PDF via the platform share sheet.
-  Future<void> share() async {
+  /// Shares the generated PDF via the platform share sheet (which includes
+  /// "Save to Files" for choosing a destination). [fileName] overrides the
+  /// default pet-derived name.
+  Future<void> share({String? fileName}) async {
     final bytes = state.pdfBytes;
     if (bytes == null) {
       emit(
@@ -150,7 +152,10 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
     emit(state.copyWith(status: VetSummaryExportStatus.sharing));
 
     try {
-      await _shareService.share(bytes: bytes, fileName: _fileName());
+      await _shareService.share(
+        bytes: bytes,
+        fileName: sanitizeFileName(fileName) ?? defaultFileName(),
+      );
       emit(state.copyWith(status: VetSummaryExportStatus.ready));
     } catch (error) {
       emit(
@@ -216,9 +221,21 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
     }
   }
 
-  String _fileName() {
+  /// Default export file name derived from the pet's name.
+  String defaultFileName() {
     final name = (state.petName ?? 'pet').replaceAll(RegExp(r'\s+'), '_');
     return '${name}_vet_summary.pdf';
+  }
+
+  /// Normalizes a user-entered file name: trims, strips path separators, and
+  /// ensures a `.pdf` extension. Returns null for blank input.
+  static String? sanitizeFileName(String? name) {
+    final trimmed = name?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+    final safe = trimmed.replaceAll(RegExp(r'[/\\:]'), '_');
+    return safe.toLowerCase().endsWith('.pdf') ? safe : '$safe.pdf';
   }
 
   @override
