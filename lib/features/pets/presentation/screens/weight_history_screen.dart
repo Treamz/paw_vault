@@ -188,8 +188,7 @@ class _WeightHistoryViewState extends State<_WeightHistoryView> {
 }
 
 String _formatValue(double value) {
-  final rounded = (value * 10).round() / 10;
-  return rounded % 1 == 0 ? rounded.toInt().toString() : rounded.toString();
+  return formatDecimal((value * 10).round() / 10, maxDecimals: 1);
 }
 
 String _unitLabel(PetWeightUnit unit) {

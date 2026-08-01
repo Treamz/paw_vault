@@ -55,7 +55,7 @@ void main() {
     await tester.tap(find.text('Rex'));
     await tester.pumpAndSettle();
     expect(find.text('Physical Details'), findsOneWidget);
-    expect(find.text('5.0 kilogram'), findsOneWidget);
+    expect(find.text('5 kilogram'), findsOneWidget);
 
     // The profile now has an edit action.
     final editButton = find.byTooltip('Edit pet');
@@ -68,7 +68,7 @@ void main() {
     final weightField = find.widgetWithText(TextFormField, 'Weight');
     expect(
       tester.widget<TextFormField>(weightField).controller?.text,
-      '5.0',
+      '5',
     );
 
     // Change the weight and save.

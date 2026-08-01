@@ -100,8 +100,12 @@ void main() {
     await tester.ensureVisible(addDetail);
     await tester.tap(addDetail);
     await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'symptom');
-    await tester.enterText(find.widgetWithText(TextField, 'Value'), 'none');
+    final dialogFields = find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(dialogFields.first, 'none');
+    await tester.enterText(dialogFields.last, 'symptom');
     await tester.tap(find.widgetWithText(FilledButton, 'Add'));
     await tester.pumpAndSettle();
     await binding.takeScreenshot('01_smart_input_editable_draft');

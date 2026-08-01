@@ -158,7 +158,8 @@ class _PetFormViewState extends State<_PetFormView> {
       _nameController.text = pet.name;
       _speciesController.text = pet.species ?? '';
       _breedController.text = pet.breed ?? '';
-      _weightController.text = pet.weight?.value.toString() ?? '';
+      _weightController.text =
+          pet.weight != null ? formatDecimal(pet.weight!.value) : '';
       _microchipController.text = pet.microchipNumber ?? '';
       _setMeasurements(_formState.measurements);
       _photoUrl = pet.photoUrl?.toString();

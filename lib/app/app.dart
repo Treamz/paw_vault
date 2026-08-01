@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/app/router/app_router.dart';
@@ -48,6 +50,7 @@ class PawVaultApp extends StatefulWidget {
 class _PawVaultAppState extends State<PawVaultApp> {
   late final AppRouter _appRouter;
   late final AnalyticsRouteObserver _analyticsObserver;
+  StreamSubscription<ReminderNotificationTap>? _notificationTapSubscription;
 
   @override
   void initState() {
@@ -56,12 +59,27 @@ class _PawVaultAppState extends State<PawVaultApp> {
     _analyticsObserver =
         AnalyticsRouteObserver(widget.dependencies.analyticsService);
 
+    // Tapping a reminder notification opens that reminder instead of just
+    // launching the app on the pet list.
+    _notificationTapSubscription =
+        widget.dependencies.reminderNotificationScheduler.taps.listen((tap) {
+      _appRouter.push(
+        ReminderFormRoute(petId: tap.petId, reminderId: tap.reminderId),
+      );
+    });
+
     // Ask for App Tracking Transparency permission once the first frame is up,
     // so iOS shows the system prompt while the app is active. Required before
     // collecting any data Apple treats as tracking (Guideline 5.1.2(i)).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.dependencies.trackingAuthorizationService.requestAuthorization();
     });
+  }
+
+  @override
+  void dispose() {
+    _notificationTapSubscription?.cancel();
+    super.dispose();
   }
 
   @override

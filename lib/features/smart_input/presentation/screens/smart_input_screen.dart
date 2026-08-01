@@ -9,6 +9,7 @@ import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 import 'package:paw_vault/features/smart_input/presentation/cubit/smart_input_cubit.dart';
+import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
 
 @RoutePage()
 class SmartInputScreen extends StatelessWidget {
@@ -25,6 +26,7 @@ class SmartInputScreen extends StatelessWidget {
       create: (context) => SmartInputCubit(
         smartInputRepository: context.read<SmartInputRepository>(),
         authRepository: context.read<AuthRepository>(),
+        timelineRepository: context.read<TimelineRepository>(),
         analytics: context.read<AnalyticsService>(),
       )..load(petId),
       child: _SmartInputView(petId: petId),
@@ -101,6 +103,34 @@ class _SmartInputViewState extends State<_SmartInputView>
     );
   }
 
+  Future<void> _handleSuggestedAction(
+    BuildContext context,
+    SmartSuggestedActionType type,
+  ) async {
+    switch (type) {
+      case SmartSuggestedActionType.createTimelineEvent:
+        final cubit = context.read<SmartInputCubit>();
+        final messenger = ScaffoldMessenger.of(context);
+        final created = await cubit.createTimelineEventFromDraft(
+          widget.petId,
+          extractedData: _editedDraftData,
+        );
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              created
+                  ? 'Timeline event created'
+                  : 'Could not create the timeline event',
+            ),
+          ),
+        );
+      case SmartSuggestedActionType.createReminder:
+        await context.router.push(ReminderFormRoute(petId: widget.petId));
+      default:
+        break;
+    }
+  }
+
   Widget _buildAnalyzeTab(BuildContext context, SmartInputState state) {
     final isProcessing = state.isProcessing;
     final isSaving = state.isSaving;
@@ -124,6 +154,7 @@ class _SmartInputViewState extends State<_SmartInputView>
             _DraftReview(
               draft: state.draft!,
               onDataChanged: (data) => _editedDraftData = data,
+              onAction: (type) => _handleSuggestedAction(context, type),
             ),
             const SizedBox(height: 12),
             Row(
@@ -291,10 +322,15 @@ class _ErrorBanner extends StatelessWidget {
 /// Review card for the AI draft. Extracted details are editable and new ones
 /// can be added, so the user controls exactly what gets saved.
 class _DraftReview extends StatefulWidget {
-  const _DraftReview({required this.draft, required this.onDataChanged});
+  const _DraftReview({
+    required this.draft,
+    required this.onDataChanged,
+    required this.onAction,
+  });
 
   final SmartInputDraft draft;
   final ValueChanged<Map<String, Object?>> onDataChanged;
+  final ValueChanged<SmartSuggestedActionType> onAction;
 
   @override
   State<_DraftReview> createState() => _DraftReviewState();
@@ -344,17 +380,34 @@ class _DraftReviewState extends State<_DraftReview> {
     });
   }
 
+  String get _suggestedDetailName {
+    return switch (widget.draft.detectedIntent) {
+      SmartMessageIntent.addSymptom => 'symptom',
+      SmartMessageIntent.addMedication => 'medication',
+      SmartMessageIntent.addAllergy => 'allergen',
+      SmartMessageIntent.addVaccination => 'vaccine',
+      _ => 'detail',
+    };
+  }
+
   Future<void> _addDetail() async {
     final result = await showDialog<({String name, String value})>(
       context: context,
-      builder: (_) => const _AddDetailDialog(),
+      builder: (_) => _AddDetailDialog(suggestedName: _suggestedDetailName),
     );
-    if (result == null || result.name.trim().isEmpty) {
+    if (result == null || result.value.trim().isEmpty) {
       return;
     }
+    final baseName =
+        result.name.trim().isEmpty ? _suggestedDetailName : result.name.trim();
+    var name = baseName;
+    var counter = 2;
+    while (_controllers.containsKey(name)) {
+      name = '$baseName $counter';
+      counter++;
+    }
     setState(() {
-      _controllers[result.name.trim()] =
-          TextEditingController(text: result.value.trim());
+      _controllers[name] = TextEditingController(text: result.value.trim());
     });
     _notify();
   }
@@ -363,6 +416,15 @@ class _DraftReviewState extends State<_DraftReview> {
     setState(() => _controllers.remove(key)?.dispose());
     _notify();
   }
+
+  static bool _isActionable(SmartSuggestedActionType type) =>
+      type == SmartSuggestedActionType.createTimelineEvent ||
+      type == SmartSuggestedActionType.createReminder;
+
+  static IconData _actionIcon(SmartSuggestedActionType type) =>
+      type == SmartSuggestedActionType.createTimelineEvent
+          ? Icons.timeline
+          : Icons.notifications_active_outlined;
 
   bool get _isLowConfidence =>
       widget.draft.status == SmartInputDraftStatus.lowConfidenceReview ||
@@ -447,14 +509,25 @@ class _DraftReviewState extends State<_DraftReview> {
             if (draft.suggestedActions.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text('Suggested actions', style: theme.textTheme.labelLarge),
-              const SizedBox(height: 4),
-              for (final action in draft.suggestedActions)
-                Row(
-                  children: [
-                    const Icon(Icons.arrow_right),
-                    Expanded(child: Text(formatSmartAction(action.type))),
-                  ],
-                ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final action in draft.suggestedActions)
+                    if (_isActionable(action.type))
+                      ActionChip(
+                        avatar: Icon(_actionIcon(action.type), size: 18),
+                        label: Text(formatSmartAction(action.type)),
+                        onPressed: () => widget.onAction(action.type),
+                      )
+                    else
+                      Chip(
+                        label: Text(formatSmartAction(action.type)),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                ],
+              ),
             ],
             if (_isLowConfidence) ...[
               const SizedBox(height: 12),
@@ -484,14 +557,18 @@ class _DraftReviewState extends State<_DraftReview> {
 
 /// Owns its controllers so they outlive the dialog's exit animation.
 class _AddDetailDialog extends StatefulWidget {
-  const _AddDetailDialog();
+  const _AddDetailDialog({required this.suggestedName});
+
+  final String suggestedName;
 
   @override
   State<_AddDetailDialog> createState() => _AddDetailDialogState();
 }
 
 class _AddDetailDialogState extends State<_AddDetailDialog> {
-  final _nameController = TextEditingController();
+  late final _nameController = TextEditingController(
+    text: widget.suggestedName,
+  );
   final _valueController = TextEditingController();
 
   @override
@@ -509,19 +586,20 @@ class _AddDetailDialogState extends State<_AddDetailDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
-            controller: _nameController,
+            controller: _valueController,
             autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Name',
-              hintText: 'e.g. symptom',
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              labelText: widget.suggestedName,
+              hintText: 'e.g. sneezing since yesterday',
             ),
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: _valueController,
+            controller: _nameController,
             decoration: const InputDecoration(
-              labelText: 'Value',
-              hintText: 'e.g. sneezing',
+              labelText: 'Label',
+              helperText: 'How this detail is named',
             ),
           ),
         ],

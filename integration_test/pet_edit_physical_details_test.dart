@@ -64,7 +64,7 @@ void main() {
     await tester.tap(find.text('Rex'));
     await tester.pumpAndSettle();
     expect(find.text('Physical Details'), findsOneWidget);
-    expect(find.text('5.0 kilogram'), findsOneWidget);
+    expect(find.text('5 kilogram'), findsOneWidget);
     await binding.takeScreenshot('01_profile_physical_details');
 
     // Open the edit form via the new edit action; weight is prefilled.
@@ -74,7 +74,7 @@ void main() {
     final weightField = find.widgetWithText(TextFormField, 'Weight');
     expect(
       tester.widget<TextFormField>(weightField).controller?.text,
-      '5.0',
+      '5',
     );
     await binding.takeScreenshot('02_edit_form_prefilled');
 

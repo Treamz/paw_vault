@@ -1,6 +1,17 @@
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 
+/// A tapped reminder notification, identifying the reminder to open.
+class ReminderNotificationTap {
+  const ReminderNotificationTap({
+    required this.petId,
+    required this.reminderId,
+  });
+
+  final String petId;
+  final String reminderId;
+}
+
 /// Port for scheduling and cancelling local reminder notifications.
 ///
 /// Implementations live in the data layer and wrap the platform notifications
@@ -13,4 +24,8 @@ abstract interface class ReminderNotificationScheduler {
 
   /// Cancels any pending notification for the reminder with [reminderId].
   Future<void> cancel(EntityId reminderId);
+
+  /// Emits when the user taps a reminder notification (including the tap
+  /// that launched the app).
+  Stream<ReminderNotificationTap> get taps;
 }

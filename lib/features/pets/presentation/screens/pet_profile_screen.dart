@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -7,6 +8,7 @@ import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
 import 'package:paw_vault/core/subscription/presentation/pro_gate.dart';
+import 'package:paw_vault/core/utils/parse_decimal.dart';
 import 'package:paw_vault/features/account/domain/repositories/owner_profile_repository.dart';
 import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
@@ -184,9 +186,19 @@ class _PetProfileView extends StatelessWidget {
                 children: [
                   if (pet.photoUrl != null) ...[
                     Center(
-                      child: CircleAvatar(
-                        radius: 64,
-                        backgroundImage: NetworkImage(pet.photoUrl.toString()),
+                      child: ClipOval(
+                        child: CachedNetworkImage(
+                          imageUrl: pet.photoUrl.toString(),
+                          width: 128,
+                          height: 128,
+                          fit: BoxFit.cover,
+                          fadeInDuration: const Duration(milliseconds: 150),
+                          placeholder: (context, url) => _photoPlaceholder(
+                            context,
+                          ),
+                          errorWidget: (context, url, error) =>
+                              _photoPlaceholder(context),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -227,7 +239,8 @@ class _PetProfileView extends StatelessWidget {
                         if (pet.weight != null)
                           _InfoRow(
                             'Weight',
-                            '${pet.weight!.value} ${pet.weight!.unit.name}',
+                            '${formatDecimal(pet.weight!.value)} '
+                                '${pet.weight!.unit.name}',
                           ),
                         for (final measurement in pet.measurements)
                           _InfoRow(
@@ -334,9 +347,17 @@ class _PetProfileView extends StatelessWidget {
     if (context.mounted) context.router.push(route);
   }
 
-  String _formatCm(double value) {
-    return value % 1 == 0 ? value.toInt().toString() : value.toString();
+  Widget _photoPlaceholder(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 128,
+      height: 128,
+      color: colorScheme.surfaceContainerHighest,
+      child: Icon(Icons.pets, size: 48, color: colorScheme.onSurfaceVariant),
+    );
   }
+
+  String _formatCm(double value) => formatDecimal(value);
 
   Widget _buildOwnerCard(BuildContext context, PetProfileState state) {
     final owner = state.owner;

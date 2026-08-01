@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
@@ -13,6 +15,7 @@ class LocalReminderNotificationScheduler
 
   final FlutterLocalNotificationsPlugin _plugin;
   bool _initialized = false;
+  final _taps = StreamController<ReminderNotificationTap>.broadcast();
 
   static const _channelId = 'pawvault_reminders';
   static const _channelName = 'Reminders';
@@ -26,8 +29,36 @@ class LocalReminderNotificationScheduler
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(),
       ),
+      onDidReceiveNotificationResponse: (response) =>
+          _emitTap(response.payload),
     );
     _initialized = true;
+
+    // When a notification launched the app, surface that tap as well.
+    final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+    if (launchDetails?.didNotificationLaunchApp ?? false) {
+      _emitTap(launchDetails?.notificationResponse?.payload);
+    }
+  }
+
+  void _emitTap(String? payload) {
+    if (payload == null) {
+      return;
+    }
+    final parts = payload.split('|');
+    if (parts.length != 2 || parts[0].isEmpty || parts[1].isEmpty) {
+      return;
+    }
+    _taps.add(ReminderNotificationTap(petId: parts[0], reminderId: parts[1]));
+  }
+
+  @override
+  Stream<ReminderNotificationTap> get taps {
+    // Ensure the plugin is initialized so tap callbacks are registered even
+    // before the first schedule/cancel call. Initialization failures (e.g.
+    // in tests without the platform plugin) must not crash listeners.
+    unawaited(_ensureInitialized().catchError((_) {}));
+    return _taps.stream;
   }
 
   @override
@@ -61,6 +92,7 @@ class LocalReminderNotificationScheduler
         ),
         iOS: DarwinNotificationDetails(),
       ),
+      payload: '${reminder.petId.value}|${reminder.id.value}',
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
     );
   }
