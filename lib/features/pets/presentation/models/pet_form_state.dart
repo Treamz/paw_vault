@@ -13,10 +13,9 @@ class PetMeasurementInput {
   const PetMeasurementInput({this.type, this.value = ''});
 
   factory PetMeasurementInput.fromMeasurement(PetMeasurement measurement) {
-    final value = measurement.valueCm;
     return PetMeasurementInput(
       type: measurement.type,
-      value: value % 1 == 0 ? value.toInt().toString() : value.toString(),
+      value: formatDecimal(measurement.valueCm),
     );
   }
 

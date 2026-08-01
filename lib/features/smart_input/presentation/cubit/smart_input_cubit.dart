@@ -10,20 +10,87 @@ import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
+import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
+import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
 
 class SmartInputCubit extends Cubit<SmartInputState> {
   SmartInputCubit({
     required SmartInputRepository smartInputRepository,
     required AuthRepository authRepository,
+    TimelineRepository? timelineRepository,
     AnalyticsService? analytics,
   })  : _smartInputRepository = smartInputRepository,
         _authRepository = authRepository,
+        _timelineRepository = timelineRepository,
         _analytics = analytics ?? const NoopAnalyticsService(),
         super(const SmartInputState());
 
   final SmartInputRepository _smartInputRepository;
   final AuthRepository _authRepository;
+  final TimelineRepository? _timelineRepository;
   final AnalyticsService _analytics;
+
+  /// Creates a timeline event from the current draft when the user
+  /// explicitly taps the suggested action. Returns whether it succeeded.
+  Future<bool> createTimelineEventFromDraft(
+    String petId, {
+    Map<String, Object?>? extractedData,
+  }) async {
+    final draft = state.draft;
+    final timeline = _timelineRepository;
+    if (draft == null || timeline == null) {
+      return false;
+    }
+
+    try {
+      final userId = await _currentUserId();
+      final now = DateTime.now();
+      final details = extractedData ?? draft.extractedData;
+      final description = [
+        draft.originalText,
+        for (final entry in details.entries) '${entry.key}: ${entry.value}',
+      ].join('\n');
+
+      await timeline.initialize();
+      await timeline.saveEvent(
+        PetEvent(
+          id: EntityId('${now.microsecondsSinceEpoch}-smart'),
+          userId: userId,
+          petId: EntityId(petId),
+          type: _eventTypeFor(draft.detectedIntent),
+          title: _eventTitle(draft.originalText),
+          description: description,
+          date: UtcDateTime(now),
+          source: PetEventSource.smartText,
+          createdAt: UtcDateTime(now),
+          updatedAt: UtcDateTime(now),
+        ),
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static PetEventType _eventTypeFor(SmartMessageIntent intent) {
+    return switch (intent) {
+      SmartMessageIntent.addVaccination => PetEventType.vaccination,
+      SmartMessageIntent.addMedication => PetEventType.medication,
+      SmartMessageIntent.addSymptom => PetEventType.symptom,
+      SmartMessageIntent.addVetVisit => PetEventType.vetVisit,
+      SmartMessageIntent.addAllergy => PetEventType.allergy,
+      SmartMessageIntent.addReminder ||
+      SmartMessageIntent.addNote ||
+      SmartMessageIntent.unknown =>
+        PetEventType.other,
+    };
+  }
+
+  static String _eventTitle(String originalText) {
+    final text = originalText.trim();
+    return text.length <= 60 ? text : '${text.substring(0, 60)}…';
+  }
+
   StreamSubscription<List<SmartMessage>>? _messagesSubscription;
   EntityId? _userId;
 
@@ -38,10 +105,18 @@ class SmartInputCubit extends Cubit<SmartInputState> {
           .watchSmartMessages(userId: user, petId: EntityId(petId))
           .listen(
         (messages) {
+          final sorted = [...messages]..sort((a, b) {
+              final aTime = a.createdAt?.value;
+              final bTime = b.createdAt?.value;
+              if (aTime == null || bTime == null) {
+                return aTime == null ? 1 : -1;
+              }
+              return bTime.compareTo(aTime);
+            });
           emit(
             state.copyWith(
               historyStatus: SmartHistoryStatus.ready,
-              messages: messages,
+              messages: sorted,
             ),
           );
         },

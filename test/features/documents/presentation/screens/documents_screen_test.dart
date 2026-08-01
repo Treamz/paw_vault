@@ -44,14 +44,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Vaccination Certificate · Issued Jan 5, 2026'),
+        find.text('Vaccination Certificate · Jan 5, 2026'),
         findsOneWidget,
       );
       // The undated document keeps the plain type label.
       expect(find.text('Vaccination Certificate'), findsOneWidget);
     });
 
-    testWidgets('shows a thumbnail for image documents and an icon otherwise',
+    testWidgets('always shows the standard type icon, even for photos',
         (tester) async {
       final imageDocument = PetDocument(
         id: const EntityId('doc-2'),
@@ -66,27 +66,8 @@ void main() {
       await tester.pumpWidget(_app([_document(), imageDocument]));
       await tester.pumpAndSettle();
 
-      final imageTile = find.ancestor(
-        of: find.text('Scanned receipt'),
-        matching: find.byType(ListTile),
-      );
-      expect(
-        find.descendant(of: imageTile, matching: find.byType(Image)),
-        findsOneWidget,
-      );
-
-      final pdfTile = find.ancestor(
-        of: find.text('Vaccination certificate'),
-        matching: find.byType(ListTile),
-      );
-      expect(
-        find.descendant(of: pdfTile, matching: find.byType(Image)),
-        findsNothing,
-      );
-      expect(
-        find.descendant(of: pdfTile, matching: find.byType(CircleAvatar)),
-        findsOneWidget,
-      );
+      expect(find.byType(Image), findsNothing);
+      expect(find.byType(CircleAvatar), findsNWidgets(2));
     });
   });
 }

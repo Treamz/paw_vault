@@ -37,7 +37,10 @@ abstract final class FirebaseStoragePaths {
   static String vetSummaryExport({
     required String userId,
     required String petId,
+    required String exportId,
   }) {
-    return 'users/$userId/pets/$petId/exports/vet_summary.pdf';
+    // One object per export: reusing a single path would rotate the download
+    // token on every upload and break previously saved links (403).
+    return 'users/$userId/pets/$petId/exports/vet_summary_$exportId.pdf';
   }
 }

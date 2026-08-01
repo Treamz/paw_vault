@@ -274,6 +274,10 @@ class _FakeReminderRepository implements ReminderRepository {
 }
 
 class _FakeNotificationScheduler implements ReminderNotificationScheduler {
+  @override
+  Stream<ReminderNotificationTap> get taps =>
+      const Stream<ReminderNotificationTap>.empty();
+
   Reminder? scheduledReminder;
   EntityId? cancelledId;
 

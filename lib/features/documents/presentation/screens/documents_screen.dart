@@ -99,31 +99,21 @@ class _DocumentsContent extends StatelessWidget {
       itemBuilder: (context, index) {
         final document = documents[index];
         final expiry = document.expiryDate;
-        final iconAvatar = CircleAvatar(
-          child: Icon(_documentIcon(document.type)),
-        );
         return Card(
           child: ListTile(
             key: ValueKey('document-${document.id.value}'),
-            leading: document.hasImageFile
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      document.fileUrl!.toString(),
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, _, __) => iconAvatar,
-                    ),
-                  )
-                : iconAvatar,
+            // Standard type icons keep the list scannable; the photo itself
+            // is visible inside the document.
+            leading: CircleAvatar(
+              child: Icon(_documentIcon(document.type)),
+            ),
             title: Text(document.title),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   document.issueDate != null
-                      ? '${_formatDocumentType(document.type)} · Issued '
+                      ? '${_formatDocumentType(document.type)} · '
                           '${DateFormat.yMMMd().format(document.issueDate!.toUtcDateTime())}'
                       : _formatDocumentType(document.type),
                 ),

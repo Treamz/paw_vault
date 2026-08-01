@@ -63,11 +63,14 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
           .watchExports(userId: userId, petId: EntityId(petId))
           .listen(
         (exports) {
+          final sorted = [...exports]..sort(
+              (a, b) => b.createdAt.value.compareTo(a.createdAt.value),
+            );
           emit(
             state.copyWith(
               userId: userId,
               historyStatus: VetSummaryHistoryStatus.ready,
-              exports: exports,
+              exports: sorted,
             ),
           );
         },
@@ -191,6 +194,7 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
       final path = FirebaseStoragePaths.vetSummaryExport(
         userId: userId.value,
         petId: petId,
+        exportId: exportId.value,
       );
 
       final uploaded = await _storageRepository.uploadBytes(
