@@ -5,9 +5,11 @@ import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
+import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
+import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
 import 'package:paw_vault/features/documents/presentation/cubit/documents_cubit.dart';
 
 @RoutePage()
@@ -31,13 +33,53 @@ class DocumentsScreen extends StatelessWidget {
   }
 }
 
-class _DocumentsView extends StatelessWidget {
+enum _DocumentsSort { date, type }
+
+class _DocumentsView extends StatefulWidget {
   const _DocumentsView();
+
+  @override
+  State<_DocumentsView> createState() => _DocumentsViewState();
+}
+
+class _DocumentsViewState extends State<_DocumentsView> {
+  _DocumentsSort _sort = _DocumentsSort.date;
+
+  /// The cubit already delivers newest-first; "By type" groups by type name
+  /// keeping newest-first within each group.
+  List<PetDocument> _sorted(List<PetDocument> documents) {
+    if (_sort == _DocumentsSort.date) {
+      return documents;
+    }
+    final byType = [...documents]
+      ..sort((a, b) => a.type.name.compareTo(b.type.name));
+    return byType;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Documents')),
+      appBar: AppBar(
+        title: const Text('Documents'),
+        actions: [
+          PopupMenuButton<_DocumentsSort>(
+            icon: const Icon(Icons.sort),
+            tooltip: 'Sort documents',
+            initialValue: _sort,
+            onSelected: (sort) => setState(() => _sort = sort),
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: _DocumentsSort.date,
+                child: Text('Newest first'),
+              ),
+              PopupMenuItem(
+                value: _DocumentsSort.type,
+                child: Text('By type'),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: SafeArea(
         child: BlocBuilder<DocumentsCubit, DocumentsState>(
           builder: (context, state) {
@@ -57,7 +99,7 @@ class _DocumentsView extends StatelessWidget {
                           'other documents to keep them in one place.',
                     )
                   : _DocumentsContent(
-                      documents: state.documents,
+                      documents: _sorted(state.documents),
                       petId: state.petId!,
                     ),
             };
@@ -124,12 +166,133 @@ class _DocumentsContent extends StatelessWidget {
               ],
             ),
             isThreeLine: expiry != null,
-            onTap: () => context.router.push(
-              DocumentFormRoute(petId: petId, documentId: document.id.value),
-            ),
+            onTap: () => _showDocumentDetails(context, document),
           ),
         );
       },
+    );
+  }
+
+  /// Read-only view first; editing is an explicit action from here.
+  void _showDocumentDetails(BuildContext context, PetDocument document) {
+    final router = context.router;
+    final fileOpener = context.read<DocumentFileOpener>();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.65,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) => ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(child: Icon(_documentIcon(document.type))),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      document.title,
+                      style: theme.textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _detailRow(theme, 'Type', _formatDocumentType(document.type)),
+              if (document.issueDate != null)
+                _detailRow(
+                  theme,
+                  'Issued',
+                  DateFormat.yMMMMd()
+                      .format(document.issueDate!.toUtcDateTime()),
+                ),
+              if (document.expiryDate != null)
+                _detailRow(
+                  theme,
+                  'Expires',
+                  DateFormat.yMMMMd()
+                      .format(document.expiryDate!.toUtcDateTime()),
+                ),
+              if (document.notes != null && document.notes!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text('Notes', style: theme.textTheme.labelLarge),
+                const SizedBox(height: 4),
+                Text(document.notes!),
+              ],
+              if (document.hasImageFile) ...[
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: () => showFullScreenImage(
+                    context,
+                    NetworkImage(document.fileUrl!.toString()),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      document.fileUrl!.toString(),
+                      height: 220,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, _, __) => Container(
+                        height: 120,
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        child: const Icon(Icons.broken_image_outlined),
+                      ),
+                    ),
+                  ),
+                ),
+              ] else if (document.hasFile) ...[
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: () => fileOpener.open(document.fileUrl!),
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Open file'),
+                ),
+              ],
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(sheetContext).pop();
+                  router.push(
+                    DocumentFormRoute(
+                      petId: petId,
+                      documentId: document.id.value,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Edit document'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _detailRow(ThemeData theme, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w500),
+            ),
+          ),
+          Expanded(child: Text(value)),
+        ],
+      ),
     );
   }
 

@@ -113,10 +113,10 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
     );
     if (date == null || !mounted) return;
 
+    // Dial by default with the keyboard toggle available for typing a time.
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_dateTime ?? now),
-      initialEntryMode: TimePickerEntryMode.dialOnly,
     );
     if (time == null) return;
 

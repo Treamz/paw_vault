@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
 import 'package:paw_vault/core/subscription/presentation/pro_gate.dart';
@@ -186,18 +187,25 @@ class _PetProfileView extends StatelessWidget {
                 children: [
                   if (pet.photoUrl != null) ...[
                     Center(
-                      child: ClipOval(
-                        child: CachedNetworkImage(
-                          imageUrl: pet.photoUrl.toString(),
-                          width: 128,
-                          height: 128,
-                          fit: BoxFit.cover,
-                          fadeInDuration: const Duration(milliseconds: 150),
-                          placeholder: (context, url) => _photoPlaceholder(
-                            context,
+                      child: GestureDetector(
+                        onTap: () => showFullScreenImage(
+                          context,
+                          CachedNetworkImageProvider(
+                            pet.photoUrl.toString(),
                           ),
-                          errorWidget: (context, url, error) =>
-                              _photoPlaceholder(context),
+                        ),
+                        child: ClipOval(
+                          child: CachedNetworkImage(
+                            imageUrl: pet.photoUrl.toString(),
+                            width: 128,
+                            height: 128,
+                            fit: BoxFit.cover,
+                            fadeInDuration: const Duration(milliseconds: 150),
+                            placeholder: (context, url) =>
+                                _photoPlaceholder(context),
+                            errorWidget: (context, url, error) =>
+                                _photoPlaceholder(context),
+                          ),
                         ),
                       ),
                     ),

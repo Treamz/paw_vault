@@ -1,13 +1,17 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/document_extraction/domain/entities/document_extraction_draft.dart';
+import 'package:paw_vault/features/document_extraction/domain/entities/document_page.dart';
 import 'package:paw_vault/features/document_extraction/domain/repositories/document_extraction_ai_repository.dart';
 import 'package:paw_vault/features/document_extraction/domain/services/document_source_picker.dart';
 import 'package:paw_vault/features/documents/application/document_upload_service.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/documents/presentation/models/pet_document_form_state.dart';
+import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
+import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 
 class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
   DocumentExtractionCubit({
@@ -16,11 +20,13 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
     required AuthRepository authRepository,
     required DocumentRepository documentRepository,
     required DocumentUploadService uploadService,
+    SmartInputRepository? smartInputRepository,
   })  : _picker = picker,
         _aiRepository = aiRepository,
         _authRepository = authRepository,
         _documentRepository = documentRepository,
         _uploadService = uploadService,
+        _smartInputRepository = smartInputRepository,
         super(const DocumentExtractionState());
 
   final DocumentSourcePicker _picker;
@@ -28,40 +34,48 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
   final AuthRepository _authRepository;
   final DocumentRepository _documentRepository;
   final DocumentUploadService _uploadService;
+  final SmartInputRepository? _smartInputRepository;
 
-  /// Picks a file from [source] and asks the AI to extract its fields. The
-  /// result is surfaced as a draft for review — nothing is saved here.
+  /// Picks a file from [source] and asks the AI to extract its fields.
+  /// Additional picks while reviewing append pages and re-analyze them all
+  /// together — nothing is saved here.
   Future<void> pickAndExtract(DocumentSource source) async {
+    final existingFiles = state.pickedFiles;
     emit(
-      const DocumentExtractionState(
-        status: DocumentExtractionStatus.picking,
-      ),
+      state.copyWith(status: DocumentExtractionStatus.picking),
     );
 
     try {
       final file = await _picker.pick(source);
       if (file == null) {
         // User cancelled the picker.
-        emit(const DocumentExtractionState());
+        emit(
+          existingFiles.isEmpty
+              ? const DocumentExtractionState()
+              : state.copyWith(status: DocumentExtractionStatus.review),
+        );
         return;
       }
 
+      final files = [...existingFiles, file];
       emit(
         DocumentExtractionState(
           status: DocumentExtractionStatus.extracting,
-          pickedFile: file,
+          pickedFiles: files,
         ),
       );
 
       final draft = await _aiRepository.extractDocument(
-        bytes: file.bytes,
-        mimeType: file.contentType,
+        pages: [
+          for (final picked in files)
+            DocumentPage(bytes: picked.bytes, mimeType: picked.contentType),
+        ],
       );
 
       emit(
         DocumentExtractionState(
           status: DocumentExtractionStatus.review,
-          pickedFile: file,
+          pickedFiles: files,
           draft: draft,
         ),
       );
@@ -81,7 +95,7 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
     String petId,
     PetDocumentFormState formState,
   ) async {
-    final file = state.pickedFile;
+    final file = state.pickedFiles.firstOrNull;
     if (file == null) {
       emit(
         state.copyWith(
@@ -132,6 +146,33 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
 
       await _documentRepository.saveDocument(document);
 
+      // The analysis also lands in Smart Input's History so scanned
+      // documents are reviewable alongside typed notes.
+      final smartInput = _smartInputRepository;
+      if (smartInput != null) {
+        await smartInput.saveSmartMessage(
+          SmartMessage(
+            id: EntityId('${now.microsecondsSinceEpoch}-scan'),
+            userId: userId,
+            petId: entityPetId,
+            originalText: 'Scanned document: ${document.title}',
+            detectedIntent: SmartMessageIntent.addNote,
+            extractedData: {
+              'type': document.type.name,
+              'title': document.title,
+              if (document.issueDate != null)
+                'issue date': document.issueDate.toString(),
+              if (document.expiryDate != null)
+                'expiry date': document.expiryDate.toString(),
+              if (document.notes != null) 'notes': document.notes,
+            },
+            confidence: state.draft?.confidence ?? 0,
+            status: SmartMessageStatus.confirmed,
+            createdAt: UtcDateTime(now),
+          ),
+        );
+      }
+
       emit(
         const DocumentExtractionState(
           status: DocumentExtractionStatus.confirmed,
@@ -166,13 +207,13 @@ enum DocumentExtractionStatus {
 class DocumentExtractionState {
   const DocumentExtractionState({
     this.status = DocumentExtractionStatus.idle,
-    this.pickedFile,
+    this.pickedFiles = const [],
     this.draft,
     this.errorMessage,
   });
 
   final DocumentExtractionStatus status;
-  final PickedFile? pickedFile;
+  final List<PickedFile> pickedFiles;
   final DocumentExtractionDraft? draft;
   final String? errorMessage;
 
@@ -188,13 +229,13 @@ class DocumentExtractionState {
 
   DocumentExtractionState copyWith({
     DocumentExtractionStatus? status,
-    PickedFile? pickedFile,
+    List<PickedFile>? pickedFiles,
     DocumentExtractionDraft? draft,
     String? errorMessage,
   }) {
     return DocumentExtractionState(
       status: status ?? this.status,
-      pickedFile: pickedFile ?? this.pickedFile,
+      pickedFiles: pickedFiles ?? this.pickedFiles,
       draft: draft ?? this.draft,
       errorMessage: errorMessage ?? this.errorMessage,
     );

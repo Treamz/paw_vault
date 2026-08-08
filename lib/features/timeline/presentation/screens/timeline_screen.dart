@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
@@ -115,6 +116,26 @@ class _TimelineContent extends StatelessWidget {
                   DateFormat.yMMMd().format(event.date.value.toLocal()),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
+                if (event.nextReminderDate != null) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.notifications_outlined,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Reminder ${DateFormat.yMMMd().format(event.nextReminderDate!.value.toLocal())}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
             isThreeLine: true,
@@ -183,18 +204,24 @@ class _TimelineContent extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     for (final attachment in event.attachments)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          attachment.toString(),
-                          width: 110,
-                          height: 110,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, _, __) => Container(
+                      GestureDetector(
+                        onTap: () => showFullScreenImage(
+                          context,
+                          NetworkImage(attachment.toString()),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            attachment.toString(),
                             width: 110,
                             height: 110,
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: const Icon(Icons.image_outlined),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, _, __) => Container(
+                              width: 110,
+                              height: 110,
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              child: const Icon(Icons.image_outlined),
+                            ),
                           ),
                         ),
                       ),

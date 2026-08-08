@@ -82,7 +82,7 @@ void main() {
     await binding.takeScreenshot('01_event_form_no_premature_errors');
 
     // Errors appear only after attempting to save.
-    final addEvent = find.widgetWithText(ElevatedButton, 'Add Event');
+    final addEvent = find.widgetWithText(FilledButton, 'Add Event');
     await tester.ensureVisible(addEvent);
     await tester.tap(addEvent);
     await tester.pumpAndSettle();

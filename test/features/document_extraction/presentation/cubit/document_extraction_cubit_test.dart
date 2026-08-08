@@ -7,6 +7,7 @@ import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/storage/domain/entities/storage_file.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/document_extraction/domain/entities/document_extraction_draft.dart';
+import 'package:paw_vault/features/document_extraction/domain/entities/document_page.dart';
 import 'package:paw_vault/features/document_extraction/domain/repositories/document_extraction_ai_repository.dart';
 import 'package:paw_vault/features/document_extraction/domain/services/document_source_picker.dart';
 import 'package:paw_vault/features/document_extraction/presentation/cubit/document_extraction_cubit.dart';
@@ -15,6 +16,9 @@ import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/documents/presentation/models/pet_document_form_state.dart';
+import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
+import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
+import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 
 void main() {
   group('DocumentExtractionCubit', () {
@@ -29,8 +33,9 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(picker.requestedSource, DocumentSource.camera);
-      expect(aiRepository.mimeType, 'application/pdf');
-      expect(aiRepository.byteCount, 3);
+      expect(aiRepository.lastPages, hasLength(1));
+      expect(aiRepository.lastPages?.single.mimeType, 'application/pdf');
+      expect(aiRepository.lastPages?.single.bytes, hasLength(3));
       expect(states.map((s) => s.status), [
         DocumentExtractionStatus.picking,
         DocumentExtractionStatus.extracting,
@@ -40,7 +45,7 @@ void main() {
         cubit.state.draft?.detectedType,
         PetDocumentType.vaccinationCertificate,
       );
-      expect(cubit.state.pickedFile, isNotNull);
+      expect(cubit.state.pickedFiles, hasLength(1));
       expect(cubit.state.hasDraft, isTrue);
 
       await subscription.cancel();
@@ -87,9 +92,10 @@ void main() {
       await cubit.pickAndExtract(DocumentSource.camera);
       await cubit.confirmExtraction(
         'pet-1',
-        const PetDocumentFormState(
+        PetDocumentFormState(
           type: PetDocumentType.vaccinationCertificate,
           title: 'Rabies vaccination',
+          issueDate: DateTime(2024, 1, 15),
         ),
       );
 
@@ -107,6 +113,66 @@ void main() {
       await cubit.close();
     });
 
+    test('appends pages and re-extracts all of them together', () async {
+      final picker = _FakePicker(file: _pickedFile());
+      final aiRepository = _FakeAiRepository(draft: _draft());
+      final cubit = _cubit(picker: picker, aiRepository: aiRepository);
+
+      await cubit.pickAndExtract(DocumentSource.camera);
+      await cubit.pickAndExtract(DocumentSource.gallery);
+
+      expect(cubit.state.status, DocumentExtractionStatus.review);
+      expect(cubit.state.pickedFiles, hasLength(2));
+      expect(aiRepository.callCount, 2);
+      expect(aiRepository.lastPages, hasLength(2));
+
+      await cubit.close();
+    });
+
+    test('keeps existing pages when an extra pick is cancelled', () async {
+      final aiRepository = _FakeAiRepository(draft: _draft());
+      final firstPicker = _FakePicker(file: _pickedFile());
+      final cubit = _cubit(picker: firstPicker, aiRepository: aiRepository);
+
+      await cubit.pickAndExtract(DocumentSource.camera);
+      firstPicker.fileOverride = null;
+      await cubit.pickAndExtract(DocumentSource.gallery);
+
+      expect(cubit.state.status, DocumentExtractionStatus.review);
+      expect(cubit.state.pickedFiles, hasLength(1));
+      expect(aiRepository.callCount, 1);
+
+      await cubit.close();
+    });
+
+    test('confirmExtraction saves the analysis to Smart Input history',
+        () async {
+      final smartInputRepository = _FakeSmartInputRepository();
+      final cubit = _cubit(
+        picker: _FakePicker(file: _pickedFile()),
+        aiRepository: _FakeAiRepository(draft: _draft()),
+        smartInputRepository: smartInputRepository,
+      );
+
+      await cubit.pickAndExtract(DocumentSource.camera);
+      await cubit.confirmExtraction(
+        'pet-1',
+        PetDocumentFormState(
+          type: PetDocumentType.vaccinationCertificate,
+          title: 'Rabies vaccination',
+          issueDate: DateTime(2024, 1, 15),
+        ),
+      );
+
+      expect(cubit.state.status, DocumentExtractionStatus.confirmed);
+      final message = smartInputRepository.savedMessages.single;
+      expect(message.originalText, contains('Rabies vaccination'));
+      expect(message.status, SmartMessageStatus.confirmed);
+      expect(message.petId.value, 'pet-1');
+
+      await cubit.close();
+    });
+
     test('confirmExtraction fails when no file was picked', () async {
       final documentRepository = _FakeDocumentRepository();
       final cubit = _cubit(
@@ -117,9 +183,10 @@ void main() {
 
       await cubit.confirmExtraction(
         'pet-1',
-        const PetDocumentFormState(
+        PetDocumentFormState(
           type: PetDocumentType.vaccinationCertificate,
           title: 'Rabies vaccination',
+          issueDate: DateTime(2024, 1, 15),
         ),
       );
 
@@ -159,6 +226,7 @@ DocumentExtractionCubit _cubit({
   required _FakeAiRepository aiRepository,
   _FakeDocumentRepository? documentRepository,
   _FakeStorageRepository? storageRepository,
+  _FakeSmartInputRepository? smartInputRepository,
 }) {
   final storage = storageRepository ?? _FakeStorageRepository();
   return DocumentExtractionCubit(
@@ -172,6 +240,7 @@ DocumentExtractionCubit _cubit({
       filePicker: _UnusedFilePicker(),
       storageRepository: storage,
     ),
+    smartInputRepository: smartInputRepository,
   );
 }
 
@@ -194,15 +263,15 @@ DocumentExtractionDraft _draft() {
 }
 
 class _FakePicker implements DocumentSourcePicker {
-  _FakePicker({this.file});
+  _FakePicker({PickedFile? file}) : fileOverride = file;
 
-  final PickedFile? file;
+  PickedFile? fileOverride;
   DocumentSource? requestedSource;
 
   @override
   Future<PickedFile?> pick(DocumentSource source) async {
     requestedSource = source;
-    return file;
+    return fileOverride;
   }
 }
 
@@ -216,22 +285,54 @@ class _FakeAiRepository implements DocumentExtractionAiRepository {
   final bool throwsOnExtract;
 
   int callCount = 0;
-  String? mimeType;
-  int? byteCount;
+  List<DocumentPage>? lastPages;
 
   @override
   Future<DocumentExtractionDraft> extractDocument({
-    required Uint8List bytes,
-    required String mimeType,
+    required List<DocumentPage> pages,
   }) async {
     callCount++;
-    this.mimeType = mimeType;
-    byteCount = bytes.length;
+    lastPages = pages;
     if (throwsOnExtract) {
       throw StateError('extract failed');
     }
     return draft!;
   }
+}
+
+class _FakeSmartInputRepository implements SmartInputRepository {
+  final savedMessages = <SmartMessage>[];
+
+  @override
+  Future<SmartInputDraft> createDraft(String input) async =>
+      SmartInputDraft(originalText: input, requiresConfirmation: true);
+
+  @override
+  Future<void> saveSmartMessage(SmartMessage message) async {
+    savedMessages.add(message);
+  }
+
+  @override
+  Future<SmartMessage?> getSmartMessage({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId messageId,
+  }) async =>
+      null;
+
+  @override
+  Future<void> deleteSmartMessage({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId messageId,
+  }) async {}
+
+  @override
+  Stream<List<SmartMessage>> watchSmartMessages({
+    required EntityId userId,
+    required EntityId petId,
+  }) =>
+      const Stream<List<SmartMessage>>.empty();
 }
 
 class _FakeAuthRepository implements AuthRepository {

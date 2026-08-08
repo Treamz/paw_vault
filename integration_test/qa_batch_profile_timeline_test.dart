@@ -106,7 +106,7 @@ void main() {
     await tester.pumpAndSettle();
     await binding.takeScreenshot('02_measurement_row_form');
 
-    final saveChanges = find.widgetWithText(ElevatedButton, 'Save Changes');
+    final saveChanges = find.widgetWithText(FilledButton, 'Save Changes');
     await tester.ensureVisible(saveChanges);
     await tester.tap(saveChanges);
     await tester.pumpAndSettle();
@@ -150,7 +150,7 @@ void main() {
     expect(find.byType(Image), findsOneWidget);
     await binding.takeScreenshot('04_event_photo_attachment');
 
-    final addEvent = find.widgetWithText(ElevatedButton, 'Add Event');
+    final addEvent = find.widgetWithText(FilledButton, 'Add Event');
     await tester.ensureVisible(addEvent);
     await tester.tap(addEvent);
     await tester.pumpAndSettle();

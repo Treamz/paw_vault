@@ -73,7 +73,7 @@ void main() {
 
     // Change the weight and save.
     await tester.enterText(weightField, '6.5');
-    final saveButton = find.widgetWithText(ElevatedButton, 'Save Changes');
+    final saveButton = find.widgetWithText(FilledButton, 'Save Changes');
     await tester.ensureVisible(saveButton);
     await tester.tap(saveButton);
     await tester.pumpAndSettle();

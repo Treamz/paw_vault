@@ -31,20 +31,22 @@ class SmartInputCubit extends Cubit<SmartInputState> {
   final AnalyticsService _analytics;
 
   /// Creates a timeline event from the current draft when the user
-  /// explicitly taps the suggested action. Returns whether it succeeded.
-  Future<bool> createTimelineEventFromDraft(
+  /// explicitly taps the suggested action. Returns the created event's id so
+  /// the UI can open it for editing, or null on failure.
+  Future<String?> createTimelineEventFromDraft(
     String petId, {
     Map<String, Object?>? extractedData,
   }) async {
     final draft = state.draft;
     final timeline = _timelineRepository;
     if (draft == null || timeline == null) {
-      return false;
+      return null;
     }
 
     try {
       final userId = await _currentUserId();
       final now = DateTime.now();
+      final eventId = EntityId('${now.microsecondsSinceEpoch}-smart');
       final details = extractedData ?? draft.extractedData;
       final description = [
         draft.originalText,
@@ -54,7 +56,7 @@ class SmartInputCubit extends Cubit<SmartInputState> {
       await timeline.initialize();
       await timeline.saveEvent(
         PetEvent(
-          id: EntityId('${now.microsecondsSinceEpoch}-smart'),
+          id: eventId,
           userId: userId,
           petId: EntityId(petId),
           type: _eventTypeFor(draft.detectedIntent),
@@ -66,9 +68,22 @@ class SmartInputCubit extends Cubit<SmartInputState> {
           updatedAt: UtcDateTime(now),
         ),
       );
-      return true;
+      return eventId.value;
     } catch (_) {
-      return false;
+      return null;
+    }
+  }
+
+  /// Removes a confirmed analysis from the history.
+  Future<void> deleteMessage(SmartMessage message) async {
+    try {
+      await _smartInputRepository.deleteSmartMessage(
+        userId: message.userId,
+        petId: message.petId,
+        messageId: message.id,
+      );
+    } catch (error) {
+      emit(state.copyWith(errorMessage: error.toString()));
     }
   }
 

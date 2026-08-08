@@ -174,6 +174,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
     );
     if (picked != null) {
       setState(() => _issueDate = picked);
+      _revalidate();
     }
   }
 
@@ -404,6 +405,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
               label: 'Issue date',
               value: _issueDate,
               format: dateFormat,
+              errorText: _validation?.errorFor('issueDate'),
               onTap: _pickIssueDate,
               onClear: _issueDate == null
                   ? null
@@ -552,6 +554,7 @@ class _DateField extends StatelessWidget {
     required this.format,
     required this.onTap,
     required this.onClear,
+    this.errorText,
   });
 
   final String label;
@@ -559,6 +562,7 @@ class _DateField extends StatelessWidget {
   final DateFormat format;
   final VoidCallback onTap;
   final VoidCallback? onClear;
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -567,6 +571,7 @@ class _DateField extends StatelessWidget {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
+          errorText: errorText,
           suffixIcon: onClear != null
               ? IconButton(
                   icon: const Icon(Icons.clear),

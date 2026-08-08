@@ -13,6 +13,7 @@ import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/documents/presentation/models/pet_document_form_state.dart';
+import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 
 @RoutePage()
 class DocumentExtractionScreen extends StatelessWidget {
@@ -35,6 +36,7 @@ class DocumentExtractionScreen extends StatelessWidget {
           filePicker: context.read<FilePicker>(),
           storageRepository: context.read<StorageRepository>(),
         ),
+        smartInputRepository: context.read<SmartInputRepository>(),
       ),
       child: _ExtractionView(petId: petId),
     );
@@ -141,6 +143,8 @@ class _ExtractionViewState extends State<_ExtractionView> {
               DocumentExtractionStatus.saving =>
                 _ReviewForm(
                   draft: state.draft,
+                  pageCount: state.pickedFiles.length,
+                  onAddPage: () => _addPage(context),
                   titleController: _titleController,
                   notesController: _notesController,
                   selectedType: _selectedType,
@@ -163,6 +167,41 @@ class _ExtractionViewState extends State<_ExtractionView> {
         ),
       ),
     );
+  }
+
+  Future<void> _addPage(BuildContext context) async {
+    final cubit = context.read<DocumentExtractionCubit>();
+    final source = await showModalBottomSheet<DocumentSource>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take a photo'),
+              onTap: () =>
+                  Navigator.of(sheetContext).pop(DocumentSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from gallery'),
+              onTap: () =>
+                  Navigator.of(sheetContext).pop(DocumentSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf),
+              title: const Text('Pick a PDF or image'),
+              onTap: () => Navigator.of(sheetContext).pop(DocumentSource.file),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    // Re-seed the form from the refreshed draft that covers every page.
+    _seeded = false;
+    await cubit.pickAndExtract(source);
   }
 
   Future<void> _pickIssueDate() async {
@@ -260,6 +299,8 @@ class _Busy extends StatelessWidget {
 class _ReviewForm extends StatelessWidget {
   const _ReviewForm({
     required this.draft,
+    required this.pageCount,
+    required this.onAddPage,
     required this.titleController,
     required this.notesController,
     required this.selectedType,
@@ -273,6 +314,8 @@ class _ReviewForm extends StatelessWidget {
   });
 
   final DocumentExtractionDraft? draft;
+  final int pageCount;
+  final VoidCallback onAddPage;
   final TextEditingController titleController;
   final TextEditingController notesController;
   final PetDocumentType? selectedType;
@@ -307,6 +350,24 @@ class _ReviewForm extends StatelessWidget {
                   ),
                 ),
               ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    pageCount == 1
+                        ? '1 page attached'
+                        : '$pageCount pages attached',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: onAddPage,
+                  icon: const Icon(Icons.add_photo_alternate_outlined),
+                  label: const Text('Add page'),
+                ),
+              ],
             ),
             if (draft?.isLowConfidence ?? false) ...[
               const SizedBox(height: 8),
@@ -347,7 +408,7 @@ class _ReviewForm extends StatelessWidget {
             const SizedBox(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Issue date (optional)'),
+              title: const Text('Issue date'),
               subtitle: Text(
                 issueDate != null ? dateFormat.format(issueDate!) : 'Not set',
               ),

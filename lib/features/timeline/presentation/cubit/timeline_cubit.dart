@@ -38,7 +38,11 @@ class TimelineCubit extends Cubit<TimelineState> {
               status: TimelineStatus.ready,
               userId: userId,
               petId: petId,
-              events: events,
+              events: [...events]..sort((a, b) {
+                  final aTime = a.createdAt?.value ?? a.date.value;
+                  final bTime = b.createdAt?.value ?? b.date.value;
+                  return bTime.compareTo(aTime);
+                }),
             ),
           );
         },

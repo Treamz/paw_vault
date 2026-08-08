@@ -83,7 +83,7 @@ void main() {
     await tester.enterText(weightField, '6.5');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
-    final saveButton = find.widgetWithText(ElevatedButton, 'Save Changes');
+    final saveButton = find.widgetWithText(FilledButton, 'Save Changes');
     await tester.ensureVisible(saveButton);
     await tester.tap(saveButton);
     await tester.pumpAndSettle();
