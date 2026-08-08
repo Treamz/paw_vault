@@ -35,6 +35,13 @@ void main() {
       find.widgetWithText(TextFormField, 'Title'),
       'EU Pet Passport',
     );
+    // Issue date is required: pick today from the calendar dialog.
+    final issueField = find.text('Issue date');
+    await tester.ensureVisible(issueField);
+    await tester.tap(issueField);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
     final save = find.widgetWithText(FilledButton, 'Save');
     await tester.ensureVisible(save);
     await tester.tap(save);
@@ -82,6 +89,13 @@ void main() {
       find.widgetWithText(TextFormField, 'Title'),
       'Liability insurance',
     );
+    // Issue date is required: pick today from the calendar dialog.
+    final issueField = find.text('Issue date');
+    await tester.ensureVisible(issueField);
+    await tester.tap(issueField);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
     final saveButton = find.widgetWithText(FilledButton, 'Save');
     await tester.ensureVisible(saveButton);
     await tester.tap(saveButton);

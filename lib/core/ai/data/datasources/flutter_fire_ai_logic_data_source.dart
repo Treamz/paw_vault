@@ -1,11 +1,11 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:paw_vault/core/ai/data/datasources/firebase_ai_logic_data_source.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/features/document_extraction/domain/entities/document_extraction_draft.dart';
+import 'package:paw_vault/features/document_extraction/domain/entities/document_page.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
@@ -114,13 +114,12 @@ Do not diagnose or give medical advice. Only structure what the user wrote.
 
   @override
   Future<DocumentExtractionDraft> extractDocument({
-    required Uint8List bytes,
-    required String mimeType,
+    required List<DocumentPage> pages,
   }) async {
     final model = _createModel();
     final response = await model.generateContent([
       Content.multi([
-        InlineDataPart(mimeType, bytes),
+        for (final page in pages) InlineDataPart(page.mimeType, page.bytes),
         const TextPart(_extractionPrompt),
       ]),
     ]);

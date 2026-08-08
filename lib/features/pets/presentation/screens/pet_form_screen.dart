@@ -603,7 +603,7 @@ class _PetFormViewState extends State<_PetFormView> {
                       onChanged: (_) => _updateFormState(),
                     ),
                     const SizedBox(height: 24),
-                    ElevatedButton(
+                    FilledButton(
                       onPressed: isSaving ? null : _savePet,
                       child: isSaving
                           ? const SizedBox(

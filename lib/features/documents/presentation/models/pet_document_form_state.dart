@@ -57,6 +57,10 @@ class PetDocumentFormState {
       errors['title'] = 'Document title must be 200 characters or less';
     }
 
+    if (issueDate == null) {
+      errors['issueDate'] = 'Issue date is required';
+    }
+
     if (issueDate != null) {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);

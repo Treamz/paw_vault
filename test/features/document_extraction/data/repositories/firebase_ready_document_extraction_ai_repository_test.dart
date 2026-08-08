@@ -5,6 +5,7 @@ import 'package:paw_vault/core/ai/data/datasources/firebase_ai_logic_data_source
 import 'package:paw_vault/core/ai/data/datasources/noop_firebase_ai_logic_data_source.dart';
 import 'package:paw_vault/features/document_extraction/data/repositories/firebase_ready_document_extraction_ai_repository.dart';
 import 'package:paw_vault/features/document_extraction/domain/entities/document_extraction_draft.dart';
+import 'package:paw_vault/features/document_extraction/domain/entities/document_page.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 
@@ -16,12 +17,21 @@ void main() {
           FirebaseReadyDocumentExtractionAiRepository(dataSource);
 
       final draft = await repository.extractDocument(
-        bytes: Uint8List.fromList([1, 2, 3]),
-        mimeType: 'application/pdf',
+        pages: [
+          DocumentPage(
+            bytes: Uint8List.fromList([1, 2, 3]),
+            mimeType: 'application/pdf',
+          ),
+          DocumentPage(
+            bytes: Uint8List.fromList([4, 5]),
+            mimeType: 'image/jpeg',
+          ),
+        ],
       );
 
-      expect(dataSource.extractMimeType, 'application/pdf');
-      expect(dataSource.extractByteCount, 3);
+      expect(dataSource.extractedPages, hasLength(2));
+      expect(dataSource.extractedPages?.first.mimeType, 'application/pdf');
+      expect(dataSource.extractedPages?.last.bytes, hasLength(2));
       expect(draft.detectedType, PetDocumentType.vaccinationCertificate);
       expect(draft.requiresConfirmation, isTrue);
     });
@@ -33,8 +43,12 @@ void main() {
       final dataSource = NoopFirebaseAiLogicDataSource();
 
       final draft = await dataSource.extractDocument(
-        bytes: Uint8List.fromList([1, 2, 3]),
-        mimeType: 'image/jpeg',
+        pages: [
+          DocumentPage(
+            bytes: Uint8List.fromList([1, 2, 3]),
+            mimeType: 'image/jpeg',
+          ),
+        ],
       );
 
       expect(draft.requiresConfirmation, isTrue);
@@ -44,16 +58,13 @@ void main() {
 }
 
 class _FakeAiDataSource implements FirebaseAiLogicDataSource {
-  String? extractMimeType;
-  int? extractByteCount;
+  List<DocumentPage>? extractedPages;
 
   @override
   Future<DocumentExtractionDraft> extractDocument({
-    required Uint8List bytes,
-    required String mimeType,
+    required List<DocumentPage> pages,
   }) async {
-    extractMimeType = mimeType;
-    extractByteCount = bytes.length;
+    extractedPages = pages;
     return const DocumentExtractionDraft(
       requiresConfirmation: true,
       detectedType: PetDocumentType.vaccinationCertificate,

@@ -113,7 +113,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Save: the photo is uploaded and its URL stored on the pet.
-    final saveButton = find.widgetWithText(ElevatedButton, 'Add Pet');
+    final saveButton = find.widgetWithText(FilledButton, 'Add Pet');
     await tester.ensureVisible(saveButton);
     await tester.tap(saveButton);
     await tester.pumpAndSettle();

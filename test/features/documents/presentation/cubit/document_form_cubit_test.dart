@@ -25,9 +25,10 @@ void main() {
 
       await cubit.createDocument(
         'pet-1',
-        const PetDocumentFormState(
+        PetDocumentFormState(
           type: PetDocumentType.passport,
           title: 'EU Pet Passport',
+          issueDate: DateTime(2024, 1, 15),
         ),
         file: _pickedFile(),
       );
@@ -57,9 +58,10 @@ void main() {
 
       await cubit.createDocument(
         'pet-1',
-        const PetDocumentFormState(
+        PetDocumentFormState(
           type: PetDocumentType.passport,
           title: 'EU Pet Passport',
+          issueDate: DateTime(2024, 1, 15),
         ),
       );
 
@@ -103,9 +105,10 @@ void main() {
 
       await cubit.createDocument(
         'pet-1',
-        const PetDocumentFormState(
+        PetDocumentFormState(
           type: PetDocumentType.passport,
           title: 'EU Pet Passport',
+          issueDate: DateTime(2024, 1, 15),
         ),
         file: _pickedFile(),
       );
@@ -127,9 +130,10 @@ void main() {
       expect(cubit.state.status, DocumentFormStatus.ready);
 
       await cubit.updateDocument(
-        const PetDocumentFormState(
+        PetDocumentFormState(
           type: PetDocumentType.insurance,
           title: 'Updated insurance',
+          issueDate: DateTime(2024, 1, 15),
         ),
       );
 
@@ -152,9 +156,10 @@ void main() {
       );
 
       await cubit.updateDocument(
-        const PetDocumentFormState(
+        PetDocumentFormState(
           type: PetDocumentType.insurance,
           title: 'Updated insurance',
+          issueDate: DateTime(2024, 1, 15),
         ),
       );
 

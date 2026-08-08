@@ -74,16 +74,22 @@ class _SmartInputViewState extends State<_SmartInputView>
       ),
       body: SafeArea(
         child: BlocConsumer<SmartInputCubit, SmartInputState>(
+          listenWhen: (previous, current) => previous.status != current.status,
           listener: (context, state) {
             if (state.status == SmartInputStatus.confirmed) {
               _controller.clear();
               _editedDraftData = null;
-              ScaffoldMessenger.of(context).showSnackBar(
+              final messenger = ScaffoldMessenger.of(context);
+              messenger.showSnackBar(
                 SnackBar(
                   content: const Text('Analysis saved to History'),
+                  duration: const Duration(seconds: 3),
                   action: SnackBarAction(
                     label: 'View',
-                    onPressed: () => _tabs.animateTo(1),
+                    onPressed: () {
+                      messenger.hideCurrentSnackBar();
+                      _tabs.animateTo(1);
+                    },
                   ),
                 ),
               );
@@ -110,20 +116,24 @@ class _SmartInputViewState extends State<_SmartInputView>
     switch (type) {
       case SmartSuggestedActionType.createTimelineEvent:
         final cubit = context.read<SmartInputCubit>();
+        final router = context.router;
         final messenger = ScaffoldMessenger.of(context);
-        final created = await cubit.createTimelineEventFromDraft(
+        final eventId = await cubit.createTimelineEventFromDraft(
           widget.petId,
           extractedData: _editedDraftData,
         );
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              created
-                  ? 'Timeline event created'
-                  : 'Could not create the timeline event',
+        if (eventId != null) {
+          // Open the new event so the user can adjust and save it.
+          await router.push(
+            TimelineEventFormRoute(petId: widget.petId, eventId: eventId),
+          );
+        } else {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Could not create the timeline event'),
             ),
-          ),
-        );
+          );
+        }
       case SmartSuggestedActionType.createReminder:
         await context.router.push(ReminderFormRoute(petId: widget.petId));
       default:
@@ -582,27 +592,14 @@ class _AddDetailDialogState extends State<_AddDetailDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Add Detail'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _valueController,
-            autofocus: true,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              labelText: widget.suggestedName,
-              hintText: 'e.g. sneezing since yesterday',
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Label',
-              helperText: 'How this detail is named',
-            ),
-          ),
-        ],
+      content: TextField(
+        controller: _valueController,
+        autofocus: true,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: InputDecoration(
+          labelText: widget.suggestedName,
+          hintText: 'e.g. sneezing since yesterday',
+        ),
       ),
       actions: [
         TextButton(
@@ -663,8 +660,20 @@ class _HistoryTab extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      subtitle: Text(formatSmartIntent(message.detectedIntent)),
-                      trailing: const Icon(Icons.chevron_right),
+                      subtitle: Text(
+                        message.createdAt != null
+                            ? DateFormat.yMMMd().add_jm().format(
+                                  message.createdAt!.value.toLocal(),
+                                )
+                            : formatSmartIntent(message.detectedIntent),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        tooltip: 'Delete analysis',
+                        onPressed: () => context
+                            .read<SmartInputCubit>()
+                            .deleteMessage(message),
+                      ),
                       onTap: () => _showDetails(context, message),
                     ),
                   ),

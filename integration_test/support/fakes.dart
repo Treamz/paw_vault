@@ -148,8 +148,14 @@ class FakeDocumentRepository implements DocumentRepository {
     required EntityId userId,
     required EntityId petId,
     required EntityId documentId,
-  }) async =>
-      null;
+  }) async {
+    for (final document in documents) {
+      if (document.id == documentId) {
+        return document;
+      }
+    }
+    return null;
+  }
 
   @override
   Future<void> saveDocument(PetDocument document) async {}

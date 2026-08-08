@@ -7,6 +7,19 @@ import 'package:paw_vault/features/documents/presentation/models/pet_document_fo
 void main() {
   group('PetDocumentFormState', () {
     test('is valid with required fields set', () {
+      final form = PetDocumentFormState(
+        type: PetDocumentType.passport,
+        title: 'EU Pet Passport',
+        issueDate: DateTime(2024, 1, 15),
+      );
+
+      final validation = form.validate();
+
+      expect(validation.isValid, isTrue);
+      expect(validation.errors, isEmpty);
+    });
+
+    test('requires an issue date', () {
       const form = PetDocumentFormState(
         type: PetDocumentType.passport,
         title: 'EU Pet Passport',
@@ -14,8 +27,8 @@ void main() {
 
       final validation = form.validate();
 
-      expect(validation.isValid, isTrue);
-      expect(validation.errors, isEmpty);
+      expect(validation.isValid, isFalse);
+      expect(validation.errorFor('issueDate'), isNotNull);
     });
 
     test('requires a type', () {
@@ -159,9 +172,10 @@ void main() {
     });
 
     test('toDocument maps empty notes to null', () {
-      const form = PetDocumentFormState(
+      final form = PetDocumentFormState(
         type: PetDocumentType.passport,
         title: 'Passport',
+        issueDate: DateTime(2024, 1, 15),
         notes: '   ',
       );
 

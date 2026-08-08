@@ -534,7 +534,7 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    ElevatedButton(
+                    FilledButton(
                       onPressed: isSaving ? null : _saveEvent,
                       child: isSaving
                           ? const SizedBox(

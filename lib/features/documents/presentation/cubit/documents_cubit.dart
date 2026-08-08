@@ -39,7 +39,15 @@ class DocumentsCubit extends Cubit<DocumentsState> {
               status: DocumentsStatus.ready,
               userId: userId,
               petId: petId,
-              documents: documents,
+              documents: [...documents]..sort((a, b) {
+                  final aTime = a.createdAt?.value ??
+                      a.issueDate?.toUtcDateTime() ??
+                      DateTime.fromMillisecondsSinceEpoch(0);
+                  final bTime = b.createdAt?.value ??
+                      b.issueDate?.toUtcDateTime() ??
+                      DateTime.fromMillisecondsSinceEpoch(0);
+                  return bTime.compareTo(aTime);
+                }),
             ),
           );
         },
