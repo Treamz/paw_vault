@@ -156,6 +156,18 @@ void main() {
     await tester.tap(find.text('By type'));
     await tester.pumpAndSettle();
 
+    // Type filter chips show only the pet's document types; selecting one
+    // narrows the list, All restores it.
+    expect(find.widgetWithText(FilterChip, 'All'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilterChip, 'Insurance'));
+    await tester.pumpAndSettle();
+    expect(find.text('Liability insurance'), findsOneWidget);
+    expect(find.text('EU Pet Passport'), findsNothing);
+    await binding.takeScreenshot('02b_documents_type_filter');
+    await tester.tap(find.widgetWithText(FilterChip, 'All'));
+    await tester.pumpAndSettle();
+    expect(find.text('EU Pet Passport'), findsOneWidget);
+
     // Tapping a document opens the read-only detail sheet, not the editor.
     await tester.tap(find.text('EU Pet Passport'));
     await tester.pumpAndSettle();
