@@ -39,12 +39,14 @@ class DocumentsCubit extends Cubit<DocumentsState> {
               status: DocumentsStatus.ready,
               userId: userId,
               petId: petId,
+              // Newest first by the document's own date, so scanned files
+              // slot in by their issue date rather than when they synced.
               documents: [...documents]..sort((a, b) {
-                  final aTime = a.createdAt?.value ??
-                      a.issueDate?.toUtcDateTime() ??
+                  final aTime = a.issueDate?.toUtcDateTime() ??
+                      a.createdAt?.value ??
                       DateTime.fromMillisecondsSinceEpoch(0);
-                  final bTime = b.createdAt?.value ??
-                      b.issueDate?.toUtcDateTime() ??
+                  final bTime = b.issueDate?.toUtcDateTime() ??
+                      b.createdAt?.value ??
                       DateTime.fromMillisecondsSinceEpoch(0);
                   return bTime.compareTo(aTime);
                 }),

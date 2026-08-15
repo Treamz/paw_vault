@@ -3,6 +3,7 @@ import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/presentation/cubit/documents_cubit.dart';
@@ -122,6 +123,36 @@ void main() {
       expect(states.last.errorMessage, contains('watch failed'));
 
       await subscription.cancel();
+      await cubit.close();
+    });
+
+    test('sorts documents newest-first by issue date', () async {
+      // A freshly scanned document (createdAt = now) with an old issue date
+      // must slot in by its issue date, not jump to the top.
+      final scannedOld = _document(
+        id: 'doc-scanned',
+        issueDate: const DateOnly(year: 2024, month: 3, day: 1),
+        createdAt: DateTime.utc(2026, 8, 15),
+      );
+      final recent = _document(
+        id: 'doc-recent',
+        issueDate: const DateOnly(year: 2026, month: 5, day: 10),
+        createdAt: DateTime.utc(2026, 5, 10),
+      );
+      final undatedNew = _document(
+        id: 'doc-undated',
+        createdAt: DateTime.utc(2026, 7),
+      );
+      final cubit = _readyCubit([scannedOld, recent, undatedNew]);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        cubit.state.documents.map((d) => d.id.value).toList(),
+        ['doc-undated', 'doc-recent', 'doc-scanned'],
+      );
+
       await cubit.close();
     });
 
@@ -275,7 +306,9 @@ DocumentsCubit _readyCubit(List<PetDocument> documents) {
 PetDocument _document({
   String id = 'document-1',
   PetDocumentType type = PetDocumentType.vaccinationCertificate,
+  DateOnly? issueDate,
   DateOnly? expiryDate,
+  DateTime? createdAt,
 }) {
   return PetDocument(
     id: EntityId(id),
@@ -285,7 +318,9 @@ PetDocument _document({
     type: type,
     fileUrl: Uri.parse('https://example.com/doc.pdf'),
     storagePath: 'users/user-1/pets/pet-1/documents/$id.pdf',
+    issueDate: issueDate,
     expiryDate: expiryDate,
+    createdAt: createdAt == null ? null : UtcDateTime(createdAt),
   );
 }
 
