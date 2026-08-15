@@ -74,6 +74,45 @@ class SmartInputCubit extends Cubit<SmartInputState> {
     }
   }
 
+  /// Creates a timeline event from a saved history [message] when the user
+  /// taps its suggested action. Returns the created event's id so the UI can
+  /// open it for editing, or null on failure.
+  Future<String?> createTimelineEventFromMessage(SmartMessage message) async {
+    final timeline = _timelineRepository;
+    if (timeline == null) {
+      return null;
+    }
+
+    try {
+      final now = DateTime.now();
+      final eventId = EntityId('${now.microsecondsSinceEpoch}-smart');
+      final description = [
+        message.originalText,
+        for (final entry in message.extractedData.entries)
+          '${entry.key}: ${entry.value}',
+      ].join('\n');
+
+      await timeline.initialize();
+      await timeline.saveEvent(
+        PetEvent(
+          id: eventId,
+          userId: message.userId,
+          petId: message.petId,
+          type: _eventTypeFor(message.detectedIntent),
+          title: _eventTitle(message.originalText),
+          description: description,
+          date: UtcDateTime(now),
+          source: PetEventSource.smartText,
+          createdAt: UtcDateTime(now),
+          updatedAt: UtcDateTime(now),
+        ),
+      );
+      return eventId.value;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Removes a confirmed analysis from the history.
   Future<void> deleteMessage(SmartMessage message) async {
     try {

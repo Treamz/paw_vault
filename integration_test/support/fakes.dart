@@ -114,11 +114,20 @@ class FakeTimelineRepository implements TimelineRepository {
     required EntityId userId,
     required EntityId petId,
     required EntityId eventId,
-  }) async =>
-      null;
+  }) async {
+    for (final event in events) {
+      if (event.id == eventId) {
+        return event;
+      }
+    }
+    return null;
+  }
 
   @override
-  Future<void> saveEvent(PetEvent event) async {}
+  Future<void> saveEvent(PetEvent event) async {
+    events.removeWhere((existing) => existing.id == event.id);
+    events.add(event);
+  }
 
   @override
   Future<void> deleteEvent({

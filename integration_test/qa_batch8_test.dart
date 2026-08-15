@@ -90,6 +90,11 @@ void main() {
           petId: petId,
           originalText: 'Bella got her rabies shot today.',
           detectedIntent: SmartMessageIntent.addVaccination,
+          suggestedActions: const [
+            SmartSuggestedAction(
+              type: SmartSuggestedActionType.createTimelineEvent,
+            ),
+          ],
           confidence: 0.9,
           status: SmartMessageStatus.confirmed,
           createdAt: UtcDateTime(DateTime.utc(2026, 7, 25, 14, 30)),
@@ -220,5 +225,17 @@ void main() {
     expect(find.textContaining('Jul 25, 2026'), findsOneWidget);
     expect(find.byTooltip('Delete analysis'), findsOneWidget);
     await binding.takeScreenshot('05_smart_input_history_date_delete');
+
+    // Suggested actions in the detail sheet are tappable: creating the
+    // event opens it for editing.
+    await tester.tap(find.text('Bella got her rabies shot today.'));
+    await tester.pumpAndSettle();
+    final actionChip = find.widgetWithText(ActionChip, 'Create timeline event');
+    expect(actionChip, findsOneWidget);
+    await binding.takeScreenshot('06_history_suggested_action_chip');
+    await tester.tap(actionChip);
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Event'), findsOneWidget);
+    await binding.takeScreenshot('07_history_action_opens_event');
   });
 }

@@ -93,10 +93,16 @@ Do not diagnose or give medical advice. Only structure what the user wrote.
     }
   }
 
+  /// Lowercases and strips separators so `create_timeline_event`,
+  /// `create-timeline-event`, and `createTimelineEvent` all match.
+  static String _normalizeName(String value) =>
+      value.toLowerCase().replaceAll(RegExp(r'[_\-\s]'), '');
+
   static SmartMessageIntent _parseIntent(String? value) {
     if (value == null) return SmartMessageIntent.unknown;
+    final normalized = _normalizeName(value);
     for (final intent in SmartMessageIntent.values) {
-      if (intent.name.toLowerCase() == value.toLowerCase()) {
+      if (_normalizeName(intent.name) == normalized) {
         return intent;
       }
     }
@@ -104,8 +110,9 @@ Do not diagnose or give medical advice. Only structure what the user wrote.
   }
 
   static SmartSuggestedActionType _parseActionType(String value) {
+    final normalized = _normalizeName(value);
     for (final type in SmartSuggestedActionType.values) {
-      if (type.name.toLowerCase() == value.toLowerCase()) {
+      if (_normalizeName(type.name) == normalized) {
         return type;
       }
     }
