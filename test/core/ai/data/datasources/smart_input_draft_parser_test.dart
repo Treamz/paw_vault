@@ -46,6 +46,27 @@ void main() {
       expect(draft.detectedIntent, SmartMessageIntent.addNote);
     });
 
+    test('accepts snake_case intent and action names', () {
+      const reply = '''
+{"intent": "add_vaccination",
+ "suggestedActions": ["create_timeline_event", "create-reminder"],
+ "confidence": 0.9}''';
+
+      final draft = FlutterFireAiLogicDataSource.parseSmartInputDraft(
+        reply,
+        originalText: 'note',
+      );
+
+      expect(draft.detectedIntent, SmartMessageIntent.addVaccination);
+      expect(
+        draft.suggestedActions.map((a) => a.type),
+        [
+          SmartSuggestedActionType.createTimelineEvent,
+          SmartSuggestedActionType.createReminder,
+        ],
+      );
+    });
+
     test('maps unknown intents and actions to unknown', () {
       const reply = '''
 {"intent": "orderPizza", "suggestedActions": ["launchRocket"],

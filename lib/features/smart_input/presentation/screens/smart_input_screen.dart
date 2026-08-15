@@ -100,7 +100,11 @@ class _SmartInputViewState extends State<_SmartInputView>
               controller: _tabs,
               children: [
                 _buildAnalyzeTab(context, state),
-                _HistoryTab(state: state),
+                _HistoryTab(
+                  state: state,
+                  onAction: (message, type) =>
+                      _handleHistoryAction(context, message, type),
+                ),
               ],
             );
           },
@@ -124,6 +128,36 @@ class _SmartInputViewState extends State<_SmartInputView>
         );
         if (eventId != null) {
           // Open the new event so the user can adjust and save it.
+          await router.push(
+            TimelineEventFormRoute(petId: widget.petId, eventId: eventId),
+          );
+        } else {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Could not create the timeline event'),
+            ),
+          );
+        }
+      case SmartSuggestedActionType.createReminder:
+        await context.router.push(ReminderFormRoute(petId: widget.petId));
+      default:
+        break;
+    }
+  }
+
+  /// Executes a suggested action from a saved history analysis.
+  Future<void> _handleHistoryAction(
+    BuildContext context,
+    SmartMessage message,
+    SmartSuggestedActionType type,
+  ) async {
+    switch (type) {
+      case SmartSuggestedActionType.createTimelineEvent:
+        final cubit = context.read<SmartInputCubit>();
+        final router = context.router;
+        final messenger = ScaffoldMessenger.of(context);
+        final eventId = await cubit.createTimelineEventFromMessage(message);
+        if (eventId != null) {
           await router.push(
             TimelineEventFormRoute(petId: widget.petId, eventId: eventId),
           );
@@ -427,15 +461,6 @@ class _DraftReviewState extends State<_DraftReview> {
     _notify();
   }
 
-  static bool _isActionable(SmartSuggestedActionType type) =>
-      type == SmartSuggestedActionType.createTimelineEvent ||
-      type == SmartSuggestedActionType.createReminder;
-
-  static IconData _actionIcon(SmartSuggestedActionType type) =>
-      type == SmartSuggestedActionType.createTimelineEvent
-          ? Icons.timeline
-          : Icons.notifications_active_outlined;
-
   bool get _isLowConfidence =>
       widget.draft.status == SmartInputDraftStatus.lowConfidenceReview ||
       (widget.draft.confidence != null && widget.draft.confidence! < 0.6);
@@ -525,9 +550,9 @@ class _DraftReviewState extends State<_DraftReview> {
                 runSpacing: 8,
                 children: [
                   for (final action in draft.suggestedActions)
-                    if (_isActionable(action.type))
+                    if (_isActionableType(action.type))
                       ActionChip(
-                        avatar: Icon(_actionIcon(action.type), size: 18),
+                        avatar: Icon(_actionTypeIcon(action.type), size: 18),
                         label: Text(formatSmartAction(action.type)),
                         onPressed: () => widget.onAction(action.type),
                       )
@@ -619,9 +644,11 @@ class _AddDetailDialogState extends State<_AddDetailDialog> {
 
 /// The dedicated History tab: every confirmed analysis with its full details.
 class _HistoryTab extends StatelessWidget {
-  const _HistoryTab({required this.state});
+  const _HistoryTab({required this.state, required this.onAction});
 
   final SmartInputState state;
+  final void Function(SmartMessage message, SmartSuggestedActionType type)
+      onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -735,14 +762,28 @@ class _HistoryTab extends StatelessWidget {
             if (message.suggestedActions.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text('Suggested actions', style: theme.textTheme.labelLarge),
-              const SizedBox(height: 4),
-              for (final action in message.suggestedActions)
-                Row(
-                  children: [
-                    const Icon(Icons.arrow_right),
-                    Expanded(child: Text(formatSmartAction(action.type))),
-                  ],
-                ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final action in message.suggestedActions)
+                    if (_isActionableType(action.type))
+                      ActionChip(
+                        avatar: Icon(_actionTypeIcon(action.type), size: 18),
+                        label: Text(formatSmartAction(action.type)),
+                        onPressed: () {
+                          Navigator.of(sheetContext).pop();
+                          onAction(message, action.type);
+                        },
+                      )
+                    else
+                      Chip(
+                        label: Text(formatSmartAction(action.type)),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                ],
+              ),
             ],
             if (message.createdAt != null) ...[
               const SizedBox(height: 12),
@@ -773,6 +814,16 @@ String formatSmartIntent(SmartMessageIntent intent) {
     SmartMessageIntent.unknown => 'Unknown',
   };
 }
+
+/// Whether tapping this suggested action performs something in the app.
+bool _isActionableType(SmartSuggestedActionType type) =>
+    type == SmartSuggestedActionType.createTimelineEvent ||
+    type == SmartSuggestedActionType.createReminder;
+
+IconData _actionTypeIcon(SmartSuggestedActionType type) =>
+    type == SmartSuggestedActionType.createTimelineEvent
+        ? Icons.timeline
+        : Icons.notifications_active_outlined;
 
 String formatSmartAction(SmartSuggestedActionType type) {
   return switch (type) {
