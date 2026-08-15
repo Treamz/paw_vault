@@ -61,18 +61,30 @@ class _PawVaultAppState extends State<PawVaultApp> {
 
     // Tapping a reminder notification opens that reminder instead of just
     // launching the app on the pet list.
-    _notificationTapSubscription =
-        widget.dependencies.reminderNotificationScheduler.taps.listen((tap) {
-      _appRouter.push(
-        ReminderFormRoute(petId: tap.petId, reminderId: tap.reminderId),
-      );
-    });
+    _notificationTapSubscription = widget
+        .dependencies.reminderNotificationScheduler.taps
+        .listen(_openTappedReminder);
 
     // Ask for App Tracking Transparency permission once the first frame is up,
     // so iOS shows the system prompt while the app is active. Required before
     // collecting any data Apple treats as tracking (Guideline 5.1.2(i)).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.dependencies.trackingAuthorizationService.requestAuthorization();
+    });
+  }
+
+  void _openTappedReminder(ReminderNotificationTap tap) {
+    final route =
+        ReminderFormRoute(petId: tap.petId, reminderId: tap.reminderId);
+    if (_appRouter.navigatorKey.currentState != null) {
+      _appRouter.push(route);
+      return;
+    }
+    // Cold start: the notification tap can arrive before the router's
+    // navigator is mounted, and a push into a missing navigator is dropped.
+    // Wait for the first frame, then navigate.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _appRouter.push(route);
     });
   }
 
