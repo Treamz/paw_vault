@@ -9,7 +9,7 @@ import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 import 'package:paw_vault/features/smart_input/presentation/cubit/smart_input_cubit.dart';
-import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
+import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
 
 @RoutePage()
 class SmartInputScreen extends StatelessWidget {
@@ -26,7 +26,6 @@ class SmartInputScreen extends StatelessWidget {
       create: (context) => SmartInputCubit(
         smartInputRepository: context.read<SmartInputRepository>(),
         authRepository: context.read<AuthRepository>(),
-        timelineRepository: context.read<TimelineRepository>(),
         analytics: context.read<AnalyticsService>(),
       )..load(petId),
       child: _SmartInputView(petId: petId),
@@ -119,25 +118,17 @@ class _SmartInputViewState extends State<_SmartInputView>
   ) async {
     switch (type) {
       case SmartSuggestedActionType.createTimelineEvent:
-        final cubit = context.read<SmartInputCubit>();
-        final router = context.router;
-        final messenger = ScaffoldMessenger.of(context);
-        final eventId = await cubit.createTimelineEventFromDraft(
-          widget.petId,
-          extractedData: _editedDraftData,
+        // Open the Add Event form pre-filled from the draft; the user
+        // creates the event themselves — nothing is saved until they do.
+        final draft = context.read<SmartInputCubit>().state.draft;
+        if (draft == null) return;
+        await context.router.push(
+          _prefilledEventRoute(
+            intent: draft.detectedIntent,
+            originalText: draft.originalText,
+            details: _editedDraftData ?? draft.extractedData,
+          ),
         );
-        if (eventId != null) {
-          // Open the new event so the user can adjust and save it.
-          await router.push(
-            TimelineEventFormRoute(petId: widget.petId, eventId: eventId),
-          );
-        } else {
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('Could not create the timeline event'),
-            ),
-          );
-        }
       case SmartSuggestedActionType.createReminder:
         await context.router.push(ReminderFormRoute(petId: widget.petId));
       default:
@@ -153,26 +144,51 @@ class _SmartInputViewState extends State<_SmartInputView>
   ) async {
     switch (type) {
       case SmartSuggestedActionType.createTimelineEvent:
-        final cubit = context.read<SmartInputCubit>();
-        final router = context.router;
-        final messenger = ScaffoldMessenger.of(context);
-        final eventId = await cubit.createTimelineEventFromMessage(message);
-        if (eventId != null) {
-          await router.push(
-            TimelineEventFormRoute(petId: widget.petId, eventId: eventId),
-          );
-        } else {
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('Could not create the timeline event'),
-            ),
-          );
-        }
+        await context.router.push(
+          _prefilledEventRoute(
+            intent: message.detectedIntent,
+            originalText: message.originalText,
+            details: message.extractedData,
+          ),
+        );
       case SmartSuggestedActionType.createReminder:
         await context.router.push(ReminderFormRoute(petId: widget.petId));
       default:
         break;
     }
+  }
+
+  /// Builds an Add Event route seeded from an analysis, mapping the detected
+  /// intent to an event type and folding the details into the description.
+  TimelineEventFormRoute _prefilledEventRoute({
+    required SmartMessageIntent intent,
+    required String originalText,
+    required Map<String, Object?> details,
+  }) {
+    final text = originalText.trim();
+    return TimelineEventFormRoute(
+      petId: widget.petId,
+      initialType: _eventTypeForIntent(intent),
+      initialTitle: text.length <= 60 ? text : '${text.substring(0, 60)}…',
+      initialDescription: [
+        originalText,
+        for (final entry in details.entries) '${entry.key}: ${entry.value}',
+      ].join('\n'),
+    );
+  }
+
+  static PetEventType _eventTypeForIntent(SmartMessageIntent intent) {
+    return switch (intent) {
+      SmartMessageIntent.addVaccination => PetEventType.vaccination,
+      SmartMessageIntent.addMedication => PetEventType.medication,
+      SmartMessageIntent.addSymptom => PetEventType.symptom,
+      SmartMessageIntent.addVetVisit => PetEventType.vetVisit,
+      SmartMessageIntent.addAllergy => PetEventType.allergy,
+      SmartMessageIntent.addReminder ||
+      SmartMessageIntent.addNote ||
+      SmartMessageIntent.unknown =>
+        PetEventType.other,
+    };
   }
 
   Widget _buildAnalyzeTab(BuildContext context, SmartInputState state) {

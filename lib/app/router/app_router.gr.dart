@@ -492,6 +492,9 @@ class TimelineEventFormRoute extends PageRouteInfo<TimelineEventFormRouteArgs> {
   TimelineEventFormRoute({
     required String petId,
     String? eventId,
+    PetEventType? initialType,
+    String? initialTitle,
+    String? initialDescription,
     Key? key,
     List<PageRouteInfo>? children,
   }) : super(
@@ -499,6 +502,9 @@ class TimelineEventFormRoute extends PageRouteInfo<TimelineEventFormRouteArgs> {
           args: TimelineEventFormRouteArgs(
             petId: petId,
             eventId: eventId,
+            initialType: initialType,
+            initialTitle: initialTitle,
+            initialDescription: initialDescription,
             key: key,
           ),
           rawPathParams: {'petId': petId},
@@ -522,6 +528,9 @@ class TimelineEventFormRoute extends PageRouteInfo<TimelineEventFormRouteArgs> {
       return TimelineEventFormScreen(
         petId: args.petId,
         eventId: args.eventId,
+        initialType: args.initialType,
+        initialTitle: args.initialTitle,
+        initialDescription: args.initialDescription,
         key: args.key,
       );
     },
@@ -532,6 +541,9 @@ class TimelineEventFormRouteArgs {
   const TimelineEventFormRouteArgs({
     required this.petId,
     this.eventId,
+    this.initialType,
+    this.initialTitle,
+    this.initialDescription,
     this.key,
   });
 
@@ -539,22 +551,39 @@ class TimelineEventFormRouteArgs {
 
   final String? eventId;
 
+  final PetEventType? initialType;
+
+  final String? initialTitle;
+
+  final String? initialDescription;
+
   final Key? key;
 
   @override
   String toString() {
-    return 'TimelineEventFormRouteArgs{petId: $petId, eventId: $eventId, key: $key}';
+    return 'TimelineEventFormRouteArgs{petId: $petId, eventId: $eventId, initialType: $initialType, initialTitle: $initialTitle, initialDescription: $initialDescription, key: $key}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! TimelineEventFormRouteArgs) return false;
-    return petId == other.petId && eventId == other.eventId && key == other.key;
+    return petId == other.petId &&
+        eventId == other.eventId &&
+        initialType == other.initialType &&
+        initialTitle == other.initialTitle &&
+        initialDescription == other.initialDescription &&
+        key == other.key;
   }
 
   @override
-  int get hashCode => petId.hashCode ^ eventId.hashCode ^ key.hashCode;
+  int get hashCode =>
+      petId.hashCode ^
+      eventId.hashCode ^
+      initialType.hashCode ^
+      initialTitle.hashCode ^
+      initialDescription.hashCode ^
+      key.hashCode;
 }
 
 /// generated route for
