@@ -40,7 +40,18 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   }
 
   Entitlements _mapEntitlements(CustomerInfo info) {
-    final entitlement = info.entitlements.active[entitlementId];
+    final active = info.entitlements.active;
+    // Match the configured id case-insensitively, then fall back to any
+    // active entitlement — the app has a single Pro tier, so an active
+    // entitlement under a differently-named id still means Pro.
+    final entitlement = active[entitlementId] ??
+        active.entries
+            .where(
+              (e) => e.key.toLowerCase() == entitlementId.toLowerCase(),
+            )
+            .map((e) => e.value)
+            .firstOrNull ??
+        active.values.firstOrNull;
     if (entitlement == null) return Entitlements.free;
     final expiry = entitlement.expirationDate;
     return Entitlements(

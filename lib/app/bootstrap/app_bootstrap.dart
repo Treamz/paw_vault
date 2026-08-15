@@ -34,8 +34,29 @@ abstract final class AppBootstrap {
       paywallPresenter: paywallPresenter,
     );
     await AnonymousAuthBootstrap.ensureSignedIn(dependencies.authRepository);
+    _bindSubscriptionIdentity(dependencies, subscriptionService);
 
     return dependencies;
+  }
+
+  /// Keeps RevenueCat logged in as the current Firebase user from app launch,
+  /// so entitlements granted to that uid are visible before the user ever
+  /// opens the Account screen.
+  static void _bindSubscriptionIdentity(
+    AppDependencies dependencies,
+    SubscriptionService subscriptionService,
+  ) {
+    dependencies.authRepository.watchCurrentUser().listen((user) {
+      if (user != null) {
+        subscriptionService.identify(
+          user.id,
+          email: user.email,
+          displayName: user.displayName,
+        );
+      } else {
+        subscriptionService.resetIdentity();
+      }
+    });
   }
 
   /// Configures RevenueCat when a public SDK key is provided via dart-define;
