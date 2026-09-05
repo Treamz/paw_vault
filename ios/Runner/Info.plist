@@ -39,6 +39,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>PawVault uses the camera so you can take a photo of your pet or photograph a pet document to add it to your records.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>PawVault does not need your location for any feature. An included analytics component can reference location APIs, so iOS requires this explanation. You can use every part of the app whether you allow location access or not.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>PawVault accesses your photos so you can pick a photo of your pet or a pet document image to add to your records.</string>
 	<key>NSUserTrackingUsageDescription</key>
