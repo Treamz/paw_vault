@@ -11,6 +11,7 @@ import 'package:paw_vault/features/pets/presentation/screens/weight_history_scre
 import 'package:paw_vault/features/reminders/presentation/screens/reminder_form_screen.dart';
 import 'package:paw_vault/features/reminders/presentation/screens/reminders_screen.dart';
 import 'package:paw_vault/features/smart_input/presentation/screens/smart_input_screen.dart';
+import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
 import 'package:paw_vault/features/timeline/presentation/screens/timeline_event_form_screen.dart';
 import 'package:paw_vault/features/timeline/presentation/screens/timeline_screen.dart';
 import 'package:paw_vault/features/vet_summary_export/presentation/screens/vet_summary_export_screen.dart';

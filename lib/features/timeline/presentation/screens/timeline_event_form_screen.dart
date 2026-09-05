@@ -17,11 +17,20 @@ class TimelineEventFormScreen extends StatelessWidget {
   const TimelineEventFormScreen({
     @PathParam('petId') required this.petId,
     @QueryParam('eventId') this.eventId,
+    this.initialType,
+    this.initialTitle,
+    this.initialDescription,
     super.key,
   });
 
   final String petId;
   final String? eventId;
+
+  /// Optional prefill for add mode — e.g. a Smart Input draft the user turns
+  /// into an event themselves. Ignored when editing an existing event.
+  final PetEventType? initialType;
+  final String? initialTitle;
+  final String? initialDescription;
 
   @override
   Widget build(BuildContext context) {
@@ -40,15 +49,28 @@ class TimelineEventFormScreen extends StatelessWidget {
         }
         return cubit;
       },
-      child: _TimelineEventFormView(isEditMode: eventId != null),
+      child: _TimelineEventFormView(
+        isEditMode: eventId != null,
+        initialType: initialType,
+        initialTitle: initialTitle,
+        initialDescription: initialDescription,
+      ),
     );
   }
 }
 
 class _TimelineEventFormView extends StatefulWidget {
-  const _TimelineEventFormView({required this.isEditMode});
+  const _TimelineEventFormView({
+    required this.isEditMode,
+    this.initialType,
+    this.initialTitle,
+    this.initialDescription,
+  });
 
   final bool isEditMode;
+  final PetEventType? initialType;
+  final String? initialTitle;
+  final String? initialDescription;
 
   @override
   State<_TimelineEventFormView> createState() => _TimelineEventFormViewState();
@@ -136,6 +158,18 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
   void initState() {
     super.initState();
     _formState = const PetEventFormState();
+    if (!widget.isEditMode) {
+      _selectedType = widget.initialType;
+      _titleController.text = widget.initialTitle ?? '';
+      _descriptionController.text = widget.initialDescription ?? '';
+      _formState = PetEventFormState(
+        type: _selectedType,
+        title: _titleController.text,
+        description: _descriptionController.text.isEmpty
+            ? null
+            : _descriptionController.text,
+      );
+    }
   }
 
   @override

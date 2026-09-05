@@ -47,8 +47,45 @@ void main() {
         find.text('Vaccination Certificate · Jan 5, 2026'),
         findsOneWidget,
       );
-      // The undated document keeps the plain type label.
-      expect(find.text('Vaccination Certificate'), findsOneWidget);
+      // The undated document keeps the plain type label on its tile (the
+      // filter chip bar also carries the type name, so scope to tiles).
+      expect(
+        find.widgetWithText(ListTile, 'Vaccination Certificate'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('filters the list to the selected document type',
+        (tester) async {
+      final passport = PetDocument(
+        id: const EntityId('doc-passport'),
+        userId: const EntityId('user-1'),
+        petId: const EntityId('pet-1'),
+        title: 'EU Pet Passport',
+        type: PetDocumentType.passport,
+        fileUrl: Uri.parse('https://example.com/passport.pdf'),
+        storagePath: 'users/user-1/pets/pet-1/documents/passport.pdf',
+      );
+
+      await tester.pumpWidget(_app([_document(), passport]));
+      await tester.pumpAndSettle();
+
+      // Chips for All + the two present types; no chip for absent types.
+      expect(find.widgetWithText(FilterChip, 'All'), findsOneWidget);
+      expect(find.widgetWithText(FilterChip, 'Passport'), findsOneWidget);
+      expect(find.widgetWithText(FilterChip, 'Insurance'), findsNothing);
+
+      await tester.tap(find.widgetWithText(FilterChip, 'Passport'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('EU Pet Passport'), findsOneWidget);
+      expect(find.text('Vaccination certificate'), findsNothing);
+
+      await tester.tap(find.widgetWithText(FilterChip, 'All'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('EU Pet Passport'), findsOneWidget);
+      expect(find.text('Vaccination certificate'), findsOneWidget);
     });
 
     testWidgets('always shows the standard type icon, even for photos',

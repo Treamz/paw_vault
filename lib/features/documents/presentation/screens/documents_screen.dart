@@ -98,9 +98,34 @@ class _DocumentsViewState extends State<_DocumentsView> {
                       message: 'Upload passports, vaccination records, and '
                           'other documents to keep them in one place.',
                     )
-                  : _DocumentsContent(
-                      documents: _sorted(state.documents),
-                      petId: state.petId!,
+                  : Column(
+                      children: [
+                        _TypeFilterBar(
+                          documents: state.documents,
+                          selected: state.filterType,
+                          onSelected: (type) {
+                            final cubit = context.read<DocumentsCubit>();
+                            if (type == null) {
+                              cubit.clearFilters();
+                            } else {
+                              cubit.setTypeFilter(type);
+                            }
+                          },
+                        ),
+                        Expanded(
+                          child: state.filteredDocuments.isEmpty
+                              ? const EmptyStateView(
+                                  icon: Icons.filter_alt_off_outlined,
+                                  title: 'No documents of this type',
+                                  message: 'Pick another type or All to see '
+                                      'the rest of the documents.',
+                                )
+                              : _DocumentsContent(
+                                  documents: _sorted(state.filteredDocuments),
+                                  petId: state.petId!,
+                                ),
+                        ),
+                      ],
                     ),
             };
           },
@@ -118,6 +143,49 @@ class _DocumentsViewState extends State<_DocumentsView> {
             label: const Text('Add document'),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Horizontal chips to show only one document type; only types the pet
+/// actually has are offered.
+class _TypeFilterBar extends StatelessWidget {
+  const _TypeFilterBar({
+    required this.documents,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<PetDocument> documents;
+  final PetDocumentType? selected;
+  final ValueChanged<PetDocumentType?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final types = PetDocumentType.values
+        .where((type) => documents.any((document) => document.type == type))
+        .toList();
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Row(
+        children: [
+          FilterChip(
+            label: const Text('All'),
+            selected: selected == null,
+            onSelected: (_) => onSelected(null),
+          ),
+          for (final type in types) ...[
+            const SizedBox(width: 8),
+            FilterChip(
+              label: Text(_formatDocumentType(type)),
+              selected: selected == type,
+              onSelected: (isSelected) => onSelected(isSelected ? type : null),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -308,19 +376,19 @@ class _DocumentsContent extends StatelessWidget {
       PetDocumentType.other => Icons.description,
     };
   }
+}
 
-  String _formatDocumentType(PetDocumentType type) {
-    return switch (type) {
-      PetDocumentType.passport => 'Passport',
-      PetDocumentType.vaccinationCertificate => 'Vaccination Certificate',
-      PetDocumentType.insurance => 'Insurance',
-      PetDocumentType.labResult => 'Lab Result',
-      PetDocumentType.prescription => 'Prescription',
-      PetDocumentType.receipt => 'Receipt',
-      PetDocumentType.vetReport => 'Vet Report',
-      PetDocumentType.other => 'Other',
-    };
-  }
+String _formatDocumentType(PetDocumentType type) {
+  return switch (type) {
+    PetDocumentType.passport => 'Passport',
+    PetDocumentType.vaccinationCertificate => 'Vaccination Certificate',
+    PetDocumentType.insurance => 'Insurance',
+    PetDocumentType.labResult => 'Lab Result',
+    PetDocumentType.prescription => 'Prescription',
+    PetDocumentType.receipt => 'Receipt',
+    PetDocumentType.vetReport => 'Vet Report',
+    PetDocumentType.other => 'Other',
+  };
 }
 
 class _ExpiryLabel extends StatelessWidget {

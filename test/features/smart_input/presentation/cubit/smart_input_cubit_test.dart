@@ -6,8 +6,6 @@ import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 import 'package:paw_vault/features/smart_input/presentation/cubit/smart_input_cubit.dart';
-import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
-import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
 
 void main() {
   group('SmartInputCubit', () {
@@ -165,98 +163,15 @@ void main() {
 
       await cubit.close();
     });
-
-    test('createTimelineEventFromMessage saves an event and returns its id',
-        () async {
-      final timeline = _FakeTimelineRepository();
-      final cubit = _cubit(
-        _FakeSmartInputRepository(draft: _draft()),
-        timelineRepository: timeline,
-      );
-
-      const message = SmartMessage(
-        id: EntityId('msg-1'),
-        userId: EntityId('user-1'),
-        petId: EntityId('pet-1'),
-        originalText: 'Bella got her rabies shot today',
-        detectedIntent: SmartMessageIntent.addVaccination,
-        extractedData: {'vaccine': 'rabies'},
-        confidence: 0.92,
-        status: SmartMessageStatus.confirmed,
-      );
-
-      final eventId = await cubit.createTimelineEventFromMessage(message);
-
-      expect(eventId, isNotNull);
-      final saved = timeline.savedEvent;
-      expect(saved, isNotNull);
-      expect(saved!.id.value, eventId);
-      expect(saved.petId, const EntityId('pet-1'));
-      expect(saved.userId, const EntityId('user-1'));
-      expect(saved.type, PetEventType.vaccination);
-      expect(saved.source, PetEventSource.smartText);
-      expect(saved.description, contains('vaccine: rabies'));
-
-      await cubit.close();
-    });
-
-    test('createTimelineEventFromMessage returns null without a repository',
-        () async {
-      final cubit = _cubit(_FakeSmartInputRepository(draft: _draft()));
-
-      final eventId = await cubit.createTimelineEventFromMessage(_message());
-
-      expect(eventId, isNull);
-
-      await cubit.close();
-    });
   });
 }
 
-class _FakeTimelineRepository implements TimelineRepository {
-  PetEvent? savedEvent;
-
-  @override
-  Future<void> initialize() async {}
-
-  @override
-  Future<void> saveEvent(PetEvent event) async {
-    savedEvent = event;
-  }
-
-  @override
-  Future<PetEvent?> getEvent({
-    required EntityId userId,
-    required EntityId petId,
-    required EntityId eventId,
-  }) async =>
-      null;
-
-  @override
-  Future<void> deleteEvent({
-    required EntityId userId,
-    required EntityId petId,
-    required EntityId eventId,
-  }) async {}
-
-  @override
-  Stream<List<PetEvent>> watchEvents({
-    required EntityId userId,
-    required EntityId petId,
-  }) =>
-      const Stream<List<PetEvent>>.empty();
-}
-
-SmartInputCubit _cubit(
-  _FakeSmartInputRepository repository, {
-  TimelineRepository? timelineRepository,
-}) {
+SmartInputCubit _cubit(_FakeSmartInputRepository repository) {
   return SmartInputCubit(
     smartInputRepository: repository,
     authRepository: _FakeAuthRepository(
       currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
     ),
-    timelineRepository: timelineRepository,
   );
 }
 

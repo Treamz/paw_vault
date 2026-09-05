@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
@@ -15,7 +16,24 @@ class LocalReminderNotificationScheduler
 
   final FlutterLocalNotificationsPlugin _plugin;
   bool _initialized = false;
-  final _taps = StreamController<ReminderNotificationTap>.broadcast();
+
+  /// A tap that arrived before anyone listened (e.g. the notification
+  /// launched the app and init finished before the UI subscribed). Held and
+  /// replayed to the first listener so it is never lost.
+  ReminderNotificationTap? _pendingTap;
+  late final StreamController<ReminderNotificationTap> _taps =
+      StreamController<ReminderNotificationTap>.broadcast(
+    onListen: _flushPendingTap,
+  );
+
+  void _flushPendingTap() {
+    final pending = _pendingTap;
+    if (pending == null) {
+      return;
+    }
+    _pendingTap = null;
+    _taps.add(pending);
+  }
 
   static const _channelId = 'pawvault_reminders';
   static const _channelName = 'Reminders';
@@ -30,18 +48,21 @@ class LocalReminderNotificationScheduler
         iOS: DarwinInitializationSettings(),
       ),
       onDidReceiveNotificationResponse: (response) =>
-          _emitTap(response.payload),
+          handleNotificationPayload(response.payload),
     );
     _initialized = true;
 
     // When a notification launched the app, surface that tap as well.
     final launchDetails = await _plugin.getNotificationAppLaunchDetails();
     if (launchDetails?.didNotificationLaunchApp ?? false) {
-      _emitTap(launchDetails?.notificationResponse?.payload);
+      handleNotificationPayload(launchDetails?.notificationResponse?.payload);
     }
   }
 
-  void _emitTap(String? payload) {
+  /// Parses a notification payload and delivers the tap. If nothing is
+  /// listening yet the tap is buffered for the first listener.
+  @visibleForTesting
+  void handleNotificationPayload(String? payload) {
     if (payload == null) {
       return;
     }
@@ -49,7 +70,12 @@ class LocalReminderNotificationScheduler
     if (parts.length != 2 || parts[0].isEmpty || parts[1].isEmpty) {
       return;
     }
-    _taps.add(ReminderNotificationTap(petId: parts[0], reminderId: parts[1]));
+    final tap = ReminderNotificationTap(petId: parts[0], reminderId: parts[1]);
+    if (_taps.hasListener) {
+      _taps.add(tap);
+    } else {
+      _pendingTap = tap;
+    }
   }
 
   @override

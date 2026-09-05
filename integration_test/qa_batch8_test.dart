@@ -156,6 +156,18 @@ void main() {
     await tester.tap(find.text('By type'));
     await tester.pumpAndSettle();
 
+    // Type filter chips show only the pet's document types; selecting one
+    // narrows the list, All restores it.
+    expect(find.widgetWithText(FilterChip, 'All'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilterChip, 'Insurance'));
+    await tester.pumpAndSettle();
+    expect(find.text('Liability insurance'), findsOneWidget);
+    expect(find.text('EU Pet Passport'), findsNothing);
+    await binding.takeScreenshot('02b_documents_type_filter');
+    await tester.tap(find.widgetWithText(FilterChip, 'All'));
+    await tester.pumpAndSettle();
+    expect(find.text('EU Pet Passport'), findsOneWidget);
+
     // Tapping a document opens the read-only detail sheet, not the editor.
     await tester.tap(find.text('EU Pet Passport'));
     await tester.pumpAndSettle();
@@ -226,8 +238,8 @@ void main() {
     expect(find.byTooltip('Delete analysis'), findsOneWidget);
     await binding.takeScreenshot('05_smart_input_history_date_delete');
 
-    // Suggested actions in the detail sheet are tappable: creating the
-    // event opens it for editing.
+    // Suggested actions in the detail sheet are tappable: the chip opens a
+    // pre-filled Add Event form so the user creates the event themselves.
     await tester.tap(find.text('Bella got her rabies shot today.'));
     await tester.pumpAndSettle();
     final actionChip = find.widgetWithText(ActionChip, 'Create timeline event');
@@ -235,7 +247,11 @@ void main() {
     await binding.takeScreenshot('06_history_suggested_action_chip');
     await tester.tap(actionChip);
     await tester.pumpAndSettle();
-    expect(find.text('Edit Event'), findsOneWidget);
-    await binding.takeScreenshot('07_history_action_opens_event');
+    expect(find.text('Add Event'), findsWidgets);
+    expect(
+      find.widgetWithText(TextFormField, 'Bella got her rabies shot today.'),
+      findsWidgets,
+    );
+    await binding.takeScreenshot('07_history_action_opens_event_form');
   });
 }
