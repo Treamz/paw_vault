@@ -51,6 +51,7 @@ class FirebaseAccountDeletionService implements AccountDeletionService {
         FirestorePaths.documents(userId: uid, petId: petId),
         FirestorePaths.reminders(userId: uid, petId: petId),
         FirestorePaths.smartMessages(userId: uid, petId: petId),
+        FirestorePaths.pawChecks(userId: uid, petId: petId),
         FirestorePaths.vetSummaryExports(userId: uid, petId: petId),
       ];
       for (final path in subcollections) {

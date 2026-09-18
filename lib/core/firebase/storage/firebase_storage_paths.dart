@@ -16,6 +16,17 @@ abstract final class FirebaseStoragePaths {
     return 'users/$userId/pets/$petId/documents/$documentId/scan.jpg';
   }
 
+  /// One object per photo. The picker always re-encodes to JPEG, so there is
+  /// no extension to vary.
+  static String pawCheckPhoto({
+    required String userId,
+    required String petId,
+    required String checkId,
+    required String photoId,
+  }) {
+    return 'users/$userId/pets/$petId/pawChecks/$checkId/$photoId.jpg';
+  }
+
   static String profilePhoto({
     required String userId,
     required String petId,

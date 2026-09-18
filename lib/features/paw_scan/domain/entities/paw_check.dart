@@ -5,7 +5,11 @@ import 'package:paw_vault/features/paw_scan/domain/entities/paw_location.dart';
 
 /// A paw check may only exist in the archive once the owner has confirmed it.
 /// The Firebase repository rejects anything else, mirroring smart messages.
-enum PawCheckStatus { confirmed }
+///
+/// [draft] is the default so that reaching the archive takes a deliberate
+/// `status: PawCheckStatus.confirmed`; a check assembled carelessly is
+/// rejected rather than silently saved.
+enum PawCheckStatus { draft, confirmed }
 
 /// A confirmed, dated paw check in a pet's journal.
 class PawCheck {
@@ -23,7 +27,7 @@ class PawCheck {
     this.ownerNote,
     this.includeInVetSummary = false,
     this.confidence = 0,
-    this.status = PawCheckStatus.confirmed,
+    this.status = PawCheckStatus.draft,
     this.createdAt,
     this.updatedAt,
   });

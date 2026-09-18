@@ -328,14 +328,14 @@
   `responseSchema` and a safety-hardened system instruction, plus a static
   `parsePawScanDraft` that degrades to `undetermined` (never "nothing notable")
   and always runs the safety filter. Add the no-op implementation.
-- [ ] Add `pawChecks` to the account-deletion subcollection allowlist in
+- [x] Add `pawChecks` to the account-deletion subcollection allowlist in
   `FirebaseAccountDeletionService` so deleted accounts leave no paw checks
   behind. (`weightEntries` is missing there too — tracked separately.)
-- [ ] Add the Paw Scan AI repository adapters (Firebase-ready + no-op) and the
+- [x] Add the Paw Scan AI repository adapters (Firebase-ready + no-op) and the
   `PawPhotoPicker` implementation that downscales via `image_picker`.
-- [ ] Add the `pawChecks` Firestore path, the `pawCheckPhoto` Storage path, the
+- [x] Add the `pawChecks` Firestore path, the `pawCheckPhoto` Storage path, the
   `PawCheckFirestoreMapper` with round-trip tests, and the `PawPhotoUploadService`.
-- [ ] Implement the Paw Check data layer: data source interface, Firestore data
+- [x] Implement the Paw Check data layer: data source interface, Firestore data
   source, Firebase repository (enforcing the confirmed-before-save invariant),
   and the local repository, with tests.
 - [ ] Implement `PawScanCubit`: capture, analyze, review, retake, confirm,

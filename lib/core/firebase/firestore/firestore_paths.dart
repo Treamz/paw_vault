@@ -24,6 +24,13 @@ abstract final class FirestorePaths {
     return '${pet(userId: userId, petId: petId)}/documents';
   }
 
+  static String pawChecks({
+    required String userId,
+    required String petId,
+  }) {
+    return '${pet(userId: userId, petId: petId)}/pawChecks';
+  }
+
   static String reminders({
     required String userId,
     required String petId,
