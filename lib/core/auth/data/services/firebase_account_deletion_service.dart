@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:paw_vault/core/auth/domain/services/account_deletion_service.dart';
 import 'package:paw_vault/core/firebase/firestore/firestore_paths.dart';
 
@@ -46,20 +47,25 @@ class FirebaseAccountDeletionService implements AccountDeletionService {
     final pets = await _firestore.collection(FirestorePaths.pets(uid)).get();
     for (final pet in pets.docs) {
       final petId = pet.id;
-      final subcollections = [
-        FirestorePaths.events(userId: uid, petId: petId),
-        FirestorePaths.documents(userId: uid, petId: petId),
-        FirestorePaths.reminders(userId: uid, petId: petId),
-        FirestorePaths.smartMessages(userId: uid, petId: petId),
-        FirestorePaths.pawChecks(userId: uid, petId: petId),
-        FirestorePaths.vetSummaryExports(userId: uid, petId: petId),
-      ];
-      for (final path in subcollections) {
+      for (final path in petSubcollectionPaths(uid: uid, petId: petId)) {
         await _deleteCollection(_firestore.collection(path));
       }
       await pet.reference.delete();
     }
     await _firestore.doc(FirestorePaths.user(uid)).delete();
+  }
+
+  /// The per-pet collections this service deletes.
+  ///
+  /// Derived from [FirestorePaths.petSubcollections] rather than listed here,
+  /// so a new feature's collection cannot be silently left behind. Exposed so
+  /// the deletion plan is assertable without a Firestore instance.
+  @visibleForTesting
+  static List<String> petSubcollectionPaths({
+    required String uid,
+    required String petId,
+  }) {
+    return FirestorePaths.petSubcollections(userId: uid, petId: petId);
   }
 
   Future<void> _deleteCollection(
