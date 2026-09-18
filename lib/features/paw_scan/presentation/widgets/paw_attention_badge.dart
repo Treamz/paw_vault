@@ -64,12 +64,17 @@ class PawAttentionBadge extends StatelessWidget {
           children: [
             Icon(style.icon, size: 16, color: style.foreground),
             const SizedBox(width: 6),
-            Text(
-              label,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelLarge
-                  ?.copyWith(color: style.foreground),
+            // The longest label ("Worth showing a vet soon") does not fit on
+            // one line in a narrow column, so let it wrap rather than
+            // overflow.
+            Flexible(
+              child: Text(
+                label,
+                style: Theme.of(context)
+                    .textTheme
+                    .labelLarge
+                    ?.copyWith(color: style.foreground),
+              ),
             ),
           ],
         ),

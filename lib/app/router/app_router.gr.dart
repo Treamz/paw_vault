@@ -201,6 +201,69 @@ class DocumentsRouteArgs {
 }
 
 /// generated route for
+/// [PawCheckComparisonScreen]
+class PawCheckComparisonRoute
+    extends PageRouteInfo<PawCheckComparisonRouteArgs> {
+  PawCheckComparisonRoute({
+    required PawCheck earlier,
+    required PawCheck later,
+    Key? key,
+    List<PageRouteInfo>? children,
+  }) : super(
+          PawCheckComparisonRoute.name,
+          args: PawCheckComparisonRouteArgs(
+            earlier: earlier,
+            later: later,
+            key: key,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'PawCheckComparisonRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<PawCheckComparisonRouteArgs>();
+      return PawCheckComparisonScreen(
+        earlier: args.earlier,
+        later: args.later,
+        key: args.key,
+      );
+    },
+  );
+}
+
+class PawCheckComparisonRouteArgs {
+  const PawCheckComparisonRouteArgs({
+    required this.earlier,
+    required this.later,
+    this.key,
+  });
+
+  final PawCheck earlier;
+
+  final PawCheck later;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'PawCheckComparisonRouteArgs{earlier: $earlier, later: $later, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! PawCheckComparisonRouteArgs) return false;
+    return earlier == other.earlier && later == other.later && key == other.key;
+  }
+
+  @override
+  int get hashCode => earlier.hashCode ^ later.hashCode ^ key.hashCode;
+}
+
+/// generated route for
 /// [PawScanScreen]
 class PawScanRoute extends PageRouteInfo<PawScanRouteArgs> {
   PawScanRoute({required String petId, Key? key, List<PageRouteInfo>? children})

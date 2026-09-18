@@ -342,7 +342,7 @@
   dismiss, delete, and the watched journal, with fake-repository tests.
 - [x] Add the Paw Scan screen (Scan + Journal tabs), the non-dismissible
   disclaimer, the attention badge, and the retake prompt, with widget tests.
-- [ ] Add the paw check comparison screen (before/after for the same paw).
+- [x] Add the paw check comparison screen (before/after for the same paw).
 - [x] Add `PawScanReminderSuggestion`: deterministic, on-device follow-up
   timing per attention level (the model must not author advice), with tests.
 - [x] Wire the follow-up reminder suggestion into the existing reminder form

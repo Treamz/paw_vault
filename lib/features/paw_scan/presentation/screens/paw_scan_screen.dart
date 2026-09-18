@@ -578,20 +578,36 @@ class _JournalTab extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               itemCount: state.checks.length,
               separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _PawCheckTile(
-                check: state.checks[index],
-                petName: petName,
-              ),
+              itemBuilder: (context, index) {
+                final check = state.checks[index];
+                return _PawCheckTile(
+                  check: check,
+                  petName: petName,
+                  // Checks are newest first, so the comparison target is the
+                  // next one down that is the same paw.
+                  previousForSamePaw: state.checks
+                      .skip(index + 1)
+                      .where((other) => other.location == check.location)
+                      .firstOrNull,
+                );
+              },
             ),
     };
   }
 }
 
 class _PawCheckTile extends StatelessWidget {
-  const _PawCheckTile({required this.check, required this.petName});
+  const _PawCheckTile({
+    required this.check,
+    required this.petName,
+    this.previousForSamePaw,
+  });
 
   final PawCheck check;
   final String petName;
+
+  /// The most recent earlier check of the same paw, when there is one.
+  final PawCheck? previousForSamePaw;
 
   @override
   Widget build(BuildContext context) {
@@ -653,6 +669,17 @@ class _PawCheckTile extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
+                if (previousForSamePaw != null)
+                  IconButton(
+                    tooltip: 'Compare with the previous check of this paw',
+                    icon: const Icon(Icons.compare_arrows),
+                    onPressed: () => context.router.push(
+                      PawCheckComparisonRoute(
+                        earlier: previousForSamePaw!,
+                        later: check,
+                      ),
+                    ),
+                  ),
                 if (suggestion != null)
                   TextButton.icon(
                     onPressed: () => context.router.push(
