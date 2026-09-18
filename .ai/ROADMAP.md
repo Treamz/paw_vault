@@ -125,3 +125,40 @@ Design:
   setup tasks; the code is built behind the port and testable with the no-op.
 - Reuse the analytics port to log paywall and purchase events. No personal or
   medical data is sent to RevenueCat — only the uid.
+
+## Phase 15: Paw Scan
+
+Add a camera-based "Paw Scan" feature: the owner photographs their pet's paw and
+the app returns **descriptive observations plus an attention level**, never a
+diagnosis. Behind the existing AI draft/confirm architecture.
+
+Safety model (decided 2026-09-18) — this is the defining constraint:
+
+- "Is everything OK?" about a body part is a veterinary assessment, which
+  `AGENTS.md` forbids. Paw Scan therefore ships as a **non-diagnostic
+  observation and triage aid**, not an assessment.
+- Gemini returns visual observations only ("a dark area near the centre of the
+  main pad") plus one of four attention levels: nothing notable, keep an eye on
+  it, worth showing a vet soon, contact a vet promptly. It must never name or
+  imply a condition, and never suggest treatment.
+- A hard client-side `PawScanSafetyFilter` scrubs condition and treatment
+  language from model output. It may only ever *raise* an attention level, never
+  lower one: if the model named something, the signal stays.
+- Failures and unusable photos degrade to `undetermined`, never to "nothing
+  notable" — a health signal must never be fabricated from an error. The
+  local-first no-op returns `unusablePhoto` for the same reason.
+- A non-dismissible disclaimer sits on the capture and result screens, and in
+  the vet summary PDF section.
+
+Design:
+
+- First use of `responseSchema` (`Schema.object`) in the app, so the
+  safety-critical attention level is a closed enum the model cannot improvise.
+- The durable value is the **paw journal**: dated, photo-backed checks per pet
+  with before/after comparison — what an owner actually shows a vet.
+- Photos are uploaded to Storage **only after the user confirms**, so discarded
+  scans leave nothing behind.
+- AI-suggested **follow-up reminder drafts** pre-fill the real reminder form;
+  nothing is scheduled until the user saves it. Checks opted into the vet
+  summary render as a section in the exported PDF.
+- Pro-gated, consistent with Smart Input.

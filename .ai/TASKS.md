@@ -310,3 +310,45 @@
   document the setup (docs/MONETIZATION.md).
 - [x] Run a Phase 14 architecture boundary review to confirm widgets/Cubits use
   the subscription port and never the RevenueCat SDK directly.
+
+## Phase 15: Paw Scan
+
+- [x] Add Phase 15 roadmap entry and actionable task checklist.
+- [x] Add Paw Scan domain entities and enums: `PawAttentionLevel`,
+  `PawLocation`, `PawObservation`/`PawObservationArea`, `PawScanDraft`
+  (transient, with `PawScanPhotoQuality` + `PawScanDraftStatus`), and the
+  persisted `PawCheck`, with value-object tests.
+- [x] Add `PawScanSafetyFilter` (pure Dart) that scrubs diagnostic and
+  treatment language from model output, may only raise an attention level, and
+  flags the draft low-confidence when it fires. Heavily tested.
+- [ ] Add `PawScanAiRepository` and `PawCheckRepository` domain contracts plus
+  the `PawPhotoPicker` port.
+- [ ] Extend `FirebaseAiLogicDataSource` with `analyzePaw(...)`; implement it in
+  `FlutterFireAiLogicDataSource` using a dedicated model factory with
+  `responseSchema` and a safety-hardened system instruction, plus a static
+  `parsePawScanDraft` that degrades to `undetermined` (never "nothing notable")
+  and always runs the safety filter. Add the no-op implementation.
+- [ ] Add the Paw Scan AI repository adapters (Firebase-ready + no-op) and the
+  `PawPhotoPicker` implementation that downscales via `image_picker`.
+- [ ] Add the `pawChecks` Firestore path, the `pawCheckPhoto` Storage path, the
+  `PawCheckFirestoreMapper` with round-trip tests, and the `PawPhotoUploadService`.
+- [ ] Implement the Paw Check data layer: data source interface, Firestore data
+  source, Firebase repository (enforcing the confirmed-before-save invariant),
+  and the local repository, with tests.
+- [ ] Implement `PawScanCubit`: capture, analyze, review, retake, confirm,
+  dismiss, delete, and the watched journal, with fake-repository tests.
+- [ ] Add the Paw Scan screen (Scan + Journal tabs), the non-dismissible
+  disclaimer, the attention badge, the retake prompt, and the paw check
+  comparison screen, with widget tests.
+- [ ] Wire the follow-up reminder suggestion into the existing reminder form
+  route (pre-filled, saved only by the user).
+- [ ] Include opted-in paw checks in `VetSummaryData` and render a "Paw checks"
+  section with its disclaimer in the exported PDF.
+- [ ] Wire Paw Scan through `AppDependencies`, `app.dart` providers, the router,
+  the pet profile records card (Pro-gated), and analytics events.
+- [ ] Add `docs/PAW_SCAN.md` documenting the safety model, the prompt, the filter
+  lexicon, and the App Review notes; update the README feature list.
+- [ ] Add an integration test covering capture -> analyze -> confirm -> journal.
+- [ ] Run a Phase 15 architecture boundary review to confirm widgets/Cubits use
+  ports and repositories and never touch Firebase AI, Firestore, or Storage SDKs
+  directly.
