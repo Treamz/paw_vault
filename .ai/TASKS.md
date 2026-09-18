@@ -338,11 +338,13 @@
 - [x] Implement the Paw Check data layer: data source interface, Firestore data
   source, Firebase repository (enforcing the confirmed-before-save invariant),
   and the local repository, with tests.
-- [ ] Implement `PawScanCubit`: capture, analyze, review, retake, confirm,
+- [x] Implement `PawScanCubit`: capture, analyze, review, retake, confirm,
   dismiss, delete, and the watched journal, with fake-repository tests.
 - [ ] Add the Paw Scan screen (Scan + Journal tabs), the non-dismissible
   disclaimer, the attention badge, the retake prompt, and the paw check
   comparison screen, with widget tests.
+- [x] Add `PawScanReminderSuggestion`: deterministic, on-device follow-up
+  timing per attention level (the model must not author advice), with tests.
 - [ ] Wire the follow-up reminder suggestion into the existing reminder form
   route (pre-filled, saved only by the user).
 - [ ] Include opted-in paw checks in `VetSummaryData` and render a "Paw checks"

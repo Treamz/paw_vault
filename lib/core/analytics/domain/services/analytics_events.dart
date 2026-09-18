@@ -11,6 +11,23 @@ abstract final class AnalyticsEvents {
   static const smartInputUsed = 'smart_input_used';
   static const vetSummaryExported = 'vet_summary_exported';
 
+  /// A paw scan produced a reviewable result; pair with
+  /// [AnalyticsParams.level] and [AnalyticsParams.photoCount].
+  static const pawScanAnalyzed = 'paw_scan_analyzed';
+
+  /// A paw scan was rejected before any verdict was shown (not a paw, photo
+  /// unusable, or the model refused); pair with [AnalyticsParams.type].
+  static const pawScanRejected = 'paw_scan_rejected';
+
+  /// The safety filter had to rewrite model output. A rise here means the
+  /// prompt or the model has drifted and is worth treating as an alarm, not a
+  /// statistic.
+  static const pawScanFiltered = 'paw_scan_filtered';
+
+  /// The owner confirmed a paw check into the journal; pair with
+  /// [AnalyticsParams.level].
+  static const pawCheckLogged = 'paw_check_logged';
+
   /// Firebase's recommended sign-in event; pair with [AnalyticsParams.method].
   static const login = 'login';
 
@@ -23,4 +40,10 @@ abstract final class AnalyticsParams {
   static const type = 'type';
   static const method = 'method';
   static const product = 'product';
+
+  /// A [PawAttentionLevel] name. Safe to send: it is a fixed bucket, not
+  /// content — observation text is never logged.
+  static const level = 'level';
+
+  static const photoCount = 'photo_count';
 }
