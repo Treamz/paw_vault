@@ -20,6 +20,9 @@ import 'package:paw_vault/features/document_extraction/domain/services/document_
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
+import 'package:paw_vault/features/paw_scan/domain/repositories/paw_check_repository.dart';
+import 'package:paw_vault/features/paw_scan/domain/repositories/paw_scan_ai_repository.dart';
+import 'package:paw_vault/features/paw_scan/domain/services/paw_photo_picker.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/pets/domain/repositories/weight_entry_repository.dart';
 import 'package:paw_vault/features/pets/domain/services/pet_photo_picker.dart';
@@ -151,6 +154,15 @@ class _PawVaultAppState extends State<PawVaultApp> {
         ),
         RepositoryProvider<AiRepository>.value(
           value: widget.dependencies.aiRepository,
+        ),
+        RepositoryProvider<PawCheckRepository>.value(
+          value: widget.dependencies.pawCheckRepository,
+        ),
+        RepositoryProvider<PawScanAiRepository>.value(
+          value: widget.dependencies.pawScanAiRepository,
+        ),
+        RepositoryProvider<PawPhotoPicker>.value(
+          value: widget.dependencies.pawPhotoPicker,
         ),
         RepositoryProvider<SmartInputRepository>.value(
           value: widget.dependencies.smartInputRepository,

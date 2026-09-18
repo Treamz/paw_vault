@@ -7,6 +7,9 @@ import 'package:paw_vault/features/document_extraction/data/repositories/firebas
 import 'package:paw_vault/features/document_extraction/domain/entities/document_extraction_draft.dart';
 import 'package:paw_vault/features/document_extraction/domain/entities/document_page.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_location.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_photo.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_scan_draft.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 
 void main() {
@@ -79,6 +82,15 @@ class _FakeAiDataSource implements FirebaseAiLogicDataSource {
 
   @override
   Future<SmartInputDraft> structureUserInput(String input) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<PawScanDraft> analyzePaw({
+    required List<PawPhoto> photos,
+    required PawLocation location,
+    String? speciesLabel,
+  }) async {
     throw UnimplementedError();
   }
 }

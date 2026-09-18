@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_attention_level.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_check.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_location.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
@@ -24,6 +27,12 @@ void main() {
 
       expect(withEvent.hasRecords, isTrue);
       expect(withReminder.hasRecords, isTrue);
+    });
+
+    test('hasRecords is true with only paw checks', () {
+      final data = VetSummaryData(pet: _pet(), pawChecks: [_pawCheck()]);
+
+      expect(data.hasRecords, isTrue);
     });
   });
 }
@@ -55,5 +64,18 @@ Reminder _reminder() {
     petId: const EntityId('pet-1'),
     title: 'Check-up',
     dateTime: UtcDateTime(DateTime.utc(2026, 2)),
+  );
+}
+
+PawCheck _pawCheck() {
+  return PawCheck(
+    id: const EntityId('check-1'),
+    userId: const EntityId('user-1'),
+    petId: const EntityId('pet-1'),
+    location: PawLocation.frontLeft,
+    attentionLevel: PawAttentionLevel.monitor,
+    checkedAt: UtcDateTime(DateTime.utc(2026, 9, 18)),
+    includeInVetSummary: true,
+    status: PawCheckStatus.confirmed,
   );
 }

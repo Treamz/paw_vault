@@ -310,3 +310,80 @@
   document the setup (docs/MONETIZATION.md).
 - [x] Run a Phase 14 architecture boundary review to confirm widgets/Cubits use
   the subscription port and never the RevenueCat SDK directly.
+
+## Phase 15: Paw Scan
+
+- [x] Add Phase 15 roadmap entry and actionable task checklist.
+- [x] Add Paw Scan domain entities and enums: `PawAttentionLevel`,
+  `PawLocation`, `PawObservation`/`PawObservationArea`, `PawScanDraft`
+  (transient, with `PawScanPhotoQuality` + `PawScanDraftStatus`), and the
+  persisted `PawCheck`, with value-object tests.
+- [x] Add `PawScanSafetyFilter` (pure Dart) that scrubs diagnostic and
+  treatment language from model output, may only raise an attention level, and
+  flags the draft low-confidence when it fires. Heavily tested.
+- [x] Add `PawScanAiRepository` and `PawCheckRepository` domain contracts plus
+  the `PawPhotoPicker` port.
+- [x] Extend `FirebaseAiLogicDataSource` with `analyzePaw(...)`; implement it in
+  `FlutterFireAiLogicDataSource` using a dedicated model factory with
+  `responseSchema` and a safety-hardened system instruction, plus a static
+  `parsePawScanDraft` that degrades to `undetermined` (never "nothing notable")
+  and always runs the safety filter. Add the no-op implementation.
+- [x] Add `pawChecks` to the account-deletion subcollection allowlist in
+  `FirebaseAccountDeletionService` so deleted accounts leave no paw checks
+  behind. (`weightEntries` is missing there too — tracked separately.)
+- [x] Add the Paw Scan AI repository adapters (Firebase-ready + no-op) and the
+  `PawPhotoPicker` implementation that downscales via `image_picker`.
+- [x] Add the `pawChecks` Firestore path, the `pawCheckPhoto` Storage path, the
+  `PawCheckFirestoreMapper` with round-trip tests, and the `PawPhotoUploadService`.
+- [x] Implement the Paw Check data layer: data source interface, Firestore data
+  source, Firebase repository (enforcing the confirmed-before-save invariant),
+  and the local repository, with tests.
+- [x] Implement `PawScanCubit`: capture, analyze, review, retake, confirm,
+  dismiss, delete, and the watched journal, with fake-repository tests.
+- [x] Add the Paw Scan screen (Scan + Journal tabs), the non-dismissible
+  disclaimer, the attention badge, and the retake prompt, with widget tests.
+- [x] Add the paw check comparison screen (before/after for the same paw).
+- [x] Add `PawScanReminderSuggestion`: deterministic, on-device follow-up
+  timing per attention level (the model must not author advice), with tests.
+- [x] Wire the follow-up reminder suggestion into the existing reminder form
+  route (pre-filled, saved only by the user).
+- [x] Include opted-in paw checks in `VetSummaryData` and render a "Paw checks"
+  section with its disclaimer in the exported PDF.
+- [x] Wire Paw Scan through `AppDependencies`, `app.dart` providers, the router,
+  the pet profile records card (Pro-gated), and analytics events.
+- [x] Add `docs/PAW_SCAN.md` documenting the safety model, the prompt, the filter
+  lexicon, and the App Review notes; update the README feature list.
+- [~] Add an integration test covering capture -> analyze -> confirm -> journal.
+  Written (`integration_test/paw_scan_flow_test.dart`, 3 cases: confirm saves,
+  discard writes nothing, a non-paw photo shows no attention level) and it
+  compiles and analyzes clean, but it has **not been executed**: on this machine
+  `flutter test integration_test/...` hangs after installing on the iOS 26
+  simulator (app installed, zero CPU, no output) rather than attaching to the
+  VM service. Run it on a working device/simulator before relying on it.
+- [x] Run a Phase 15 architecture boundary review to confirm widgets/Cubits use
+  ports and repositories and never touch Firebase AI, Firestore, or Storage SDKs
+  directly. Verified: nothing under `paw_scan/presentation` or
+  `paw_scan/domain` imports a Firebase/image_picker SDK; the only SDK
+  touchpoints are `flutter_fire_paw_check_data_source.dart` and
+  `paw_photo_picker_impl.dart`; no cubit or widget imports `paw_scan/data`;
+  and `app_dependencies.dart` is the sole composition point.
+
+## Dev tooling
+
+- [x] Add `DevSeeder` and a debug-only `--dart-define=PAWVAULT_SEED=true` path
+  that fills a signed-in account with `SampleData` (pets, timeline, documents,
+  reminders, smart input history, paw checks, weight history), keyed to the
+  real uid and skipped when the account already has pets. Documented in
+  `docs/TEST_ACCOUNT.md`.
+
+## Phase 15 follow-ups
+
+- [x] Make Paw Scan capture camera-first: one tap to the camera (no
+  source-picker sheet), "Choose from gallery" beside it, the paw selector shown
+  only once a photo exists, and the action emphasis moving to Describe once
+  there are photos (back to the camera after a rejection).
+- [ ] Add a "Report this result" action to the Paw Scan result and journal
+  screens (a prefilled `mailto:` via the existing `url_launcher`). Google
+  Play's GenAI policy requires an in-app way to report offensive AI output.
+  `PawScanCopy.reportResult` was removed as dead code when the camera-first
+  change landed; reintroduce it with the action.

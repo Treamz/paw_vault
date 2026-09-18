@@ -131,11 +131,11 @@ PawVault starts working immediately with no account required. When you choose to
 
 PAWVAULT PRO
 
-Upgrade to Pro for unlimited pets and the AI features (Smart Input and document scanning). Pro is an annual subscription with a free trial; the core record-keeping features are free.
+Upgrade to Pro for unlimited pets and the AI features (Smart Input, document scanning, and Paw Scan). Pro is an annual subscription with a free trial; the core record-keeping features are free.
 
 A NOTE ON AI
 
-The AI features in PawVault only organize information you provide into editable drafts. You always review and confirm before anything is saved. PawVault helps you keep records — it does not diagnose conditions, give medical or veterinary advice, or replace your veterinarian. Always consult a qualified vet for health decisions.
+The AI features in PawVault turn what you give it into editable drafts you review before anything is saved. Paw Scan describes what is visible in a photo of your pet's paw and nothing more — it does not tell you what something is. PawVault helps you keep records: it does not diagnose conditions, give medical or veterinary advice, or replace your veterinarian. Always consult a qualified vet for health decisions.
 
 Bring order to your pet's health records. Download PawVault and build your pet's complete health archive today.
 ```
@@ -204,3 +204,20 @@ heavy, swap primary to Lifestyle and keep Medical secondary.)
 - **Subtitle:** Vaccine tracker & vet records (29)
 - **Keywords:** `dog,cat,medical,history,reminder,passport,insurance,document,scanner,pdf,puppy,kitten,care,log,breed` (100)
 - **Category:** Medical / Lifestyle · 4+
+
+## Claim audit (required before every submission)
+
+Health-adjacent AI features attract extra App Review scrutiny, and one wrong
+verb in a screenshot caption is enough for a rejection. Before submitting,
+check the description, subtitle, keywords, promotional text, screenshot
+captions, and App Preview copy for these words:
+
+**Never use:** diagnose, diagnosis, detect, identify, check for, screen for,
+spot (a condition), vet-approved, AI vet, veterinary advice, treatment.
+
+**Use instead:** describe, observe, record, log, compare over time, keep track.
+
+Paw Scan in particular must always be described as *describing what is visible*
+and never as *finding*, *detecting*, or *identifying* anything. The feature's
+full safety model is in `docs/PAW_SCAN.md`, which also holds the App Review
+notes to paste into App Store Connect.

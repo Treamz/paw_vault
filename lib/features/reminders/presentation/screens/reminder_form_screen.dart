@@ -15,11 +15,24 @@ class ReminderFormScreen extends StatelessWidget {
   const ReminderFormScreen({
     @PathParam('petId') required this.petId,
     @QueryParam('reminderId') this.reminderId,
+    this.initialTitle,
+    this.initialDescription,
+    this.initialDateTimeIso,
     super.key,
   });
 
   final String petId;
   final String? reminderId;
+
+  /// Pre-filled values for a suggested reminder (for example a Paw Scan
+  /// follow-up). Only used when adding; ignored when editing an existing
+  /// reminder. Nothing is scheduled until the owner saves the form.
+  final String? initialTitle;
+  final String? initialDescription;
+
+  /// ISO-8601, because AutoRoute only round-trips primitives through query
+  /// parameters.
+  final String? initialDateTimeIso;
 
   @override
   Widget build(BuildContext context) {
@@ -39,16 +52,30 @@ class ReminderFormScreen extends StatelessWidget {
       child: _ReminderFormView(
         petId: petId,
         isEditMode: reminderId != null,
+        initialTitle: initialTitle,
+        initialDescription: initialDescription,
+        initialDateTime: reminderId == null && initialDateTimeIso != null
+            ? DateTime.tryParse(initialDateTimeIso!)?.toLocal()
+            : null,
       ),
     );
   }
 }
 
 class _ReminderFormView extends StatefulWidget {
-  const _ReminderFormView({required this.petId, required this.isEditMode});
+  const _ReminderFormView({
+    required this.petId,
+    required this.isEditMode,
+    this.initialTitle,
+    this.initialDescription,
+    this.initialDateTime,
+  });
 
   final String petId;
   final bool isEditMode;
+  final String? initialTitle;
+  final String? initialDescription;
+  final DateTime? initialDateTime;
 
   @override
   State<_ReminderFormView> createState() => _ReminderFormViewState();
@@ -66,6 +93,16 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
   bool _submitted = false;
   bool _deleteRequested = false;
   bool _completeRequested = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.isEditMode) {
+      _titleController.text = widget.initialTitle ?? '';
+      _descriptionController.text = widget.initialDescription ?? '';
+      _dateTime = widget.initialDateTime;
+    }
+  }
 
   @override
   void dispose() {

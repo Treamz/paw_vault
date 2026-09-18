@@ -159,6 +159,7 @@ void main() {
               timelineRepository: timeline,
               documentRepository: documents,
               reminderRepository: reminders,
+              pawCheckRepository: FakePawCheckRepository(),
             ),
           ),
         ],

@@ -317,6 +317,7 @@ class _PetProfileView extends StatelessWidget {
       (Icons.folder, 'Documents', DocumentsRoute(petId: petId), false),
       (Icons.notifications, 'Reminders', RemindersRoute(petId: petId), false),
       (Icons.bolt, 'Smart Input', SmartInputRoute(petId: petId), true),
+      (Icons.pets, 'Paw Scan', PawScanRoute(petId: petId), true),
       (
         Icons.summarize,
         'Vet Summary Export',

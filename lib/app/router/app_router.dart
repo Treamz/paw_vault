@@ -4,6 +4,9 @@ import 'package:paw_vault/features/account/presentation/screens/account_screen.d
 import 'package:paw_vault/features/document_extraction/presentation/screens/document_extraction_screen.dart';
 import 'package:paw_vault/features/documents/presentation/screens/document_form_screen.dart';
 import 'package:paw_vault/features/documents/presentation/screens/documents_screen.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_check.dart';
+import 'package:paw_vault/features/paw_scan/presentation/screens/paw_check_comparison_screen.dart';
+import 'package:paw_vault/features/paw_scan/presentation/screens/paw_scan_screen.dart';
 import 'package:paw_vault/features/pets/presentation/screens/pet_form_screen.dart';
 import 'package:paw_vault/features/pets/presentation/screens/pet_list_screen.dart';
 import 'package:paw_vault/features/pets/presentation/screens/pet_profile_screen.dart';
@@ -47,6 +50,11 @@ class AppRouter extends RootStackRouter {
           path: '/pets/:petId/reminders/form',
         ),
         AutoRoute(page: SmartInputRoute.page, path: '/pets/:petId/smart-input'),
+        AutoRoute(page: PawScanRoute.page, path: '/pets/:petId/paw-scan'),
+        AutoRoute(
+          page: PawCheckComparisonRoute.page,
+          path: '/pets/:petId/paw-scan-compare',
+        ),
         AutoRoute(
           page: VetSummaryExportRoute.page,
           path: '/pets/:petId/vet-summary-export',

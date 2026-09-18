@@ -1,7 +1,10 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:paw_vault/core/auth/application/anonymous_auth_bootstrap.dart';
+import 'package:paw_vault/core/dev/dev_seeder.dart';
 import 'package:paw_vault/core/di/app_dependencies.dart';
+import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/firebase/firebase_app_initializer.dart';
 import 'package:paw_vault/core/firebase/firebase_instances.dart';
 import 'package:paw_vault/core/firebase/firestore/firestore_offline_configurator.dart';
@@ -35,8 +38,59 @@ abstract final class AppBootstrap {
     );
     await AnonymousAuthBootstrap.ensureSignedIn(dependencies.authRepository);
     _bindSubscriptionIdentity(dependencies, subscriptionService);
+    _seedWhenSignedIn(dependencies);
 
     return dependencies;
+  }
+
+  /// Fills an empty account with sample data in debug builds when
+  /// `--dart-define=PAWVAULT_SEED=true` is passed. See `docs/TEST_ACCOUNT.md`.
+  ///
+  /// Follows the auth stream rather than seeding once at launch. The app starts
+  /// anonymous and only later signs in, and signing into an account that
+  /// already exists yields a *different* uid — so a one-shot seed at launch
+  /// would fill the anonymous account and leave the one you logged into empty.
+  ///
+  /// [DevSeeder.seedIfEmpty] is idempotent, so re-firing on every auth change
+  /// is harmless.
+  static void _seedWhenSignedIn(AppDependencies dependencies) {
+    if (!DevSeeder.isEnabled) {
+      return;
+    }
+
+    final seeder = DevSeeder(
+      petRepository: dependencies.petRepository,
+      timelineRepository: dependencies.timelineRepository,
+      documentRepository: dependencies.documentRepository,
+      reminderRepository: dependencies.reminderRepository,
+      smartInputRepository: dependencies.smartInputRepository,
+      pawCheckRepository: dependencies.pawCheckRepository,
+      weightEntryRepository: dependencies.weightEntryRepository,
+    );
+
+    var seeding = false;
+
+    dependencies.authRepository.watchCurrentUser().listen((user) async {
+      if (user == null || seeding) {
+        return;
+      }
+
+      seeding = true;
+      try {
+        final seeded = await seeder.seedIfEmpty(EntityId(user.id));
+        debugPrint(
+          seeded
+              ? 'Dev seeding: sample data written for ${user.id}.'
+              : 'Dev seeding: ${user.id} already has pets, skipped.',
+        );
+      } catch (error, stackTrace) {
+        // Best effort: a seeding failure must not stop the app from running,
+        // or a bad dev flag would look like a broken build.
+        debugPrint('Dev seeding failed: $error\n$stackTrace');
+      } finally {
+        seeding = false;
+      }
+    });
   }
 
   /// Keeps RevenueCat logged in as the current Firebase user from app launch,

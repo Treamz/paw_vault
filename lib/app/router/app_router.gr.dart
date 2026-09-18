@@ -201,6 +201,117 @@ class DocumentsRouteArgs {
 }
 
 /// generated route for
+/// [PawCheckComparisonScreen]
+class PawCheckComparisonRoute
+    extends PageRouteInfo<PawCheckComparisonRouteArgs> {
+  PawCheckComparisonRoute({
+    required PawCheck earlier,
+    required PawCheck later,
+    Key? key,
+    List<PageRouteInfo>? children,
+  }) : super(
+          PawCheckComparisonRoute.name,
+          args: PawCheckComparisonRouteArgs(
+            earlier: earlier,
+            later: later,
+            key: key,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'PawCheckComparisonRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<PawCheckComparisonRouteArgs>();
+      return PawCheckComparisonScreen(
+        earlier: args.earlier,
+        later: args.later,
+        key: args.key,
+      );
+    },
+  );
+}
+
+class PawCheckComparisonRouteArgs {
+  const PawCheckComparisonRouteArgs({
+    required this.earlier,
+    required this.later,
+    this.key,
+  });
+
+  final PawCheck earlier;
+
+  final PawCheck later;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'PawCheckComparisonRouteArgs{earlier: $earlier, later: $later, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! PawCheckComparisonRouteArgs) return false;
+    return earlier == other.earlier && later == other.later && key == other.key;
+  }
+
+  @override
+  int get hashCode => earlier.hashCode ^ later.hashCode ^ key.hashCode;
+}
+
+/// generated route for
+/// [PawScanScreen]
+class PawScanRoute extends PageRouteInfo<PawScanRouteArgs> {
+  PawScanRoute({required String petId, Key? key, List<PageRouteInfo>? children})
+      : super(
+          PawScanRoute.name,
+          args: PawScanRouteArgs(petId: petId, key: key),
+          rawPathParams: {'petId': petId},
+          initialChildren: children,
+        );
+
+  static const String name = 'PawScanRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final args = data.argsAs<PawScanRouteArgs>(
+        orElse: () => PawScanRouteArgs(petId: pathParams.getString('petId')),
+      );
+      return PawScanScreen(petId: args.petId, key: args.key);
+    },
+  );
+}
+
+class PawScanRouteArgs {
+  const PawScanRouteArgs({required this.petId, this.key});
+
+  final String petId;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'PawScanRouteArgs{petId: $petId, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! PawScanRouteArgs) return false;
+    return petId == other.petId && key == other.key;
+  }
+
+  @override
+  int get hashCode => petId.hashCode ^ key.hashCode;
+}
+
+/// generated route for
 /// [PetFormScreen]
 class PetFormRoute extends PageRouteInfo<PetFormRouteArgs> {
   PetFormRoute({String? petId, Key? key, List<PageRouteInfo>? children})
@@ -321,6 +432,9 @@ class ReminderFormRoute extends PageRouteInfo<ReminderFormRouteArgs> {
   ReminderFormRoute({
     required String petId,
     String? reminderId,
+    String? initialTitle,
+    String? initialDescription,
+    String? initialDateTimeIso,
     Key? key,
     List<PageRouteInfo>? children,
   }) : super(
@@ -328,6 +442,9 @@ class ReminderFormRoute extends PageRouteInfo<ReminderFormRouteArgs> {
           args: ReminderFormRouteArgs(
             petId: petId,
             reminderId: reminderId,
+            initialTitle: initialTitle,
+            initialDescription: initialDescription,
+            initialDateTimeIso: initialDateTimeIso,
             key: key,
           ),
           rawPathParams: {'petId': petId},
@@ -351,6 +468,9 @@ class ReminderFormRoute extends PageRouteInfo<ReminderFormRouteArgs> {
       return ReminderFormScreen(
         petId: args.petId,
         reminderId: args.reminderId,
+        initialTitle: args.initialTitle,
+        initialDescription: args.initialDescription,
+        initialDateTimeIso: args.initialDateTimeIso,
         key: args.key,
       );
     },
@@ -358,17 +478,30 @@ class ReminderFormRoute extends PageRouteInfo<ReminderFormRouteArgs> {
 }
 
 class ReminderFormRouteArgs {
-  const ReminderFormRouteArgs({required this.petId, this.reminderId, this.key});
+  const ReminderFormRouteArgs({
+    required this.petId,
+    this.reminderId,
+    this.initialTitle,
+    this.initialDescription,
+    this.initialDateTimeIso,
+    this.key,
+  });
 
   final String petId;
 
   final String? reminderId;
 
+  final String? initialTitle;
+
+  final String? initialDescription;
+
+  final String? initialDateTimeIso;
+
   final Key? key;
 
   @override
   String toString() {
-    return 'ReminderFormRouteArgs{petId: $petId, reminderId: $reminderId, key: $key}';
+    return 'ReminderFormRouteArgs{petId: $petId, reminderId: $reminderId, initialTitle: $initialTitle, initialDescription: $initialDescription, initialDateTimeIso: $initialDateTimeIso, key: $key}';
   }
 
   @override
@@ -377,11 +510,20 @@ class ReminderFormRouteArgs {
     if (other is! ReminderFormRouteArgs) return false;
     return petId == other.petId &&
         reminderId == other.reminderId &&
+        initialTitle == other.initialTitle &&
+        initialDescription == other.initialDescription &&
+        initialDateTimeIso == other.initialDateTimeIso &&
         key == other.key;
   }
 
   @override
-  int get hashCode => petId.hashCode ^ reminderId.hashCode ^ key.hashCode;
+  int get hashCode =>
+      petId.hashCode ^
+      reminderId.hashCode ^
+      initialTitle.hashCode ^
+      initialDescription.hashCode ^
+      initialDateTimeIso.hashCode ^
+      key.hashCode;
 }
 
 /// generated route for

@@ -10,6 +10,14 @@ import 'package:paw_vault/core/storage/domain/entities/storage_file.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
+import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_check.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_location.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_photo.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_scan_draft.dart';
+import 'package:paw_vault/features/paw_scan/domain/repositories/paw_check_repository.dart';
+import 'package:paw_vault/features/paw_scan/domain/repositories/paw_scan_ai_repository.dart';
+import 'package:paw_vault/features/paw_scan/domain/services/paw_photo_picker.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
@@ -315,4 +323,77 @@ class FakePdfShareService implements PdfShareService {
     required Uint8List bytes,
     required String fileName,
   }) async {}
+}
+
+class FakePawCheckRepository implements PawCheckRepository {
+  FakePawCheckRepository([List<PawCheck>? checks]) : checks = [...?checks];
+
+  final List<PawCheck> checks;
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Stream<List<PawCheck>> watchChecks({
+    required EntityId userId,
+    required EntityId petId,
+  }) =>
+      Stream<List<PawCheck>>.value(checks);
+
+  @override
+  Future<PawCheck?> getCheck({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId checkId,
+  }) async =>
+      null;
+
+  @override
+  Future<void> saveCheck(PawCheck check) async {
+    checks.add(check);
+  }
+
+  @override
+  Future<void> deleteCheck({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId checkId,
+  }) async {
+    checks.removeWhere((check) => check.id == checkId);
+  }
+}
+
+class FakePawScanAiRepository implements PawScanAiRepository {
+  FakePawScanAiRepository(this.draft);
+
+  final PawScanDraft draft;
+  int analyzeCallCount = 0;
+
+  @override
+  Future<PawScanDraft> analyzePaw({
+    required List<PawPhoto> photos,
+    required PawLocation location,
+    String? speciesLabel,
+  }) async {
+    analyzeCallCount++;
+    return draft;
+  }
+}
+
+class FakePawPhotoPicker implements PawPhotoPicker {
+  FakePawPhotoPicker(this.file);
+
+  final PickedFile? file;
+
+  /// The source the screen last asked for, so a test can assert that one tap
+  /// means the camera.
+  PawPhotoSource? lastSource;
+  int pickCallCount = 0;
+
+  @override
+  Future<PickedFile?> pick(PawPhotoSource source) async {
+    pickCallCount++;
+    lastSource = source;
+    return file;
+  }
 }
