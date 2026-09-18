@@ -345,7 +345,7 @@
 - [ ] Add the paw check comparison screen (before/after for the same paw).
 - [x] Add `PawScanReminderSuggestion`: deterministic, on-device follow-up
   timing per attention level (the model must not author advice), with tests.
-- [ ] Wire the follow-up reminder suggestion into the existing reminder form
+- [x] Wire the follow-up reminder suggestion into the existing reminder form
   route (pre-filled, saved only by the user).
 - [ ] Include opted-in paw checks in `VetSummaryData` and render a "Paw checks"
   section with its disclaimer in the exported PDF.

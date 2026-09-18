@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
@@ -13,10 +14,12 @@ import 'package:paw_vault/features/paw_scan/domain/entities/paw_scan_draft.dart'
 import 'package:paw_vault/features/paw_scan/domain/repositories/paw_check_repository.dart';
 import 'package:paw_vault/features/paw_scan/domain/repositories/paw_scan_ai_repository.dart';
 import 'package:paw_vault/features/paw_scan/domain/services/paw_photo_picker.dart';
+import 'package:paw_vault/features/paw_scan/domain/services/paw_scan_reminder_suggestion.dart';
 import 'package:paw_vault/features/paw_scan/presentation/cubit/paw_scan_cubit.dart';
 import 'package:paw_vault/features/paw_scan/presentation/models/paw_scan_labels.dart';
 import 'package:paw_vault/features/paw_scan/presentation/widgets/paw_attention_badge.dart';
 import 'package:paw_vault/features/paw_scan/presentation/widgets/paw_scan_disclaimer.dart';
+import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 
 @RoutePage()
 class PawScanScreen extends StatelessWidget {
@@ -33,6 +36,7 @@ class PawScanScreen extends StatelessWidget {
       create: (context) => PawScanCubit(
         pawCheckRepository: context.read<PawCheckRepository>(),
         aiRepository: context.read<PawScanAiRepository>(),
+        petRepository: context.read<PetRepository>(),
         picker: context.read<PawPhotoPicker>(),
         authRepository: context.read<AuthRepository>(),
         uploadService: PawPhotoUploadService(
@@ -129,7 +133,7 @@ class _PawScanViewState extends State<_PawScanView>
             controller: _tabController,
             children: [
               _buildScanTab(context, state),
-              _JournalTab(petId: widget.petId, state: state),
+              _JournalTab(state: state, petName: state.petName),
             ],
           );
         },
@@ -550,10 +554,10 @@ class _ErrorBanner extends StatelessWidget {
 }
 
 class _JournalTab extends StatelessWidget {
-  const _JournalTab({required this.petId, required this.state});
+  const _JournalTab({required this.state, required this.petName});
 
-  final String petId;
   final PawScanState state;
+  final String petName;
 
   @override
   Widget build(BuildContext context) {
@@ -576,6 +580,7 @@ class _JournalTab extends StatelessWidget {
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) => _PawCheckTile(
                 check: state.checks[index],
+                petName: petName,
               ),
             ),
     };
@@ -583,14 +588,22 @@ class _JournalTab extends StatelessWidget {
 }
 
 class _PawCheckTile extends StatelessWidget {
-  const _PawCheckTile({required this.check});
+  const _PawCheckTile({required this.check, required this.petName});
 
   final PawCheck check;
+  final String petName;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final date = DateFormat.yMMMd().format(check.checkedAt.value.toLocal());
+    // Computed on-device from the attention level, then handed to the real
+    // reminder form: nothing is scheduled until the owner saves it.
+    final suggestion = PawScanReminderSuggestion.forCheck(
+      check,
+      petName: petName,
+      now: DateTime.now(),
+    );
 
     return Card(
       key: ValueKey('paw-check-${check.id.value}'),
@@ -637,6 +650,20 @@ class _PawCheckTile extends StatelessWidget {
                     ),
                   ),
                 const Spacer(),
+                if (suggestion != null)
+                  TextButton.icon(
+                    onPressed: () => context.router.push(
+                      ReminderFormRoute(
+                        petId: check.petId.value,
+                        initialTitle: suggestion.title,
+                        initialDescription: suggestion.description,
+                        initialDateTimeIso:
+                            suggestion.dateTime.toIso8601String(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.alarm_add_outlined),
+                    label: const Text('Follow up'),
+                  ),
                 IconButton(
                   tooltip: 'Delete this check',
                   icon: const Icon(Icons.delete_outline),

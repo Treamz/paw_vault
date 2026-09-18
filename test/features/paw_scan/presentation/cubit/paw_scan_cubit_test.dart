@@ -21,6 +21,8 @@ import 'package:paw_vault/features/paw_scan/domain/repositories/paw_check_reposi
 import 'package:paw_vault/features/paw_scan/domain/repositories/paw_scan_ai_repository.dart';
 import 'package:paw_vault/features/paw_scan/domain/services/paw_photo_picker.dart';
 import 'package:paw_vault/features/paw_scan/presentation/cubit/paw_scan_cubit.dart';
+import 'package:paw_vault/features/pets/domain/entities/pet.dart';
+import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 
 PickedFile _picked() => PickedFile(
       bytes: Uint8List.fromList(const [1, 2, 3]),
@@ -83,6 +85,7 @@ PawCheck _check({
     cubit: PawScanCubit(
       pawCheckRepository: repository,
       aiRepository: ai,
+      petRepository: _FakePetRepository(),
       picker: picker,
       authRepository: _FakeAuthRepository(),
       uploadService: PawPhotoUploadService(storageRepository: storage),
@@ -182,6 +185,36 @@ void main() {
       await t.cubit.analyze();
 
       expect(t.ai.receivedLocation, PawLocation.rearRight);
+      await t.cubit.close();
+    });
+
+    test('sends the pet\'s species as context by default', () async {
+      // A cat's paw does not look like a dog's, and the pet record already
+      // knows which this is.
+      final t = _build();
+      t.picker.next = _picked();
+      await t.cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+      await t.cubit.addPhoto(PawPhotoSource.camera);
+      t.ai.next = _reviewDraft();
+
+      await t.cubit.analyze();
+
+      expect(t.ai.receivedSpecies, 'dog');
+      await t.cubit.close();
+    });
+
+    test('an explicit species overrides the pet record', () async {
+      final t = _build();
+      t.picker.next = _picked();
+      await t.cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+      await t.cubit.addPhoto(PawPhotoSource.camera);
+      t.ai.next = _reviewDraft();
+
+      await t.cubit.analyze(speciesLabel: 'cat');
+
+      expect(t.ai.receivedSpecies, 'cat');
       await t.cubit.close();
     });
 
@@ -403,6 +436,24 @@ void main() {
       await t.cubit.close();
     });
 
+    test('loads the pet so the follow-up reminder can name it', () async {
+      final t = _build();
+
+      await t.cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(t.cubit.state.pet?.name, 'Bella');
+      expect(t.cubit.state.petName, 'Bella');
+      await t.cubit.close();
+    });
+
+    test('falls back to a neutral pet name when there is no pet', () async {
+      final t = _build();
+
+      expect(t.cubit.state.petName, 'your pet');
+      await t.cubit.close();
+    });
+
     test('a stream error only affects the journal', () async {
       final t = _build();
       t.repository.throwsOnWatch = true;
@@ -563,6 +614,36 @@ class _FakePawCheckRepository implements PawCheckRepository {
   }) async {
     deletedCheckId = checkId;
   }
+}
+
+class _FakePetRepository implements PetRepository {
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Stream<List<Pet>> watchPets(EntityId userId) => Stream.value(const []);
+
+  @override
+  Future<Pet?> getPet({
+    required EntityId userId,
+    required EntityId petId,
+  }) async {
+    return Pet(
+      id: petId,
+      userId: userId,
+      name: 'Bella',
+      species: 'dog',
+    );
+  }
+
+  @override
+  Future<void> savePet(Pet pet) async {}
+
+  @override
+  Future<void> deletePet({
+    required EntityId userId,
+    required EntityId petId,
+  }) async {}
 }
 
 class _FakePawScanAiRepository implements PawScanAiRepository {

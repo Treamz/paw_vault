@@ -25,6 +25,8 @@ import 'package:paw_vault/features/paw_scan/domain/services/paw_photo_picker.dar
 import 'package:paw_vault/features/paw_scan/presentation/models/paw_scan_labels.dart';
 import 'package:paw_vault/features/paw_scan/presentation/screens/paw_scan_screen.dart';
 import 'package:paw_vault/features/paw_scan/presentation/widgets/paw_scan_disclaimer.dart';
+import 'package:paw_vault/features/pets/domain/entities/pet.dart';
+import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 
 /// A real 1x1 PNG: the photo strip decodes the bytes, so a placeholder list
 /// would fail the image codec rather than the assertion under test.
@@ -64,6 +66,7 @@ Widget _app({
         value: repository ?? _FakePawCheckRepository(),
       ),
       RepositoryProvider<PawScanAiRepository>.value(value: ai),
+      RepositoryProvider<PetRepository>.value(value: _FakePetRepository()),
       RepositoryProvider<PawPhotoPicker>.value(
         value: picker ?? _FakePawPhotoPicker(),
       ),
@@ -331,6 +334,31 @@ class _FakePawCheckRepository implements PawCheckRepository {
     required EntityId userId,
     required EntityId petId,
     required EntityId checkId,
+  }) async {}
+}
+
+class _FakePetRepository implements PetRepository {
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Stream<List<Pet>> watchPets(EntityId userId) => Stream.value(const []);
+
+  @override
+  Future<Pet?> getPet({
+    required EntityId userId,
+    required EntityId petId,
+  }) async {
+    return Pet(id: petId, userId: userId, name: 'Bella', species: 'dog');
+  }
+
+  @override
+  Future<void> savePet(Pet pet) async {}
+
+  @override
+  Future<void> deletePet({
+    required EntityId userId,
+    required EntityId petId,
   }) async {}
 }
 

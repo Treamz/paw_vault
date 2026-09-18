@@ -369,6 +369,9 @@ class ReminderFormRoute extends PageRouteInfo<ReminderFormRouteArgs> {
   ReminderFormRoute({
     required String petId,
     String? reminderId,
+    String? initialTitle,
+    String? initialDescription,
+    String? initialDateTimeIso,
     Key? key,
     List<PageRouteInfo>? children,
   }) : super(
@@ -376,6 +379,9 @@ class ReminderFormRoute extends PageRouteInfo<ReminderFormRouteArgs> {
           args: ReminderFormRouteArgs(
             petId: petId,
             reminderId: reminderId,
+            initialTitle: initialTitle,
+            initialDescription: initialDescription,
+            initialDateTimeIso: initialDateTimeIso,
             key: key,
           ),
           rawPathParams: {'petId': petId},
@@ -399,6 +405,9 @@ class ReminderFormRoute extends PageRouteInfo<ReminderFormRouteArgs> {
       return ReminderFormScreen(
         petId: args.petId,
         reminderId: args.reminderId,
+        initialTitle: args.initialTitle,
+        initialDescription: args.initialDescription,
+        initialDateTimeIso: args.initialDateTimeIso,
         key: args.key,
       );
     },
@@ -406,17 +415,30 @@ class ReminderFormRoute extends PageRouteInfo<ReminderFormRouteArgs> {
 }
 
 class ReminderFormRouteArgs {
-  const ReminderFormRouteArgs({required this.petId, this.reminderId, this.key});
+  const ReminderFormRouteArgs({
+    required this.petId,
+    this.reminderId,
+    this.initialTitle,
+    this.initialDescription,
+    this.initialDateTimeIso,
+    this.key,
+  });
 
   final String petId;
 
   final String? reminderId;
 
+  final String? initialTitle;
+
+  final String? initialDescription;
+
+  final String? initialDateTimeIso;
+
   final Key? key;
 
   @override
   String toString() {
-    return 'ReminderFormRouteArgs{petId: $petId, reminderId: $reminderId, key: $key}';
+    return 'ReminderFormRouteArgs{petId: $petId, reminderId: $reminderId, initialTitle: $initialTitle, initialDescription: $initialDescription, initialDateTimeIso: $initialDateTimeIso, key: $key}';
   }
 
   @override
@@ -425,11 +447,20 @@ class ReminderFormRouteArgs {
     if (other is! ReminderFormRouteArgs) return false;
     return petId == other.petId &&
         reminderId == other.reminderId &&
+        initialTitle == other.initialTitle &&
+        initialDescription == other.initialDescription &&
+        initialDateTimeIso == other.initialDateTimeIso &&
         key == other.key;
   }
 
   @override
-  int get hashCode => petId.hashCode ^ reminderId.hashCode ^ key.hashCode;
+  int get hashCode =>
+      petId.hashCode ^
+      reminderId.hashCode ^
+      initialTitle.hashCode ^
+      initialDescription.hashCode ^
+      initialDateTimeIso.hashCode ^
+      key.hashCode;
 }
 
 /// generated route for

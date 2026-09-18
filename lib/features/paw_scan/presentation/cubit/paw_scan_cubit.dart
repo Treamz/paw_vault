@@ -16,6 +16,8 @@ import 'package:paw_vault/features/paw_scan/domain/entities/paw_scan_draft.dart'
 import 'package:paw_vault/features/paw_scan/domain/repositories/paw_check_repository.dart';
 import 'package:paw_vault/features/paw_scan/domain/repositories/paw_scan_ai_repository.dart';
 import 'package:paw_vault/features/paw_scan/domain/services/paw_photo_picker.dart';
+import 'package:paw_vault/features/pets/domain/entities/pet.dart';
+import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 
 /// The most photos one scan may carry — one per paw.
 const kMaxPawScanPhotos = 4;
@@ -49,6 +51,7 @@ class PawScanState {
     this.checks = const [],
     this.journalError,
     this.loggedCheckId,
+    this.pet,
   });
 
   final PawScanStatus status;
@@ -72,6 +75,13 @@ class PawScanState {
 
   /// Set once the draft has been written, which unlocks the follow-up actions.
   final EntityId? loggedCheckId;
+
+  /// The pet being scanned. Its name titles the suggested follow-up reminder
+  /// and its species gives the model the right frame of reference — a cat's
+  /// paw does not look like a dog's.
+  final Pet? pet;
+
+  String get petName => pet?.name ?? 'your pet';
 
   bool get isBusy =>
       status == PawScanStatus.capturing ||
@@ -101,6 +111,7 @@ class PawScanState {
     List<PawCheck>? checks,
     String? journalError,
     EntityId? loggedCheckId,
+    Pet? pet,
     bool clearDraft = false,
     bool clearErrorMessage = false,
     bool clearJournalError = false,
@@ -119,6 +130,7 @@ class PawScanState {
           clearJournalError ? null : journalError ?? this.journalError,
       loggedCheckId:
           clearLoggedCheckId ? null : loggedCheckId ?? this.loggedCheckId,
+      pet: pet ?? this.pet,
     );
   }
 }
@@ -127,12 +139,14 @@ class PawScanCubit extends Cubit<PawScanState> {
   PawScanCubit({
     required PawCheckRepository pawCheckRepository,
     required PawScanAiRepository aiRepository,
+    required PetRepository petRepository,
     required PawPhotoPicker picker,
     required AuthRepository authRepository,
     required PawPhotoUploadService uploadService,
     AnalyticsService? analytics,
   })  : _pawCheckRepository = pawCheckRepository,
         _aiRepository = aiRepository,
+        _petRepository = petRepository,
         _picker = picker,
         _authRepository = authRepository,
         _uploadService = uploadService,
@@ -141,6 +155,7 @@ class PawScanCubit extends Cubit<PawScanState> {
 
   final PawCheckRepository _pawCheckRepository;
   final PawScanAiRepository _aiRepository;
+  final PetRepository _petRepository;
   final PawPhotoPicker _picker;
   final AuthRepository _authRepository;
   final PawPhotoUploadService _uploadService;
@@ -156,6 +171,16 @@ class PawScanCubit extends Cubit<PawScanState> {
     try {
       await _pawCheckRepository.initialize();
       final user = await _currentUserId();
+
+      // Best effort: a missing pet must not stop the journal loading.
+      try {
+        final pet = await _petRepository.getPet(
+          userId: user,
+          petId: EntityId(petId),
+        );
+        if (pet != null) emit(state.copyWith(pet: pet));
+      } catch (_) {}
+
       await _checksSubscription?.cancel();
       _checksSubscription = _pawCheckRepository
           .watchChecks(userId: user, petId: EntityId(petId))
@@ -282,7 +307,7 @@ class PawScanCubit extends Cubit<PawScanState> {
             PawPhoto(bytes: photo.bytes, mimeType: photo.contentType),
         ],
         location: state.location,
-        speciesLabel: speciesLabel,
+        speciesLabel: speciesLabel ?? state.pet?.species,
       );
 
       if (draft.isUsable) {
