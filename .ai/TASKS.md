@@ -353,7 +353,13 @@
   the pet profile records card (Pro-gated), and analytics events.
 - [x] Add `docs/PAW_SCAN.md` documenting the safety model, the prompt, the filter
   lexicon, and the App Review notes; update the README feature list.
-- [ ] Add an integration test covering capture -> analyze -> confirm -> journal.
+- [~] Add an integration test covering capture -> analyze -> confirm -> journal.
+  Written (`integration_test/paw_scan_flow_test.dart`, 3 cases: confirm saves,
+  discard writes nothing, a non-paw photo shows no attention level) and it
+  compiles and analyzes clean, but it has **not been executed**: on this machine
+  `flutter test integration_test/...` hangs after installing on the iOS 26
+  simulator (app installed, zero CPU, no output) rather than attaching to the
+  VM service. Run it on a working device/simulator before relying on it.
 - [x] Run a Phase 15 architecture boundary review to confirm widgets/Cubits use
   ports and repositories and never touch Firebase AI, Firestore, or Storage SDKs
   directly. Verified: nothing under `paw_scan/presentation` or
