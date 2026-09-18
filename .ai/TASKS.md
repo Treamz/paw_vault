@@ -351,7 +351,7 @@
   section with its disclaimer in the exported PDF.
 - [x] Wire Paw Scan through `AppDependencies`, `app.dart` providers, the router,
   the pet profile records card (Pro-gated), and analytics events.
-- [ ] Add `docs/PAW_SCAN.md` documenting the safety model, the prompt, the filter
+- [x] Add `docs/PAW_SCAN.md` documenting the safety model, the prompt, the filter
   lexicon, and the App Review notes; update the README feature list.
 - [ ] Add an integration test covering capture -> analyze -> confirm -> journal.
 - [ ] Run a Phase 15 architecture boundary review to confirm widgets/Cubits use

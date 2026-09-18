@@ -16,6 +16,10 @@ documents, and vet summary exports, backed by Firebase.
   review and confirm before anything is saved.
 - **Document scanning (Gemini)** — photograph or pick a document; the AI reads
   it and pre-fills an editable form that saves into the pet's documents.
+- **Paw Scan (Gemini)** — photograph your pet's paw and get plain
+  descriptions of what is visible plus an attention level, saved as a dated
+  journal you can show your vet. It describes; it never diagnoses (see
+  `docs/PAW_SCAN.md`).
 - **Reminders** — schedule reminders with repeat rules and local notifications;
   mark complete or delete.
 - **Vet summary export** — generate a PDF of the pet's records, share it, and
