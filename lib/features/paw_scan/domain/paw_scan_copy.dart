@@ -5,6 +5,10 @@ import 'package:paw_vault/features/paw_scan/domain/entities/paw_scan_draft.dart'
 
 /// Every word Paw Scan shows the owner lives here.
 ///
+/// Deliberately in the domain layer, not presentation: the same wording has to
+/// reach the screen *and* the exported vet summary PDF, which is built in the
+/// data layer. Nothing here imports Flutter.
+///
 /// The wording is the feature's safety boundary as much as the code is, so it
 /// is kept in one file that can be read end to end and reviewed on its own.
 /// Three rules govern it:

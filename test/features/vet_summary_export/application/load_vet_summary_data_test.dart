@@ -3,6 +3,10 @@ import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_attention_level.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_check.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_location.dart';
+import 'package:paw_vault/features/paw_scan/domain/repositories/paw_check_repository.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
@@ -20,6 +24,7 @@ void main() {
         timelineRepository: _FakeTimelineRepository(events: [_event()]),
         documentRepository: _FakeDocumentRepository(documents: [_document()]),
         reminderRepository: _FakeReminderRepository(reminders: [_reminder()]),
+        pawCheckRepository: _FakePawCheckRepository(),
       );
 
       final data = await loader.call(
@@ -34,12 +39,38 @@ void main() {
       expect(data.hasRecords, isTrue);
     });
 
+    test('includes only the paw checks the owner opted into sharing', () async {
+      // Opt-in is the whole point: a private paw check must not leave the app
+      // in a PDF the owner hands to a vet.
+      final loader = LoadVetSummaryData(
+        petRepository: _FakePetRepository(pet: _pet()),
+        timelineRepository: _FakeTimelineRepository(),
+        documentRepository: _FakeDocumentRepository(),
+        reminderRepository: _FakeReminderRepository(),
+        pawCheckRepository: _FakePawCheckRepository(
+          checks: [
+            _pawCheck(id: 'shared', includeInVetSummary: true),
+            _pawCheck(id: 'private'),
+          ],
+        ),
+      );
+
+      final data = await loader.call(
+        userId: const EntityId('user-1'),
+        petId: const EntityId('pet-1'),
+      );
+
+      expect(data.pawChecks.map((c) => c.id.value), ['shared']);
+      expect(data.hasRecords, isTrue);
+    });
+
     test('throws when the pet does not exist', () async {
       final loader = LoadVetSummaryData(
         petRepository: _FakePetRepository(),
         timelineRepository: _FakeTimelineRepository(),
         documentRepository: _FakeDocumentRepository(),
         reminderRepository: _FakeReminderRepository(),
+        pawCheckRepository: _FakePawCheckRepository(),
       );
 
       expect(
@@ -222,5 +253,57 @@ class _FakeReminderRepository implements ReminderRepository {
     required EntityId userId,
     required EntityId petId,
     required EntityId reminderId,
+  }) async {}
+}
+
+PawCheck _pawCheck({
+  required String id,
+  bool includeInVetSummary = false,
+}) {
+  return PawCheck(
+    id: EntityId(id),
+    userId: const EntityId('user-1'),
+    petId: const EntityId('pet-1'),
+    location: PawLocation.frontLeft,
+    attentionLevel: PawAttentionLevel.monitor,
+    checkedAt: UtcDateTime(DateTime.utc(2026, 9, 18)),
+    includeInVetSummary: includeInVetSummary,
+    status: PawCheckStatus.confirmed,
+  );
+}
+
+class _FakePawCheckRepository implements PawCheckRepository {
+  _FakePawCheckRepository({this.checks = const []});
+
+  final List<PawCheck> checks;
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Stream<List<PawCheck>> watchChecks({
+    required EntityId userId,
+    required EntityId petId,
+  }) {
+    return Stream.value(checks);
+  }
+
+  @override
+  Future<PawCheck?> getCheck({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId checkId,
+  }) async {
+    return null;
+  }
+
+  @override
+  Future<void> saveCheck(PawCheck check) async {}
+
+  @override
+  Future<void> deleteCheck({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId checkId,
   }) async {}
 }

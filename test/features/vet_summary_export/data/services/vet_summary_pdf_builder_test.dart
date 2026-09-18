@@ -7,6 +7,10 @@ import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_attention_level.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_check.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_location.dart';
+import 'package:paw_vault/features/paw_scan/domain/paw_scan_copy.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
@@ -35,6 +39,35 @@ void main() {
 
       expect(bytes, isNotEmpty);
       expect(utf8.decode(bytes.sublist(0, 4)), '%PDF');
+    });
+
+    test('renders a paw checks section', () async {
+      // PDF text streams are compressed, so the wording cannot be asserted
+      // from the bytes. What this does prove is that the section rendered at
+      // all: the document grows when paw checks are present, and building it
+      // does not throw.
+      const builder = VetSummaryPdfBuilder();
+
+      final without = await builder.build(VetSummaryData(pet: _pet()));
+      final with_ = await builder.build(
+        VetSummaryData(pet: _pet(), pawChecks: [_pawCheck()]),
+      );
+
+      expect(utf8.decode(with_.sublist(0, 4)), '%PDF');
+      expect(with_.length, greaterThan(without.length));
+    });
+
+    test('the vet-facing disclaimer says it is not a diagnosis', () async {
+      // This copy is the one a vet reads, so guard its substance rather than
+      // its presence in compressed bytes.
+      expect(
+        PawScanCopy.vetSummaryDisclaimer.toLowerCase(),
+        contains('not a diagnosis'),
+      );
+      expect(
+        PawScanCopy.vetSummaryDisclaimer.toLowerCase(),
+        contains('not produced or reviewed by a veterinarian'),
+      );
     });
 
     test('renders a full record set (overview, docs, reminders) without error',
@@ -156,3 +189,18 @@ Reminder _reminder() => Reminder(
       dateTime: UtcDateTime(DateTime.utc(2027, 5, 2, 9)),
       repeatType: ReminderRepeatType.yearly,
     );
+
+PawCheck _pawCheck() {
+  return PawCheck(
+    id: const EntityId('check-1'),
+    userId: const EntityId('user-1'),
+    petId: const EntityId('pet-1'),
+    location: PawLocation.frontLeft,
+    attentionLevel: PawAttentionLevel.vetSoon,
+    checkedAt: UtcDateTime(DateTime.utc(2026, 9, 18)),
+    observations: const ['A dark area near the centre of the main pad.'],
+    ownerNote: 'She was licking it last night.',
+    includeInVetSummary: true,
+    status: PawCheckStatus.confirmed,
+  );
+}

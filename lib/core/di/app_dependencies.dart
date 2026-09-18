@@ -268,6 +268,7 @@ class AppDependencies {
         timelineRepository: timelineRepository,
         documentRepository: documentRepository,
         reminderRepository: reminderRepository,
+        pawCheckRepository: pawCheckRepository,
       );
 
   VetSummaryPdfGenerator get vetSummaryPdfGenerator =>

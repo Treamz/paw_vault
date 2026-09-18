@@ -11,12 +11,12 @@ import 'package:paw_vault/features/paw_scan/application/paw_photo_upload_service
 import 'package:paw_vault/features/paw_scan/domain/entities/paw_check.dart';
 import 'package:paw_vault/features/paw_scan/domain/entities/paw_location.dart';
 import 'package:paw_vault/features/paw_scan/domain/entities/paw_scan_draft.dart';
+import 'package:paw_vault/features/paw_scan/domain/paw_scan_copy.dart';
 import 'package:paw_vault/features/paw_scan/domain/repositories/paw_check_repository.dart';
 import 'package:paw_vault/features/paw_scan/domain/repositories/paw_scan_ai_repository.dart';
 import 'package:paw_vault/features/paw_scan/domain/services/paw_photo_picker.dart';
 import 'package:paw_vault/features/paw_scan/domain/services/paw_scan_reminder_suggestion.dart';
 import 'package:paw_vault/features/paw_scan/presentation/cubit/paw_scan_cubit.dart';
-import 'package:paw_vault/features/paw_scan/presentation/models/paw_scan_labels.dart';
 import 'package:paw_vault/features/paw_scan/presentation/widgets/paw_attention_badge.dart';
 import 'package:paw_vault/features/paw_scan/presentation/widgets/paw_scan_disclaimer.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
@@ -641,14 +641,17 @@ class _PawCheckTile extends StatelessWidget {
             ],
             Row(
               children: [
-                if (check.includeInVetSummary)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8, right: 8),
-                    child: Chip(
-                      label: Text('In vet summary'),
-                      visualDensity: VisualDensity.compact,
-                    ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, right: 8),
+                  child: FilterChip(
+                    label: const Text('In vet summary'),
+                    selected: check.includeInVetSummary,
+                    visualDensity: VisualDensity.compact,
+                    onSelected: (value) => context
+                        .read<PawScanCubit>()
+                        .setIncludeInVetSummary(check, include: value),
                   ),
+                ),
                 const Spacer(),
                 if (suggestion != null)
                   TextButton.icon(

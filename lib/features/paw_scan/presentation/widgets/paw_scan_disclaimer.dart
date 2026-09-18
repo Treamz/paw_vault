@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:paw_vault/features/paw_scan/presentation/models/paw_scan_labels.dart';
+import 'package:paw_vault/features/paw_scan/domain/paw_scan_copy.dart';
 
 /// The non-diagnostic notice shown wherever a Paw Scan result appears.
 ///

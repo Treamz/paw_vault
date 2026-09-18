@@ -347,7 +347,7 @@
   timing per attention level (the model must not author advice), with tests.
 - [x] Wire the follow-up reminder suggestion into the existing reminder form
   route (pre-filled, saved only by the user).
-- [ ] Include opted-in paw checks in `VetSummaryData` and render a "Paw checks"
+- [x] Include opted-in paw checks in `VetSummaryData` and render a "Paw checks"
   section with its disclaimer in the exported PDF.
 - [x] Wire Paw Scan through `AppDependencies`, `app.dart` providers, the router,
   the pet profile records card (Pro-gated), and analytics events.

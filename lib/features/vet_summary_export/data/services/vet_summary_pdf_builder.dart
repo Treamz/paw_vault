@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_check.dart';
+import 'package:paw_vault/features/paw_scan/domain/paw_scan_copy.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
@@ -51,6 +53,8 @@ class VetSummaryPdfBuilder implements VetSummaryPdfGenerator {
             _documentsSection(data.documents, dateFormat),
           if (data.reminders.isNotEmpty)
             _remindersSection(data.reminders, dateFormat),
+          if (data.pawChecks.isNotEmpty)
+            _pawChecksSection(data.pawChecks, dateFormat),
           if (!data.hasRecords)
             pw.Padding(
               padding: const pw.EdgeInsets.only(top: 12),
@@ -344,6 +348,56 @@ class VetSummaryPdfBuilder implements VetSummaryPdfGenerator {
     if (years < 0) return '';
     if (years == 0) return ' (under 1 year)';
     return ' ($years ${years == 1 ? 'year' : 'years'} old)';
+  }
+
+  /// Owner-recorded paw checks the owner chose to share.
+  ///
+  /// Carries its own disclaimer inside the section rather than relying on the
+  /// page footer: this page may be printed, photographed, or read in
+  /// isolation, and a vet must not mistake an AI description of a photograph
+  /// for a clinical finding.
+  pw.Widget _pawChecksSection(
+    List<PawCheck> checks,
+    DateFormat dateFormat,
+  ) {
+    final sorted = [...checks]
+      ..sort((a, b) => b.checkedAt.compareTo(a.checkedAt));
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Paw checks (owner-recorded, AI-assisted)'),
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 6),
+          child: pw.Text(
+            PawScanCopy.vetSummaryDisclaimer,
+            style: const pw.TextStyle(fontSize: 8, color: _muted),
+          ),
+        ),
+        for (final check in sorted)
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 8),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  '${_formatUtc(check.checkedAt, dateFormat)} - '
+                  '${formatPawLocation(check.location)} - '
+                  '${formatPawAttentionLevel(check.attentionLevel)}',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                ),
+                for (final observation in check.observations)
+                  pw.Bullet(text: observation),
+                if (check.ownerNote != null)
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.only(left: 12, top: 2),
+                    child: pw.Text('Owner note: ${check.ownerNote}'),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 
   pw.Widget _section(String title, List<String> lines) {

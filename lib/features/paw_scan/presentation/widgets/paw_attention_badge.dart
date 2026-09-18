@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:paw_vault/features/paw_scan/domain/entities/paw_attention_level.dart';
-import 'package:paw_vault/features/paw_scan/presentation/models/paw_scan_labels.dart';
+import 'package:paw_vault/features/paw_scan/domain/paw_scan_copy.dart';
 
 /// The colour and icon for an attention level.
 ///

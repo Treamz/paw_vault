@@ -12,6 +12,8 @@ import 'package:paw_vault/core/storage/domain/entities/storage_file.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
+import 'package:paw_vault/features/paw_scan/domain/entities/paw_check.dart';
+import 'package:paw_vault/features/paw_scan/domain/repositories/paw_check_repository.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
@@ -62,6 +64,7 @@ Widget _app() {
           timelineRepository: _FakeTimelineRepository(),
           documentRepository: _FakeDocumentRepository(),
           reminderRepository: _FakeReminderRepository(),
+          pawCheckRepository: _FakePawCheckRepository(),
         ),
       ),
     ],
@@ -263,5 +266,39 @@ class _FakeReminderRepository implements ReminderRepository {
     required EntityId userId,
     required EntityId petId,
     required EntityId reminderId,
+  }) async {}
+}
+
+class _FakePawCheckRepository implements PawCheckRepository {
+  List<PawCheck> checks = const [];
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Stream<List<PawCheck>> watchChecks({
+    required EntityId userId,
+    required EntityId petId,
+  }) {
+    return Stream.value(checks);
+  }
+
+  @override
+  Future<PawCheck?> getCheck({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId checkId,
+  }) async {
+    return null;
+  }
+
+  @override
+  Future<void> saveCheck(PawCheck check) async {}
+
+  @override
+  Future<void> deleteCheck({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId checkId,
   }) async {}
 }
