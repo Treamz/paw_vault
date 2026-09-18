@@ -230,8 +230,17 @@ Health-adjacent camera features attract extra scrutiny (guidelines 1.4.1 and
 > and on every saved record. The only actionable output is a four-level
 > attention prompt suggesting the owner consider contacting their vet. The
 > exported PDF carries an explicit "not a diagnosis, not reviewed by a
-> veterinarian" line. The feature requires a PawVault Pro subscription; a demo
-> account and a sample paw photo are provided.
+> veterinarian" line.
+
+**Reaching the feature.** PawVault needs no login (it works anonymously), so
+there is no account to hand a reviewer. Paw Scan *is* Pro-gated: the reviewer
+reaches it from a pet's profile and starts the free trial, which is purchasable
+in the StoreKit sandbox App Review uses. **This requires the App Store Connect
+subscription products and the RevenueCat `pro` entitlement/offering to exist —
+still an open item in `.ai/TASKS.md` (Phase 14).** Until it is done, Paw Scan is
+unreachable for a reviewer and the submission will be rejected under 2.1.
+Attach a sample paw photo to the review notes so the reviewer does not need a
+live animal.
 
 **Metadata claim audit.** Nothing in the App Store description, subtitle,
 keywords, screenshot captions, or `docs/ASO.md` may say *diagnose*, *detect*,
