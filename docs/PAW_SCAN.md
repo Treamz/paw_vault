@@ -75,9 +75,10 @@ to the reject gates before it starts describing anything.
 
 ### 3. The safety filter — the actual boundary
 
-`PawScanSafetyFilter` (pure Dart, `lib/features/paw_scan/domain/services/`) is
-what holds the line, because a schema constrains *shape*, not *content*:
-`observations[].text` is a free string.
+`PawScanSafetyFilter` (`lib/features/paw_scan/domain/services/`, no dependency
+on Flutter beyond the `visibleForTesting` annotation) is what holds the line,
+because a schema constrains *shape*, not *content*: `observations[].text` is a
+free string.
 
 It matches three lexicons — named conditions, causal/diagnostic framing, and
 treatment language — and when any fires it:

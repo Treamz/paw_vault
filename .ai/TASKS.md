@@ -354,6 +354,10 @@
 - [x] Add `docs/PAW_SCAN.md` documenting the safety model, the prompt, the filter
   lexicon, and the App Review notes; update the README feature list.
 - [ ] Add an integration test covering capture -> analyze -> confirm -> journal.
-- [ ] Run a Phase 15 architecture boundary review to confirm widgets/Cubits use
+- [x] Run a Phase 15 architecture boundary review to confirm widgets/Cubits use
   ports and repositories and never touch Firebase AI, Firestore, or Storage SDKs
-  directly.
+  directly. Verified: nothing under `paw_scan/presentation` or
+  `paw_scan/domain` imports a Firebase/image_picker SDK; the only SDK
+  touchpoints are `flutter_fire_paw_check_data_source.dart` and
+  `paw_photo_picker_impl.dart`; no cubit or widget imports `paw_scan/data`;
+  and `app_dependencies.dart` is the sole composition point.
