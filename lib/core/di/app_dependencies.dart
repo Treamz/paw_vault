@@ -39,6 +39,16 @@ import 'package:paw_vault/features/documents/data/services/url_launcher_document
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
+import 'package:paw_vault/features/paw_scan/data/datasources/flutter_fire_paw_check_data_source.dart';
+import 'package:paw_vault/features/paw_scan/data/repositories/firebase_paw_check_repository.dart';
+import 'package:paw_vault/features/paw_scan/data/repositories/firebase_ready_paw_scan_ai_repository.dart';
+import 'package:paw_vault/features/paw_scan/data/repositories/local_paw_check_repository.dart';
+import 'package:paw_vault/features/paw_scan/data/repositories/noop_paw_scan_ai_repository.dart';
+import 'package:paw_vault/features/paw_scan/data/services/noop_paw_photo_picker.dart';
+import 'package:paw_vault/features/paw_scan/data/services/paw_photo_picker_impl.dart';
+import 'package:paw_vault/features/paw_scan/domain/repositories/paw_check_repository.dart';
+import 'package:paw_vault/features/paw_scan/domain/repositories/paw_scan_ai_repository.dart';
+import 'package:paw_vault/features/paw_scan/domain/services/paw_photo_picker.dart';
 import 'package:paw_vault/features/pets/data/datasources/flutter_fire_pet_data_source.dart';
 import 'package:paw_vault/features/pets/data/repositories/firebase_pet_repository.dart';
 import 'package:paw_vault/features/pets/data/repositories/firebase_weight_entry_repository.dart';
@@ -80,6 +90,12 @@ import 'package:paw_vault/features/vet_summary_export/domain/services/vet_summar
 
 class AppDependencies {
   AppDependencies({
+    // Optional with safe defaults so adding the feature does not break every
+    // direct construction of this container, following the precedent set by
+    // the owner-profile and weight-entry repositories.
+    PawCheckRepository? pawCheckRepository,
+    PawScanAiRepository? pawScanAiRepository,
+    PawPhotoPicker? pawPhotoPicker,
     OwnerProfileRepository? ownerProfileRepository,
     WeightEntryRepository? weightEntryRepository,
     required this.authRepository,
@@ -103,7 +119,12 @@ class AppDependencies {
     required this.paywallPresenter,
     required this.trackingAuthorizationService,
     required this.accountDeletionService,
-  })  : ownerProfileRepository =
+  })  : pawCheckRepository =
+            pawCheckRepository ?? const LocalPawCheckRepository(),
+        pawScanAiRepository =
+            pawScanAiRepository ?? const NoopPawScanAiRepository(),
+        pawPhotoPicker = pawPhotoPicker ?? const NoopPawPhotoPicker(),
+        ownerProfileRepository =
             ownerProfileRepository ?? LocalOwnerProfileRepository(),
         weightEntryRepository =
             weightEntryRepository ?? LocalWeightEntryRepository();
@@ -128,6 +149,9 @@ class AppDependencies {
       documentFileOpener: const UrlLauncherDocumentFileOpener(),
       documentExtractionAiRepository:
           FirebaseReadyDocumentExtractionAiRepository(aiDataSource),
+      pawCheckRepository: const LocalPawCheckRepository(),
+      pawScanAiRepository: FirebaseReadyPawScanAiRepository(aiDataSource),
+      pawPhotoPicker: PawPhotoPickerImpl(),
       documentSourcePicker: DocumentSourcePickerImpl(),
       petPhotoPicker: PetPhotoPickerImpl(),
       eventPhotoPicker: EventPhotoPickerImpl(),
@@ -186,6 +210,11 @@ class AppDependencies {
       documentFileOpener: const UrlLauncherDocumentFileOpener(),
       documentExtractionAiRepository:
           FirebaseReadyDocumentExtractionAiRepository(aiDataSource),
+      pawCheckRepository: FirebasePawCheckRepository(
+        FlutterFirePawCheckDataSource(firebase.firestore),
+      ),
+      pawScanAiRepository: FirebaseReadyPawScanAiRepository(aiDataSource),
+      pawPhotoPicker: PawPhotoPickerImpl(),
       documentSourcePicker: DocumentSourcePickerImpl(),
       petPhotoPicker: PetPhotoPickerImpl(),
       eventPhotoPicker: EventPhotoPickerImpl(),
@@ -215,6 +244,9 @@ class AppDependencies {
   final FilePicker filePicker;
   final DocumentFileOpener documentFileOpener;
   final DocumentExtractionAiRepository documentExtractionAiRepository;
+  final PawCheckRepository pawCheckRepository;
+  final PawScanAiRepository pawScanAiRepository;
+  final PawPhotoPicker pawPhotoPicker;
   final DocumentSourcePicker documentSourcePicker;
   final PetPhotoPicker petPhotoPicker;
   final EventPhotoPicker eventPhotoPicker;

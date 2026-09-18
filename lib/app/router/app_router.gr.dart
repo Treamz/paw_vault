@@ -201,6 +201,54 @@ class DocumentsRouteArgs {
 }
 
 /// generated route for
+/// [PawScanScreen]
+class PawScanRoute extends PageRouteInfo<PawScanRouteArgs> {
+  PawScanRoute({required String petId, Key? key, List<PageRouteInfo>? children})
+      : super(
+          PawScanRoute.name,
+          args: PawScanRouteArgs(petId: petId, key: key),
+          rawPathParams: {'petId': petId},
+          initialChildren: children,
+        );
+
+  static const String name = 'PawScanRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final args = data.argsAs<PawScanRouteArgs>(
+        orElse: () => PawScanRouteArgs(petId: pathParams.getString('petId')),
+      );
+      return PawScanScreen(petId: args.petId, key: args.key);
+    },
+  );
+}
+
+class PawScanRouteArgs {
+  const PawScanRouteArgs({required this.petId, this.key});
+
+  final String petId;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'PawScanRouteArgs{petId: $petId, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! PawScanRouteArgs) return false;
+    return petId == other.petId && key == other.key;
+  }
+
+  @override
+  int get hashCode => petId.hashCode ^ key.hashCode;
+}
+
+/// generated route for
 /// [PetFormScreen]
 class PetFormRoute extends PageRouteInfo<PetFormRouteArgs> {
   PetFormRoute({String? petId, Key? key, List<PageRouteInfo>? children})

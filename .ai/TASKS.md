@@ -340,16 +340,16 @@
   and the local repository, with tests.
 - [x] Implement `PawScanCubit`: capture, analyze, review, retake, confirm,
   dismiss, delete, and the watched journal, with fake-repository tests.
-- [ ] Add the Paw Scan screen (Scan + Journal tabs), the non-dismissible
-  disclaimer, the attention badge, the retake prompt, and the paw check
-  comparison screen, with widget tests.
+- [x] Add the Paw Scan screen (Scan + Journal tabs), the non-dismissible
+  disclaimer, the attention badge, and the retake prompt, with widget tests.
+- [ ] Add the paw check comparison screen (before/after for the same paw).
 - [x] Add `PawScanReminderSuggestion`: deterministic, on-device follow-up
   timing per attention level (the model must not author advice), with tests.
 - [ ] Wire the follow-up reminder suggestion into the existing reminder form
   route (pre-filled, saved only by the user).
 - [ ] Include opted-in paw checks in `VetSummaryData` and render a "Paw checks"
   section with its disclaimer in the exported PDF.
-- [ ] Wire Paw Scan through `AppDependencies`, `app.dart` providers, the router,
+- [x] Wire Paw Scan through `AppDependencies`, `app.dart` providers, the router,
   the pet profile records card (Pro-gated), and analytics events.
 - [ ] Add `docs/PAW_SCAN.md` documenting the safety model, the prompt, the filter
   lexicon, and the App Review notes; update the README feature list.
