@@ -93,11 +93,10 @@ Future<void> _openPawScan(WidgetTester tester) async {
 }
 
 Future<void> _captureAndDescribe(WidgetTester tester) async {
-  final addPhoto = find.text('Add paw photo');
-  await tester.ensureVisible(addPhoto);
-  await tester.tap(addPhoto);
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Take a photo'));
+  // One tap to the camera — no source-picker sheet in between.
+  final takePhoto = find.text(PawScanCopy.takePhoto);
+  await tester.ensureVisible(takePhoto);
+  await tester.tap(takePhoto);
   await tester.pumpAndSettle();
 
   final describe = find.textContaining('Describe');

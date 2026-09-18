@@ -385,6 +385,15 @@ class FakePawPhotoPicker implements PawPhotoPicker {
 
   final PickedFile? file;
 
+  /// The source the screen last asked for, so a test can assert that one tap
+  /// means the camera.
+  PawPhotoSource? lastSource;
+  int pickCallCount = 0;
+
   @override
-  Future<PickedFile?> pick(PawPhotoSource source) async => file;
+  Future<PickedFile?> pick(PawPhotoSource source) async {
+    pickCallCount++;
+    lastSource = source;
+    return file;
+  }
 }

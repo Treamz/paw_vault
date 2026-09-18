@@ -154,6 +154,26 @@ AI description of a photograph for a clinical finding.
 Someone will eventually file a ticket calling the disclaimer noisy. It is the
 basis on which the feature is allowed to exist. Do not make it dismissible.
 
+## Capture
+
+The camera is **one tap** from the Scan tab: a primary "Take a photo" button
+with "Choose from gallery" beside it, and no source-picker sheet. Owners
+photograph a paw while holding an animal still, often one-handed, so anything
+between them and the shutter is friction.
+
+The camera is deliberately **not** opened automatically on entering the screen:
+that would flash past the non-diagnostic notice and re-fire every time the owner
+came back from the camera.
+
+`PawScanCopy.captureTips` sits **above** the capture buttons. With one tap to
+the camera, that is the only moment the framing advice can be read before
+shooting — below the buttons it would only ever be met inside a rejection
+message.
+
+The paw selector appears only once a photo exists. Asked earlier it is a
+question about nothing, and it puts metadata ahead of the photo the owner came
+to take.
+
 ## Data flow
 
 ```

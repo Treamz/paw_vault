@@ -23,6 +23,7 @@ import 'package:paw_vault/features/paw_scan/domain/paw_scan_copy.dart';
 import 'package:paw_vault/features/paw_scan/domain/repositories/paw_check_repository.dart';
 import 'package:paw_vault/features/paw_scan/domain/repositories/paw_scan_ai_repository.dart';
 import 'package:paw_vault/features/paw_scan/domain/services/paw_photo_picker.dart';
+import 'package:paw_vault/features/paw_scan/presentation/cubit/paw_scan_cubit.dart';
 import 'package:paw_vault/features/paw_scan/presentation/screens/paw_scan_screen.dart';
 import 'package:paw_vault/features/paw_scan/presentation/widgets/paw_scan_disclaimer.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
@@ -95,12 +96,25 @@ void _useTallSurface(WidgetTester tester) {
 /// Drives a capture and an analysis so the result section is on screen.
 Future<void> _analyze(WidgetTester tester, _FakePawPhotoPicker picker) async {
   picker.next = _picked();
-  await tester.tap(find.text('Add paw photo'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Take a photo'));
+  await tester.tap(find.text(PawScanCopy.takePhoto));
   await tester.pumpAndSettle();
   await tester.tap(find.textContaining('Describe'));
   await tester.pumpAndSettle();
+}
+
+/// Captures [count] photos, one tap each.
+Future<void> _capture(
+  WidgetTester tester,
+  _FakePawPhotoPicker picker, {
+  int count = 1,
+}) async {
+  picker.next = _picked();
+  for (var i = 0; i < count; i++) {
+    await tester.tap(
+      find.text(i == 0 ? PawScanCopy.takePhoto : PawScanCopy.camera),
+    );
+    await tester.pumpAndSettle();
+  }
 }
 
 void main() {
@@ -257,6 +271,143 @@ void main() {
     });
   });
 
+  group('capture', () {
+    testWidgets('one tap on "Take a photo" opens the camera', (tester) async {
+      // The whole point of this flow: no source-picker sheet between the
+      // owner and the camera.
+      final picker = _FakePawPhotoPicker()..next = _picked();
+      await tester.pumpWidget(
+        _app(ai: _FakePawScanAiRepository(), picker: picker),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(PawScanCopy.takePhoto));
+      await tester.pumpAndSettle();
+
+      expect(picker.pickCallCount, 1);
+      expect(picker.lastSource, PawPhotoSource.camera);
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(find.byType(ListTile), findsNothing);
+    });
+
+    testWidgets('one tap on "Choose from gallery" opens the gallery',
+        (tester) async {
+      final picker = _FakePawPhotoPicker()..next = _picked();
+      await tester.pumpWidget(
+        _app(ai: _FakePawScanAiRepository(), picker: picker),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(PawScanCopy.chooseFromGallery));
+      await tester.pumpAndSettle();
+
+      expect(picker.pickCallCount, 1);
+      expect(picker.lastSource, PawPhotoSource.gallery);
+      expect(find.byType(BottomSheet), findsNothing);
+    });
+
+    testWidgets('the camera is the primary action before any photo',
+        (tester) async {
+      await tester.pumpWidget(_app(ai: _FakePawScanAiRepository()));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.widgetWithText(FilledButton, PawScanCopy.takePhoto),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Describe'), findsNothing);
+    });
+
+    testWidgets('describing becomes primary once a photo exists',
+        (tester) async {
+      _useTallSurface(tester);
+      final picker = _FakePawPhotoPicker();
+      await tester.pumpWidget(
+        _app(ai: _FakePawScanAiRepository(), picker: picker),
+      );
+      await tester.pumpAndSettle();
+
+      await _capture(tester, picker);
+
+      expect(
+        find.widgetWithText(FilledButton, 'Describe 1 photo'),
+        findsOneWidget,
+      );
+      // The camera stays available, demoted.
+      expect(
+        find.widgetWithText(OutlinedButton, PawScanCopy.camera),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the paw selector appears only once there is a photo',
+        (tester) async {
+      _useTallSurface(tester);
+      final picker = _FakePawPhotoPicker();
+      await tester.pumpWidget(
+        _app(ai: _FakePawScanAiRepository(), picker: picker),
+      );
+      await tester.pumpAndSettle();
+
+      // Before a photo, asking which paw is a question about nothing.
+      expect(find.text('Which paw?'), findsNothing);
+      expect(find.text(PawScanCopy.captureTips), findsOneWidget);
+
+      await _capture(tester, picker);
+
+      expect(find.text('Which paw?'), findsOneWidget);
+      expect(
+        find.text(formatPawLocation(PawLocation.frontLeft)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('after a rejection the camera is primary again',
+        (tester) async {
+      // Describing the same rejected photos again cannot help.
+      _useTallSurface(tester);
+      final ai = _FakePawScanAiRepository()
+        ..next = const PawScanDraft.unusable(
+          photoQuality: PawScanPhotoQuality.blurry,
+        );
+      final picker = _FakePawPhotoPicker();
+      await tester.pumpWidget(_app(ai: ai, picker: picker));
+      await tester.pumpAndSettle();
+
+      await _analyze(tester, picker);
+
+      expect(
+        find.widgetWithText(FilledButton, PawScanCopy.takeAnotherPhoto),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(OutlinedButton, 'Describe 1 photo'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('capture is disabled at the photo cap', (tester) async {
+      _useTallSurface(tester);
+      final picker = _FakePawPhotoPicker();
+      await tester.pumpWidget(
+        _app(ai: _FakePawScanAiRepository(), picker: picker),
+      );
+      await tester.pumpAndSettle();
+
+      await _capture(tester, picker, count: kMaxPawScanPhotos);
+
+      final camera = tester.widget<OutlinedButton>(
+        find.widgetWithText(OutlinedButton, PawScanCopy.camera),
+      );
+      final gallery = tester.widget<OutlinedButton>(
+        find.widgetWithText(OutlinedButton, PawScanCopy.gallery),
+      );
+      expect(camera.onPressed, isNull);
+      expect(gallery.onPressed, isNull);
+      expect(picker.pickCallCount, kMaxPawScanPhotos);
+    });
+  });
+
   group('journal', () {
     testWidgets('shows an empty state with no checks', (tester) async {
       await tester.pumpWidget(_app(ai: _FakePawScanAiRepository()));
@@ -377,9 +528,15 @@ class _FakePawScanAiRepository implements PawScanAiRepository {
 
 class _FakePawPhotoPicker implements PawPhotoPicker {
   PickedFile? next;
+  PawPhotoSource? lastSource;
+  int pickCallCount = 0;
 
   @override
-  Future<PickedFile?> pick(PawPhotoSource source) async => next;
+  Future<PickedFile?> pick(PawPhotoSource source) async {
+    pickCallCount++;
+    lastSource = source;
+    return next;
+  }
 }
 
 class _FakeStorageRepository implements StorageRepository {

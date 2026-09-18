@@ -47,7 +47,21 @@ abstract final class PawScanCopy {
       'flash, and hold the paw still. Take one photo per paw you want to '
       'record.';
 
-  static const reportResult = 'Report this result';
+  // Capture actions. "gallery" rather than "library" to match every other
+  // screen in the app.
+  static const takePhoto = 'Take a photo';
+  static const chooseFromGallery = 'Choose from gallery';
+
+  /// Compact labels for the side-by-side pair shown once a photo exists.
+  static const camera = 'Camera';
+  static const gallery = 'Gallery';
+
+  static const takeAnotherPhoto = 'Take another photo';
+
+  static const describing = 'Describing\u2026';
+
+  static String describePhotos(int count) =>
+      'Describe $count photo${count == 1 ? '' : 's'}';
 }
 
 /// The label for an attention level.

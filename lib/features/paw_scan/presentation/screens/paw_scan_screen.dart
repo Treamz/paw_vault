@@ -72,32 +72,6 @@ class _PawScanViewState extends State<_PawScanView>
     super.dispose();
   }
 
-  Future<void> _addPhoto() async {
-    final source = await showModalBottomSheet<PawPhotoSource>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Take a photo'),
-              onTap: () => Navigator.of(context).pop(PawPhotoSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from library'),
-              onTap: () => Navigator.of(context).pop(PawPhotoSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (source == null || !mounted) return;
-    await context.read<PawScanCubit>().addPhoto(source);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -180,50 +154,161 @@ class _PawScanViewState extends State<_PawScanView>
           ),
           const SizedBox(height: 24),
         ],
-        Text('Which paw?', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        _PawLocationSelector(
-          location: state.location,
-          onChanged: state.isBusy ? null : cubit.setLocation,
-        ),
-        const SizedBox(height: 16),
         if (state.hasPhotos) ...[
           _PhotoStrip(
             state: state,
             onRemove: state.isBusy ? null : cubit.removePhoto,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          // Asked only once there is a photo to label. Before that it is a
+          // question about nothing.
+          Text('Which paw?', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          _PawLocationSelector(
+            location: state.location,
+            onChanged: state.isBusy ? null : cubit.setLocation,
+          ),
+          const SizedBox(height: 16),
         ] else ...[
+          // Above the buttons on purpose: one tap now opens the camera, so
+          // this is the only moment the owner can read the framing advice
+          // before shooting.
           Text(
             PawScanCopy.captureTips,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 16),
         ],
-        OutlinedButton.icon(
-          onPressed: state.canAddPhoto ? _addPhoto : null,
-          icon: const Icon(Icons.add_a_photo_outlined),
-          label: Text(state.hasPhotos ? 'Add another paw' : 'Add paw photo'),
-        ),
-        const SizedBox(height: 12),
-        FilledButton.icon(
-          onPressed: state.canAnalyze ? cubit.analyze : null,
-          icon: state.status == PawScanStatus.analyzing
-              ? const SizedBox(
-                  height: 16,
-                  width: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.search),
-          label: Text(
-            state.status == PawScanStatus.analyzing
-                ? 'Describing…'
-                : 'Describe ${state.photos.length} photo'
-                    '${state.photos.length == 1 ? '' : 's'}',
-          ),
+        _CaptureActions(
+          state: state,
+          onCamera: () => cubit.addPhoto(PawPhotoSource.camera),
+          onGallery: () => cubit.addPhoto(PawPhotoSource.gallery),
+          onAnalyze: cubit.analyze,
         ),
       ],
     );
+  }
+}
+
+/// The capture and analyse actions, with the emphasis on whichever one is the
+/// owner's likely next step.
+///
+/// Both sources are one tap. There is no source-picker sheet: choosing between
+/// two options does not need a screen of its own, and the camera is what the
+/// owner came here for — often one-handed, while holding the animal still.
+class _CaptureActions extends StatelessWidget {
+  const _CaptureActions({
+    required this.state,
+    required this.onCamera,
+    required this.onGallery,
+    required this.onAnalyze,
+  });
+
+  final PawScanState state;
+  final VoidCallback onCamera;
+  final VoidCallback onGallery;
+  final VoidCallback onAnalyze;
+
+  @override
+  Widget build(BuildContext context) {
+    final canCapture = state.canAddPhoto;
+
+    if (!state.hasPhotos) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FilledButton.icon(
+            onPressed: canCapture ? onCamera : null,
+            icon: const Icon(Icons.photo_camera_outlined),
+            label: const Text(PawScanCopy.takePhoto),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: canCapture ? onGallery : null,
+            icon: const Icon(Icons.photo_library_outlined),
+            label: const Text(PawScanCopy.chooseFromGallery),
+          ),
+        ],
+      );
+    }
+
+    // Describing the same photos the model already rejected cannot produce a
+    // different answer, so the emphasis goes back to the camera.
+    final captureIsPrimary = state.status == PawScanStatus.rejected;
+    final analyze = _AnalyzeButton(
+      state: state,
+      onPressed: state.canAnalyze ? onAnalyze : null,
+      isPrimary: !captureIsPrimary,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (captureIsPrimary) ...[
+          FilledButton.icon(
+            onPressed: canCapture ? onCamera : null,
+            icon: const Icon(Icons.photo_camera_outlined),
+            label: const Text(PawScanCopy.takeAnotherPhoto),
+          ),
+          const SizedBox(height: 12),
+          analyze,
+        ] else ...[
+          analyze,
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: canCapture ? onCamera : null,
+                icon: const Icon(Icons.photo_camera_outlined),
+                label: const Text(PawScanCopy.camera),
+              ),
+              OutlinedButton.icon(
+                onPressed: canCapture ? onGallery : null,
+                icon: const Icon(Icons.photo_library_outlined),
+                label: const Text(PawScanCopy.gallery),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _AnalyzeButton extends StatelessWidget {
+  const _AnalyzeButton({
+    required this.state,
+    required this.onPressed,
+    required this.isPrimary,
+  });
+
+  final PawScanState state;
+  final VoidCallback? onPressed;
+  final bool isPrimary;
+
+  @override
+  Widget build(BuildContext context) {
+    final isAnalyzing = state.status == PawScanStatus.analyzing;
+    final icon = isAnalyzing
+        ? const SizedBox(
+            height: 16,
+            width: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : const Icon(Icons.search);
+    final label = Text(
+      isAnalyzing
+          ? PawScanCopy.describing
+          : PawScanCopy.describePhotos(state.photos.length),
+    );
+
+    if (isPrimary) {
+      return FilledButton.icon(onPressed: onPressed, icon: icon, label: label);
+    }
+
+    return OutlinedButton.icon(onPressed: onPressed, icon: icon, label: label);
   }
 }
 

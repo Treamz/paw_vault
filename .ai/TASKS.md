@@ -375,3 +375,15 @@
   reminders, smart input history, paw checks, weight history), keyed to the
   real uid and skipped when the account already has pets. Documented in
   `docs/TEST_ACCOUNT.md`.
+
+## Phase 15 follow-ups
+
+- [x] Make Paw Scan capture camera-first: one tap to the camera (no
+  source-picker sheet), "Choose from gallery" beside it, the paw selector shown
+  only once a photo exists, and the action emphasis moving to Describe once
+  there are photos (back to the camera after a rejection).
+- [ ] Add a "Report this result" action to the Paw Scan result and journal
+  screens (a prefilled `mailto:` via the existing `url_launcher`). Google
+  Play's GenAI policy requires an in-app way to report offensive AI output.
+  `PawScanCopy.reportResult` was removed as dead code when the camera-first
+  change landed; reintroduce it with the action.
