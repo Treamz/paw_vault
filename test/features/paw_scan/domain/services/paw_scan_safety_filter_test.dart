@@ -194,8 +194,8 @@ void main() {
     });
 
     test('preserves the area of a replaced observation', () {
-      final draft = PawScanDraft(
-        observations: const [
+      const draft = PawScanDraft(
+        observations: [
           PawObservation(
             area: PawObservationArea.betweenToes,
             text: 'An abscess between the toes.',

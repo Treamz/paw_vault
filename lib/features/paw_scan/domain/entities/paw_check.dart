@@ -21,7 +21,7 @@ class PawCheck {
     this.observations = const [],
     this.summary,
     this.ownerNote,
-    this.includeInVetSummary = true,
+    this.includeInVetSummary = false,
     this.confidence = 0,
     this.status = PawCheckStatus.confirmed,
     this.createdAt,
@@ -50,7 +50,9 @@ class PawCheck {
   /// The owner's own words about this check.
   final String? ownerNote;
 
-  /// Whether this check is included in the exported vet summary PDF.
+  /// Whether this check is included in the exported vet summary PDF. Opt-in:
+  /// if every check flowed in automatically, the "Add to vet summary" action
+  /// would do nothing.
   final bool includeInVetSummary;
 
   final double confidence;

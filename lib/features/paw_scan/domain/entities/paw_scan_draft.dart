@@ -23,6 +23,11 @@ enum PawScanDraftStatus {
   /// they are asked to retake instead.
   unusablePhoto,
 
+  /// The model's own safety filters blocked the request or the reply. Most
+  /// likely on a badly injured paw — the case where the owner most needs to be
+  /// told to call a vet, so it gets its own state and its own message.
+  blocked,
+
   confirmed,
   dismissed,
 }
@@ -36,7 +41,6 @@ class PawScanDraft {
     this.observations = const [],
     this.attentionLevel = PawAttentionLevel.undetermined,
     this.summary,
-    this.suggestedRecheckInDays,
     this.photoQuality = PawScanPhotoQuality.usable,
     this.confidence,
     this.status = PawScanDraftStatus.awaitingReview,
@@ -53,9 +57,21 @@ class PawScanDraft {
         observations = const [],
         attentionLevel = PawAttentionLevel.undetermined,
         summary = null,
-        suggestedRecheckInDays = null,
         confidence = null,
         status = PawScanDraftStatus.unusablePhoto,
+        safetyFilterApplied = false;
+
+  /// The model refused to answer. Carries no attention level: the UI tells the
+  /// owner to contact their vet directly.
+  const PawScanDraft.blocked()
+      : requiresConfirmation = true,
+        location = PawLocation.unspecified,
+        observations = const [],
+        attentionLevel = PawAttentionLevel.undetermined,
+        summary = null,
+        photoQuality = PawScanPhotoQuality.usable,
+        confidence = null,
+        status = PawScanDraftStatus.blocked,
         safetyFilterApplied = false;
 
   /// Always `true` — a scan result must be reviewed before anything is saved.
@@ -67,10 +83,6 @@ class PawScanDraft {
 
   /// One neutral sentence about what is visible. Never a conclusion.
   final String? summary;
-
-  /// How many days the model suggests before looking again. Drives the
-  /// pre-filled follow-up reminder; the owner still saves it themselves.
-  final int? suggestedRecheckInDays;
 
   final PawScanPhotoQuality photoQuality;
   final double? confidence;
@@ -84,9 +96,18 @@ class PawScanDraft {
   bool get isLowConfidence =>
       confidence != null && confidence! < lowConfidenceThreshold;
 
-  /// Whether a result can be shown at all. When `false` the UI asks for a
-  /// retake and shows no attention level.
-  bool get isUsable => status != PawScanDraftStatus.unusablePhoto;
+  /// Whether an attention level and observations can be shown at all. When
+  /// `false` the UI asks for a retake, or tells the owner to call their vet,
+  /// and shows no attention level.
+  bool get isUsable =>
+      status != PawScanDraftStatus.unusablePhoto &&
+      status != PawScanDraftStatus.blocked;
+
+  /// Whether this draft may be written to the journal. Only a reviewed result
+  /// qualifies — a rejected scan can never be logged.
+  bool get canBeLogged =>
+      status == PawScanDraftStatus.awaitingReview ||
+      status == PawScanDraftStatus.lowConfidenceReview;
 
   bool get hasObservations => observations.isNotEmpty;
 
@@ -96,7 +117,6 @@ class PawScanDraft {
     List<PawObservation>? observations,
     PawAttentionLevel? attentionLevel,
     String? summary,
-    int? suggestedRecheckInDays,
     PawScanPhotoQuality? photoQuality,
     double? confidence,
     PawScanDraftStatus? status,
@@ -109,8 +129,6 @@ class PawScanDraft {
       observations: observations ?? this.observations,
       attentionLevel: attentionLevel ?? this.attentionLevel,
       summary: clearSummary ? null : summary ?? this.summary,
-      suggestedRecheckInDays:
-          suggestedRecheckInDays ?? this.suggestedRecheckInDays,
       photoQuality: photoQuality ?? this.photoQuality,
       confidence: confidence ?? this.confidence,
       status: status ?? this.status,

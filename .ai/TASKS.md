@@ -321,13 +321,16 @@
 - [x] Add `PawScanSafetyFilter` (pure Dart) that scrubs diagnostic and
   treatment language from model output, may only raise an attention level, and
   flags the draft low-confidence when it fires. Heavily tested.
-- [ ] Add `PawScanAiRepository` and `PawCheckRepository` domain contracts plus
+- [x] Add `PawScanAiRepository` and `PawCheckRepository` domain contracts plus
   the `PawPhotoPicker` port.
-- [ ] Extend `FirebaseAiLogicDataSource` with `analyzePaw(...)`; implement it in
+- [x] Extend `FirebaseAiLogicDataSource` with `analyzePaw(...)`; implement it in
   `FlutterFireAiLogicDataSource` using a dedicated model factory with
   `responseSchema` and a safety-hardened system instruction, plus a static
   `parsePawScanDraft` that degrades to `undetermined` (never "nothing notable")
   and always runs the safety filter. Add the no-op implementation.
+- [ ] Add `pawChecks` to the account-deletion subcollection allowlist in
+  `FirebaseAccountDeletionService` so deleted accounts leave no paw checks
+  behind. (`weightEntries` is missing there too — tracked separately.)
 - [ ] Add the Paw Scan AI repository adapters (Firebase-ready + no-op) and the
   `PawPhotoPicker` implementation that downscales via `image_picker`.
 - [ ] Add the `pawChecks` Firestore path, the `pawCheckPhoto` Storage path, the
