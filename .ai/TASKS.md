@@ -367,3 +367,11 @@
   touchpoints are `flutter_fire_paw_check_data_source.dart` and
   `paw_photo_picker_impl.dart`; no cubit or widget imports `paw_scan/data`;
   and `app_dependencies.dart` is the sole composition point.
+
+## Dev tooling
+
+- [x] Add `DevSeeder` and a debug-only `--dart-define=PAWVAULT_SEED=true` path
+  that fills a signed-in account with `SampleData` (pets, timeline, documents,
+  reminders, smart input history, paw checks, weight history), keyed to the
+  real uid and skipped when the account already has pets. Documented in
+  `docs/TEST_ACCOUNT.md`.
