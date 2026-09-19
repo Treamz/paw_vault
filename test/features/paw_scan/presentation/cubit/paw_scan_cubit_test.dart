@@ -284,6 +284,25 @@ void main() {
         await t.cubit.close();
       });
 
+      test('when no attention level could be established', () async {
+        // An unreadable reply must land in `rejected`, not `review`: a review
+        // screen with no observations reads as "nothing stood out".
+        final t = _build();
+        t.picker.next = _picked();
+        await t.cubit.addPhoto(PawPhotoSource.camera);
+        // `attentionLevel` defaults to undetermined — the state a failed
+        // parse leaves behind.
+        t.ai.next =
+            const PawScanDraft(status: PawScanDraftStatus.lowConfidenceReview);
+
+        await t.cubit.analyze();
+
+        expect(t.cubit.state.status, PawScanStatus.rejected);
+        expect(t.cubit.state.hasResult, isFalse);
+        expect(t.cubit.state.draft!.canBeLogged, isFalse);
+        await t.cubit.close();
+      });
+
       test('when the model refused', () async {
         final t = _build();
         t.picker.next = _picked();
@@ -369,6 +388,9 @@ void main() {
         PawScanDraft.unusable(photoQuality: PawScanPhotoQuality.notAPaw),
         PawScanDraft.unusable(photoQuality: PawScanPhotoQuality.blurry),
         PawScanDraft.blocked(),
+        // A "no result" check would sit in the journal looking like a check
+        // that found nothing — which a vet could read as a negative finding.
+        PawScanDraft(status: PawScanDraftStatus.lowConfidenceReview),
       ];
 
       for (final draft in rejected) {

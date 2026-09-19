@@ -99,15 +99,27 @@ class PawScanDraft {
   /// Whether an attention level and observations can be shown at all. When
   /// `false` the UI asks for a retake, or tells the owner to call their vet,
   /// and shows no attention level.
+  ///
+  /// [PawAttentionLevel.undetermined] counts as unusable even though the photo
+  /// itself may have been fine. Nothing could be established, and a result
+  /// screen with no observations reads as "nothing stood out" — reassurance the
+  /// model never actually gave. That is the precise failure this feature
+  /// exists to avoid, so an undetermined draft is shown as a failed read
+  /// instead of a weak result.
   bool get isUsable =>
       status != PawScanDraftStatus.unusablePhoto &&
-      status != PawScanDraftStatus.blocked;
+      status != PawScanDraftStatus.blocked &&
+      attentionLevel != PawAttentionLevel.undetermined;
 
-  /// Whether this draft may be written to the journal. Only a reviewed result
-  /// qualifies — a rejected scan can never be logged.
+  /// Whether this draft may be written to the journal.
+  ///
+  /// Only a result with an established attention level qualifies: logging a
+  /// "no result" check would put a meaningless row in the pet's journal and,
+  /// worse, a row a vet might read as "checked, nothing found".
   bool get canBeLogged =>
-      status == PawScanDraftStatus.awaitingReview ||
-      status == PawScanDraftStatus.lowConfidenceReview;
+      isUsable &&
+      (status == PawScanDraftStatus.awaitingReview ||
+          status == PawScanDraftStatus.lowConfidenceReview);
 
   bool get hasObservations => observations.isNotEmpty;
 

@@ -165,7 +165,7 @@ void main() {
       await _analyze(tester, picker);
 
       expect(find.text('Contact a vet promptly'), findsOneWidget);
-      expect(find.byType(PawScanDisclaimer), findsWidgets);
+      expect(find.byType(PawScanDisclaimer), findsOneWidget);
     });
 
     testWidgets('sits above the observations on a result', (tester) async {
@@ -179,9 +179,10 @@ void main() {
 
       await _analyze(tester, picker);
 
-      final disclaimers =
-          tester.widgetList(find.byType(PawScanDisclaimer)).length;
-      expect(disclaimers, greaterThanOrEqualTo(2));
+      // One notice, not two. The result section renders directly beneath the
+      // tab's disclaimer, so a second copy landed immediately below the first
+      // and just read as a rendering bug on a real phone.
+      expect(find.byType(PawScanDisclaimer), findsOneWidget);
 
       final observationsHeader =
           tester.getTopLeft(find.text('What Paw Scan can see')).dy;
@@ -252,6 +253,34 @@ void main() {
           reason: 'a rejected scan must show no attention level',
         );
       }
+    });
+
+    testWidgets('an unreadable reply never reads as reassurance',
+        (tester) async {
+      // Caught on a real device: an undetermined level rendered the "No
+      // result" card *and* "Nothing in these photos stood out." at the same
+      // time — the exact false reassurance this feature exists to avoid.
+      _useTallSurface(tester);
+      final ai = _FakePawScanAiRepository()
+        // `attentionLevel` defaults to undetermined — the state a failed
+        // parse leaves behind.
+        ..next =
+            const PawScanDraft(status: PawScanDraftStatus.lowConfidenceReview);
+      final picker = _FakePawPhotoPicker();
+      await tester.pumpWidget(_app(ai: ai, picker: picker));
+      await tester.pumpAndSettle();
+
+      await _analyze(tester, picker);
+
+      expect(find.text('Nothing in these photos stood out.'), findsNothing);
+      expect(find.text('What Paw Scan can see'), findsNothing);
+      expect(
+        find.text(formatPawAttentionLevel(PawAttentionLevel.undetermined)),
+        findsNothing,
+      );
+      // It is presented as a failed read, with a retake offered.
+      expect(find.text('Could not read the result'), findsOneWidget);
+      expect(find.text('Log this check'), findsNothing);
     });
 
     testWidgets('a blocked reply tells the owner to call their vet',

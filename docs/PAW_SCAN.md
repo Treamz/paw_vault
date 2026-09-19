@@ -114,6 +114,25 @@ made.
 | unparseable or empty reply | `undetermined` + low-confidence review |
 | `confidence < 0.6` | reviewable, flagged low-confidence |
 | model blocked the reply | `blocked` — see below |
+| empty reply (no text parts) | `undetermined` + low-confidence review |
+
+**An `undetermined` level is treated as a failed read, not a weak result.**
+`PawScanDraft.isUsable` is false for it, so the UI shows the retake prompt
+rather than a result section. This was a real bug caught on device: an
+undetermined draft rendered the "No result" card *and* "Nothing in these photos
+stood out." together — the exact false reassurance this feature exists to
+prevent. `canBeLogged` excludes it too, because a "no result" row in the journal
+could be read by a vet as a check that found nothing. There is a widget test
+and a cubit test guarding both.
+
+**Thinking is disabled** (`ThinkingConfig.withThinkingBudget(0)`) and
+`maxOutputTokens` is 1024. On Gemini 2.5 thinking tokens count against
+`maxOutputTokens`, so a tight cap lets the model spend its whole budget
+reasoning and return **no text at all** — which arrives as an empty reply and
+looks to the owner like the feature is broken. Describing what is visible needs
+no reasoning budget. When a reply does come back empty, the data source
+`debugPrint`s the `finishReason` and `blockReason`, because otherwise every
+failure mode is indistinguishable from every other.
 
 The local-first no-op returns `unusablePhoto` for the same reason: running
 `flutter run` without Firebase must not fabricate a health signal.
