@@ -43,14 +43,14 @@ PickedFile _picked() => PickedFile(
       contentType: 'image/png',
     );
 
-PawCheck _check() {
+PawCheck _check({String id = 'check-1', DateTime? checkedAt}) {
   return PawCheck(
-    id: const EntityId('check-1'),
+    id: EntityId(id),
     userId: const EntityId('user-1'),
     petId: const EntityId('pet-1'),
     location: PawLocation.frontLeft,
     attentionLevel: PawAttentionLevel.monitor,
-    checkedAt: UtcDateTime(DateTime.utc(2026, 9, 18)),
+    checkedAt: UtcDateTime(checkedAt ?? DateTime.utc(2026, 9, 18)),
     observations: const ['A dark area near the centre of the pad.'],
     status: PawCheckStatus.confirmed,
   );
@@ -446,6 +446,36 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('No paw checks yet'), findsOneWidget);
+    });
+
+    testWidgets('a journal tile with every action fits a narrow phone',
+        (tester) async {
+      // Caught on device: the chip plus the actions overflowed a Row by 13px,
+      // clipping the delete button. Two checks of the same paw enable the
+      // compare action too, so this is the widest the tile ever gets — and a
+      // narrow surface with a large font scale is the worst case.
+      tester.view.physicalSize = const Size(320, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final repository = _FakePawCheckRepository()
+        ..checks = [
+          _check(),
+          _check(id: 'check-2', checkedAt: DateTime.utc(2026, 9, 6)),
+        ];
+      await tester.pumpWidget(
+        _app(ai: _FakePawScanAiRepository(), repository: repository),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Journal'));
+      await tester.pumpAndSettle();
+
+      // A RenderFlex overflow surfaces as a thrown FlutterError.
+      expect(tester.takeException(), isNull);
+      expect(find.byTooltip('Delete this check'), findsWidgets);
+      expect(find.text('Follow up'), findsWidgets);
     });
 
     testWidgets('lists saved checks with their attention level',
