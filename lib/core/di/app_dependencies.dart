@@ -4,6 +4,8 @@ import 'package:paw_vault/core/ai/data/datasources/noop_firebase_ai_logic_data_s
 import 'package:paw_vault/core/analytics/data/services/firebase_analytics_service.dart';
 import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
+import 'package:paw_vault/core/attribution/data/services/noop_install_attribution_service.dart';
+import 'package:paw_vault/core/attribution/domain/services/install_attribution_service.dart';
 import 'package:paw_vault/core/auth/data/datasources/flutter_fire_auth_data_source.dart';
 import 'package:paw_vault/core/auth/data/datasources/noop_firebase_auth_data_source.dart';
 import 'package:paw_vault/core/auth/data/repositories/firebase_ready_auth_repository.dart';
@@ -93,6 +95,7 @@ class AppDependencies {
     // Optional with safe defaults so adding the feature does not break every
     // direct construction of this container, following the precedent set by
     // the owner-profile and weight-entry repositories.
+    InstallAttributionService? installAttributionService,
     PawCheckRepository? pawCheckRepository,
     PawScanAiRepository? pawScanAiRepository,
     PawPhotoPicker? pawPhotoPicker,
@@ -119,7 +122,9 @@ class AppDependencies {
     required this.paywallPresenter,
     required this.trackingAuthorizationService,
     required this.accountDeletionService,
-  })  : pawCheckRepository =
+  })  : installAttributionService =
+            installAttributionService ?? const NoopInstallAttributionService(),
+        pawCheckRepository =
             pawCheckRepository ?? const LocalPawCheckRepository(),
         pawScanAiRepository =
             pawScanAiRepository ?? const NoopPawScanAiRepository(),
@@ -129,7 +134,14 @@ class AppDependencies {
         weightEntryRepository =
             weightEntryRepository ?? LocalWeightEntryRepository();
 
-  factory AppDependencies.localFirst() {
+  /// Local-first composition. The two service overrides exist so the
+  /// composition root itself can be tested — notably the order in which the
+  /// ATT prompt and attribution collection run — following the same
+  /// optional-override shape as [AppDependencies.firebaseReady].
+  factory AppDependencies.localFirst({
+    InstallAttributionService? installAttributionService,
+    TrackingAuthorizationService? trackingAuthorizationService,
+  }) {
     final authDataSource = NoopFirebaseAuthDataSource();
     final storageDataSource = NoopFirebaseStorageDataSource();
     final aiDataSource = NoopFirebaseAiLogicDataSource();
@@ -160,7 +172,10 @@ class AppDependencies {
       analyticsService: const NoopAnalyticsService(),
       subscriptionService: const NoopSubscriptionService(),
       paywallPresenter: const NoopPaywallPresenter(),
-      trackingAuthorizationService: const NoopTrackingAuthorizationService(),
+      installAttributionService:
+          installAttributionService ?? const NoopInstallAttributionService(),
+      trackingAuthorizationService: trackingAuthorizationService ??
+          const NoopTrackingAuthorizationService(),
       accountDeletionService: const NoopAccountDeletionService(),
     );
   }
@@ -169,6 +184,10 @@ class AppDependencies {
     FirebaseInstances firebase, {
     SubscriptionService subscriptionService = const NoopSubscriptionService(),
     PaywallPresenter paywallPresenter = const NoopPaywallPresenter(),
+    // Injected rather than constructed here: the real implementation requires
+    // `Purchases.configure` to have run, which only bootstrap knows about.
+    InstallAttributionService installAttributionService =
+        const NoopInstallAttributionService(),
   }) {
     final aiDataSource = FlutterFireAiLogicDataSource(firebase.ai);
     final aiRepository = FirebaseReadyAiRepository(aiDataSource);
@@ -223,6 +242,7 @@ class AppDependencies {
       analyticsService: FirebaseAnalyticsService(firebase.analytics),
       subscriptionService: subscriptionService,
       paywallPresenter: paywallPresenter,
+      installAttributionService: installAttributionService,
       trackingAuthorizationService: const AttTrackingAuthorizationService(),
       accountDeletionService: FirebaseAccountDeletionService(
         firebase.auth,
@@ -254,6 +274,7 @@ class AppDependencies {
   final AnalyticsService analyticsService;
   final SubscriptionService subscriptionService;
   final PaywallPresenter paywallPresenter;
+  final InstallAttributionService installAttributionService;
   final TrackingAuthorizationService trackingAuthorizationService;
   final AccountDeletionService accountDeletionService;
   final OwnerProfileRepository ownerProfileRepository;

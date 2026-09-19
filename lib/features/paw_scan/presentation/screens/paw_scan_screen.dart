@@ -408,11 +408,6 @@ class _ResultSection extends StatelessWidget {
       children: [
         PawAttentionCard(level: draft.attentionLevel),
         const SizedBox(height: 16),
-        // Repeated next to the observations: a notice at the top of a
-        // scrolling screen is off-screen by the time the descriptions are
-        // read, which is exactly when it matters.
-        const PawScanDisclaimer(),
-        const SizedBox(height: 16),
         if (draft.isLowConfidence)
           const _Notice(message: PawScanCopy.lowConfidenceNotice),
         if (draft.safetyFilterApplied)

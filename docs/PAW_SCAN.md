@@ -114,6 +114,25 @@ made.
 | unparseable or empty reply | `undetermined` + low-confidence review |
 | `confidence < 0.6` | reviewable, flagged low-confidence |
 | model blocked the reply | `blocked` — see below |
+| empty reply (no text parts) | `undetermined` + low-confidence review |
+
+**An `undetermined` level is treated as a failed read, not a weak result.**
+`PawScanDraft.isUsable` is false for it, so the UI shows the retake prompt
+rather than a result section. This was a real bug caught on device: an
+undetermined draft rendered the "No result" card *and* "Nothing in these photos
+stood out." together — the exact false reassurance this feature exists to
+prevent. `canBeLogged` excludes it too, because a "no result" row in the journal
+could be read by a vet as a check that found nothing. There is a widget test
+and a cubit test guarding both.
+
+**Thinking is disabled** (`ThinkingConfig.withThinkingBudget(0)`) and
+`maxOutputTokens` is 1024. On Gemini 2.5 thinking tokens count against
+`maxOutputTokens`, so a tight cap lets the model spend its whole budget
+reasoning and return **no text at all** — which arrives as an empty reply and
+looks to the owner like the feature is broken. Describing what is visible needs
+no reasoning budget. When a reply does come back empty, the data source
+`debugPrint`s the `finishReason` and `blockReason`, because otherwise every
+failure mode is indistinguishable from every other.
 
 The local-first no-op returns `unusablePhoto` for the same reason: running
 `flutter run` without Firebase must not fabricate a health signal.
@@ -286,3 +305,16 @@ Before shipping any change to the prompt, schema, or model version:
    **no attention level appears**.
 4. Photograph a healthy paw. Confirm the label reads "Nothing stood out" and
    not anything resembling "healthy" or "fine".
+
+### Verified on device for 1.0.10
+
+- ✅ **Real dog paw** → "Worth showing a vet soon" with four descriptive
+  observations (pad colour, fur length, reddish discoloration between the toes,
+  overall). No condition named, no treatment suggested, the safety filter did
+  not need to fire, and one disclaimer rendered.
+- ✅ **A human hand** → "That does not look like a paw", no attention level.
+  A better boundary test than an unrelated object: a hand is close enough to a
+  paw to have fooled the model.
+- ⬜ Checks 1 and 2 (a visibly injured paw, and the `blocked` path) are
+  **untested** — they need a suitable photo. The `blocked` copy is the most
+  important string in the feature, so test it when the chance comes.

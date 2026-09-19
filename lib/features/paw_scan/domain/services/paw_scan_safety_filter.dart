@@ -103,7 +103,14 @@ abstract final class PawScanSafetyFilter {
   /// An unusable photo is returned untouched: it carries no observations and no
   /// attention level, so there is nothing to scrub and nothing to escalate.
   static PawScanDraft apply(PawScanDraft draft) {
-    if (!draft.isUsable) return draft;
+    // Guard on the statuses that carry nothing to scrub, not on
+    // `draft.isUsable` — that also excludes an undetermined attention level,
+    // and a draft whose level failed to parse can still carry observations
+    // that need scrubbing and escalating.
+    if (draft.status == PawScanDraftStatus.unusablePhoto ||
+        draft.status == PawScanDraftStatus.blocked) {
+      return draft;
+    }
 
     var breached = false;
 

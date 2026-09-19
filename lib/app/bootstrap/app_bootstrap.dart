@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:paw_vault/core/attribution/data/services/noop_install_attribution_service.dart';
+import 'package:paw_vault/core/attribution/domain/services/install_attribution_service.dart';
 import 'package:paw_vault/core/auth/application/anonymous_auth_bootstrap.dart';
 import 'package:paw_vault/core/dev/dev_seeder.dart';
 import 'package:paw_vault/core/di/app_dependencies.dart';
@@ -29,12 +31,13 @@ abstract final class AppBootstrap {
     await FirebaseAppInitializer.initialize();
     final firebase = FirebaseInstances();
     FirestoreOfflineConfigurator.configure(firebase.firestore);
-    final (subscriptionService, paywallPresenter) =
+    final (subscriptionService, paywallPresenter, installAttributionService) =
         await _configureSubscriptions();
     final dependencies = AppDependencies.firebaseReady(
       firebase,
       subscriptionService: subscriptionService,
       paywallPresenter: paywallPresenter,
+      installAttributionService: installAttributionService,
     );
     await AnonymousAuthBootstrap.ensureSignedIn(dependencies.authRepository);
     _bindSubscriptionIdentity(dependencies, subscriptionService);
@@ -116,16 +119,42 @@ abstract final class AppBootstrap {
   /// Configures RevenueCat when a public SDK key is provided via dart-define;
   /// otherwise falls back to the no-op services so the app still runs. The
   /// paywall UI itself is configured in the RevenueCat dashboard.
-  static Future<(SubscriptionService, PaywallPresenter)>
-      _configureSubscriptions() async {
+  static Future<
+      (
+        SubscriptionService,
+        PaywallPresenter,
+        InstallAttributionService,
+      )> _configureSubscriptions() async {
     final apiKey = _revenueCatApiKey;
     if (apiKey.isEmpty) {
-      return (const NoopSubscriptionService(), const NoopPaywallPresenter());
+      return (
+        const NoopSubscriptionService(),
+        const NoopPaywallPresenter(),
+        const NoopInstallAttributionService(),
+      );
     }
     await Purchases.configure(PurchasesConfiguration(apiKey));
     return (
       RevenueCatSubscriptionService(),
       const RevenueCatPaywallPresenter(),
+      // Deliberately the no-op, not `RevenueCatInstallAttributionService`.
+      //
+      // RevenueCat only turns an AdServices token into campaign data once its
+      // Apple Search Ads integration is configured, and that is a paid plan
+      // feature we are not on. Until then, enabling collection would post a
+      // per-install identifier to a service that does nothing with it — which
+      // `docs/ANALYTICS.md` would not thank us for.
+      //
+      // Campaign attribution still works meanwhile: Firebase's own reporter
+      // (GoogleAppMeasurement's `APMSearchAdReporter`) is independent of
+      // RevenueCat and logs `firebase_campaign` on its own. See `docs/ASA.md`.
+      //
+      // To switch on later: import
+      // `core/attribution/data/services/revenue_cat_install_attribution_service.dart`
+      // and return `const RevenueCatInstallAttributionService()` here. The
+      // implementation is written and the ATT ordering in `app.dart` already
+      // handles the rest.
+      const NoopInstallAttributionService(),
     );
   }
 

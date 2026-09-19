@@ -71,8 +71,19 @@ class _PawVaultAppState extends State<PawVaultApp> {
     // Ask for App Tracking Transparency permission once the first frame is up,
     // so iOS shows the system prompt while the app is active. Required before
     // collecting any data Apple treats as tracking (Guideline 5.1.2(i)).
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.dependencies.trackingAuthorizationService.requestAuthorization();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await widget.dependencies.trackingAuthorizationService
+          .requestAuthorization();
+
+      // Ordering, not gating. AdServices attribution is a first-party Apple
+      // API and needs no ATT consent, so this must never be conditional on the
+      // user's answer — that would throw away most campaign data. But Apple
+      // returns richer "Detailed" attribution when ATT has already been
+      // resolved, and RevenueCat caches the first token it posts, so enabling
+      // collection after the prompt costs nothing and gains the better data.
+      // Do not move this into `AppBootstrap`: that runs before the first frame,
+      // hence before ATT.
+      await widget.dependencies.installAttributionService.enableCollection();
     });
   }
 

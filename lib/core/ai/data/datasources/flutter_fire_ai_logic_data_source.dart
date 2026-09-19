@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:firebase_ai/firebase_ai.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:paw_vault/core/ai/data/datasources/firebase_ai_logic_data_source.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/features/document_extraction/domain/entities/document_extraction_draft.dart';
@@ -215,7 +215,22 @@ Do not diagnose or give medical advice. Only structure what the document says.
       ]);
       // `response.text` itself throws when the reply was blocked, so it has to
       // be read inside the try.
-      return parsePawScanDraft(response.text, requestedLocation: location);
+      final text = response.text;
+
+      if (text == null || text.trim().isEmpty) {
+        // Every failure mode looks identical to the owner ("no result"), so
+        // leave a breadcrumb for the next person debugging it. Only the
+        // model's own status codes are logged — never photo or reply content.
+        final candidate =
+            response.candidates.isEmpty ? null : response.candidates.first;
+        debugPrint(
+          'Paw Scan: empty model reply. '
+          'finishReason=${candidate?.finishReason}, '
+          'blockReason=${response.promptFeedback?.blockReason}',
+        );
+      }
+
+      return parsePawScanDraft(text, requestedLocation: location);
     } on FirebaseAIException catch (_) {
       // Gemini refused to answer. That is most likely on a badly injured paw —
       // precisely when the owner most needs to be pointed at a vet — so it
@@ -429,7 +444,14 @@ Set "attentionLevel" to:
         responseSchema: _pawScanSchema,
         // Description, not invention: keep the model close to the pixels.
         temperature: 0.2,
-        maxOutputTokens: 640,
+        // Thinking is off, and the budget is generous, for one reason: on
+        // Gemini 2.5 thinking tokens count against `maxOutputTokens`, so a
+        // tight cap lets the model spend the whole budget reasoning and return
+        // **no text at all**. That arrives here as an empty reply and
+        // degrades to "no result" — the model looks broken when it is only
+        // out of room. Describing what is visible needs no reasoning budget.
+        thinkingConfig: ThinkingConfig.withThinkingBudget(0),
+        maxOutputTokens: 1024,
       ),
       // A photo of a genuinely injured paw is legitimate, non-gratuitous
       // medical imagery, and it is the case where the owner most needs an
