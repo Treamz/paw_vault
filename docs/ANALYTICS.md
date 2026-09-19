@@ -30,6 +30,10 @@ Reporter is disabled."* and does nothing. `RevenueCat.framework` already links
 AdServices, so no build change was needed — see `docs/ASA.md` for the
 verification command and the fragility that creates.
 
+This is currently the **only** campaign attribution in the app: the RevenueCat
+half is deliberately off because its Apple Search Ads integration is a
+paid-plan feature. Firebase's reporter does not depend on it.
+
 This keeps the privacy rule above structural rather than procedural: the
 attribution token is an install identifier, and **no Dart code ever holds it**,
 so there is no code path from a token to `logEvent`. See `docs/ASA.md`.

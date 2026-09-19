@@ -418,9 +418,12 @@
 - [ ] Add an app-level `ios/Runner/PrivacyInfo.xcprivacy` — it does not exist,
   while every Pod ships one, and the app already shows an ATT prompt without a
   manifest declaring the behaviour. Independent of ASA.
-- [ ] Configure the **RevenueCat → Apple Search Ads integration** in the
-  RevenueCat dashboard. Without it the tokens are collected and posted and
-  nothing appears; the failure is silent.
+- [ ] **Deferred (paid plan):** the RevenueCat → Apple Search Ads integration.
+  Until it is on, `AppBootstrap` wires `NoopInstallAttributionService` so no
+  per-install identifier is posted to a service that would do nothing with it.
+  GA4 campaign attribution works without it via Firebase's own reporter; what
+  is missing is revenue/LTV per campaign. Flip one line in
+  `_configureSubscriptions()` when the plan is upgraded.
 - [ ] Add an in-app rating prompt (`SKStoreReviewController`) after a natural
   success moment, e.g. the first vet-summary export. The listing has 8 reviews,
   which caps ad conversion and organic ranking; `docs/ASO.md` §9 recommends this

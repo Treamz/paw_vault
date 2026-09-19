@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:paw_vault/core/attribution/data/services/noop_install_attribution_service.dart';
-import 'package:paw_vault/core/attribution/data/services/revenue_cat_install_attribution_service.dart';
 import 'package:paw_vault/core/attribution/domain/services/install_attribution_service.dart';
 import 'package:paw_vault/core/auth/application/anonymous_auth_bootstrap.dart';
 import 'package:paw_vault/core/dev/dev_seeder.dart';
@@ -138,9 +137,24 @@ abstract final class AppBootstrap {
     return (
       RevenueCatSubscriptionService(),
       const RevenueCatPaywallPresenter(),
-      // Collection itself is enabled later, after the ATT prompt resolves —
-      // see the post-frame callback in `app.dart`.
-      const RevenueCatInstallAttributionService(),
+      // Deliberately the no-op, not `RevenueCatInstallAttributionService`.
+      //
+      // RevenueCat only turns an AdServices token into campaign data once its
+      // Apple Search Ads integration is configured, and that is a paid plan
+      // feature we are not on. Until then, enabling collection would post a
+      // per-install identifier to a service that does nothing with it — which
+      // `docs/ANALYTICS.md` would not thank us for.
+      //
+      // Campaign attribution still works meanwhile: Firebase's own reporter
+      // (GoogleAppMeasurement's `APMSearchAdReporter`) is independent of
+      // RevenueCat and logs `firebase_campaign` on its own. See `docs/ASA.md`.
+      //
+      // To switch on later: import
+      // `core/attribution/data/services/revenue_cat_install_attribution_service.dart`
+      // and return `const RevenueCatInstallAttributionService()` here. The
+      // implementation is written and the ATT ordering in `app.dart` already
+      // handles the rest.
+      const NoopInstallAttributionService(),
     );
   }
 

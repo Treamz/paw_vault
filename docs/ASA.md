@@ -142,9 +142,41 @@ natively. The integration is therefore an *enablement*, not an implementation:
 | Retry while Apple is not ready | both, natively, with persisted state |
 | Report at most once per install | both, natively |
 
-Our code is **one port** (`lib/core/attribution/`) calling
-`Purchases.enableAdServicesAttributionTokenCollection()` — collection is opt-in,
-and `Purchases.configure` does not turn it on.
+Our code is **one port** (`lib/core/attribution/`). It has a RevenueCat
+implementation calling `Purchases.enableAdServicesAttributionTokenCollection()`
+— collection is opt-in, and `Purchases.configure` does not turn it on.
+
+### What is on today, and what is not
+
+| Half | State | Why |
+|---|---|---|
+| **Firebase → GA4 campaign attribution** | **on** | Works with no account, no plan, and no code of ours |
+| **RevenueCat → revenue by campaign** | **off** | Needs RevenueCat's Apple Search Ads integration, which is a paid-plan feature |
+
+RevenueCat's Apple Search Ads integration is not on the free plan, so
+`AppBootstrap._configureSubscriptions()` deliberately returns
+`NoopInstallAttributionService`. Enabling collection without the integration
+would post a **per-install identifier** to a service that does nothing with it,
+which is not a trade worth making — see the privacy rule in
+`docs/ANALYTICS.md`.
+
+**This costs less than it sounds.** Firebase's reporter
+(`APMSearchAdReporter`) is entirely independent of RevenueCat — verified: zero
+references to RevenueCat inside `GoogleAppMeasurement` — so campaign → install
+→ in-app funnel reporting in GA4 works regardless. What you give up is
+**revenue and LTV per campaign**, i.e. judging ads on subscriptions rather than
+installs.
+
+Practically, at $10/day, installs-per-dollar from GA4 is enough to tell whether
+a keyword is worth keeping. Revisit the paid integration when spend is large
+enough that the difference between a cheap install and a paying install matters
+more than the subscription fee.
+
+**To switch on:** import
+`core/attribution/data/services/revenue_cat_install_attribution_service.dart`
+in `app_bootstrap.dart` and return `const RevenueCatInstallAttributionService()`
+instead of the no-op. The implementation and the ATT ordering are already in
+place; nothing else changes.
 
 ### Why there is no `-framework AdServices` flag
 
@@ -236,9 +268,10 @@ After roughly two weeks at this budget there should be enough to act on.
 - [ ] Listing updated to mention Paw Scan, once 1.0.9 is released.
 - [ ] Rating prompt shipped, or at least a plan for getting past 8 reviews.
 - [ ] Apple Search Ads account created and the payment method added.
-- [ ] **RevenueCat → Apple Search Ads integration configured** in the
-      RevenueCat dashboard. Without it tokens are collected and posted and
-      *nothing appears* — the failure is completely silent.
+- [ ] ~~RevenueCat → Apple Search Ads integration~~ — **deferred on purpose**
+      (paid plan). Not a blocker: GA4 campaign attribution works without it.
+      Revisit when judging ads on revenue rather than installs is worth the
+      subscription.
 - [ ] App Store Connect **App Privacy** answers re-reviewed for Advertising
       Data / Product Interaction. Note AdServices attribution is first-party
       and does not by itself constitute "tracking" under Apple's definition —
