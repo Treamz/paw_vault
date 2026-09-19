@@ -387,3 +387,25 @@
   Play's GenAI policy requires an in-app way to report offensive AI output.
   `PawScanCopy.reportResult` was removed as dead code when the camera-first
   change landed; reintroduce it with the action.
+
+## Phase 16: Paid acquisition (Apple Search Ads)
+
+- [x] Write the Apple Search Ads campaign plan (`docs/ASA.md`): Brand + Exact at
+  $10/day US, Competitor and Discovery documented but off, negative-keyword
+  strategy, ad-copy claim rules, and what to read after two weeks.
+- [ ] Ship ASA install attribution: an `AttributionService` port (mirroring
+  `lib/core/tracking/`) with a real and a no-op implementation, reporting to
+  RevenueCat via `enableAdServicesAttributionTokenCollection()` and to Firebase
+  Analytics as **campaign-level fields only** — the raw AdServices token is an
+  identifier and must never reach the analytics port (`docs/ANALYTICS.md`).
+  Blocked on deciding how the token is obtained: a maintained Flutter package
+  or a first-of-its-kind platform channel in `ios/Runner/`.
+- [ ] Check whether `ios/Runner/PrivacyInfo.xcprivacy` is now required (it does
+  not exist) and whether AdServices changes the App Privacy answers. Submission
+  blocker if wrong.
+- [ ] Add an in-app rating prompt (`SKStoreReviewController`) after a natural
+  success moment, e.g. the first vet-summary export. The listing has 8 reviews,
+  which caps ad conversion and organic ranking; `docs/ASO.md` §9 recommends this
+  independently of the ads work.
+- [ ] Update the App Store listing to mention Paw Scan once 1.0.9 is released —
+  the live description still lists only Smart Input and document scanning.
