@@ -393,16 +393,34 @@
 - [x] Write the Apple Search Ads campaign plan (`docs/ASA.md`): Brand + Exact at
   $10/day US, Competitor and Discovery documented but off, negative-keyword
   strategy, ad-copy claim rules, and what to read after two weeks.
-- [ ] Ship ASA install attribution: an `AttributionService` port (mirroring
-  `lib/core/tracking/`) with a real and a no-op implementation, reporting to
-  RevenueCat via `enableAdServicesAttributionTokenCollection()` and to Firebase
-  Analytics as **campaign-level fields only** — the raw AdServices token is an
-  identifier and must never reach the analytics port (`docs/ANALYTICS.md`).
-  Blocked on deciding how the token is obtained: a maintained Flutter package
-  or a first-of-its-kind platform channel in `ios/Runner/`.
-- [ ] Check whether `ios/Runner/PrivacyInfo.xcprivacy` is now required (it does
-  not exist) and whether AdServices changes the App Privacy answers. Submission
-  blocker if wrong.
+- [x] Ship ASA install attribution: an `InstallAttributionService` port
+  (mirroring `lib/core/tracking/`) with a RevenueCat and a no-op
+  implementation, enabled in `app.dart` *after* the ATT prompt resolves. No
+  build change was needed: `RevenueCat.framework` already links
+  `AdServices.framework`, which is what enables Firebase's reporter. An
+  explicit `-framework AdServices` in `ios/Flutter/*.xcconfig` was tried and
+  removed — the linker dead-strips it because `Runner` references no AdServices
+  symbol, so it was inert config that looked load-bearing.
+  The original design — fetch the token in Dart, POST it to Apple, log campaign
+  fields — was **wrong**: both Firebase (`APMSearchAdReporter`) and RevenueCat
+  already implement the whole flow natively, including the retry ladder and the
+  once-per-install flag. Firebase's was disabled only because AdServices was
+  not linked. Doing it in Dart would have reimplemented shipped native code and
+  been the one design that puts a raw install identifier into Dart, against
+  `docs/ANALYTICS.md`.
+- [ ] Re-review the App Store Connect **App Privacy** answers for Advertising
+  Data / Product Interaction now that ASA attribution is collected. Note
+  AdServices is first-party and is not "tracking" under Apple's definition, so
+  if ASA is the only reason a "used to track you" flag is set, that flag is
+  wrong. (Checked: AdServices is *not* on Apple's required-reason API list, so
+  the missing app-level `PrivacyInfo.xcprivacy` is not a blocker for this —
+  re-verify the list at submission time.)
+- [ ] Add an app-level `ios/Runner/PrivacyInfo.xcprivacy` — it does not exist,
+  while every Pod ships one, and the app already shows an ATT prompt without a
+  manifest declaring the behaviour. Independent of ASA.
+- [ ] Configure the **RevenueCat → Apple Search Ads integration** in the
+  RevenueCat dashboard. Without it the tokens are collected and posted and
+  nothing appears; the failure is silent.
 - [ ] Add an in-app rating prompt (`SKStoreReviewController`) after a natural
   success moment, e.g. the first vet-summary export. The listing has 8 reviews,
   which caps ad conversion and organic ranking; `docs/ASO.md` §9 recommends this

@@ -130,6 +130,75 @@ targeting is:
    listing when 1.0.9 is released, or ads will promise less than the app
    actually does.
 
+## How attribution works
+
+Both SDKs the app already ships implement Apple Search Ads attribution
+natively. The integration is therefore an *enablement*, not an implementation:
+
+| Piece | Who does it |
+|---|---|
+| Read the AdServices token | RevenueCat (`AttributionFetcher.swift`) and Firebase (`APMSearchAdReporter`) |
+| Resolve it with Apple | RevenueCat server-side; Firebase on-device |
+| Retry while Apple is not ready | both, natively, with persisted state |
+| Report at most once per install | both, natively |
+
+Our code is **one port** (`lib/core/attribution/`) calling
+`Purchases.enableAdServicesAttributionTokenCollection()` — collection is opt-in,
+and `Purchases.configure` does not turn it on.
+
+### Why there is no `-framework AdServices` flag
+
+Firebase's reporter is gated on AdServices being loaded in the process — it logs
+*"AdServices framework is not linked. Search Ad Attribution Reporter is
+disabled."* otherwise. It resolves the class at runtime rather than linking it.
+
+**`RevenueCat.framework` already links it.** Verified on a built app:
+
+```
+$ otool -L Runner.app/Frameworks/RevenueCat.framework/RevenueCat | grep -i adservices
+    /System/Library/Frameworks/AdServices.framework/AdServices
+```
+
+RevenueCat is embedded and loaded at launch, so `AAAttribution` resolves and
+Firebase's reporter is enabled.
+
+Adding `OTHER_LDFLAGS = $(inherited) -framework AdServices` to
+`ios/Flutter/*.xcconfig` was tried and **removed**: the flag reaches xcodebuild
+(confirmed via `xcodebuild -showBuildSettings`) but the linker dead-strips the
+dylib, because `Runner` itself references no AdServices symbol. `otool -L` on
+the Runner binary shows no AdServices either way — so the flag was inert
+configuration that looked load-bearing. It would not help even if RevenueCat
+stopped linking AdServices, for the same reason.
+
+**The fragility to know about:** this depends on a transitive dependency of a
+third-party SDK. If RevenueCat ever drops `import AdServices`, Firebase's
+reporter silently switches off with no build error and no test failure. The
+check is the `otool` command above — run it when upgrading `purchases_flutter`.
+
+**The token never enters Dart.** That is deliberate: it is a per-install
+identifier, and `docs/ANALYTICS.md` forbids sending identifiers. Only
+campaign-level ids reach a backend, and those are shared by every install from
+the same ad. Writing a Dart token fetcher would have been the one design that
+put an identifier one careless `logEvent` away from the analytics port.
+
+**Ordering with the ATT prompt.** AdServices needs no ATT consent — it is a
+first-party Apple API — so collection is never gated on the user's answer.
+But Apple returns richer "Detailed" data once ATT has been resolved, and
+RevenueCat caches the first token it posts. So collection is enabled in
+`app.dart`'s post-frame callback *after* the prompt, never in `AppBootstrap`
+(which runs before the first frame). A test in
+`test/app/attribution_bootstrap_order_test.dart` guards this, because the
+ordering is invisible at runtime and a tidy-up refactor would silently
+downgrade every install.
+
+**You cannot test this before release.** Firebase's reporter is disabled on the
+simulator by design, RevenueCat returns a canned simulator token, and
+TestFlight/sandbox returns Apple's fixed test payload — Firebase even logs
+*"Search Ad Reporter returned test data."* The first true validation is a real
+App Store install following a real ad click. Verify the proximate signals
+instead: the `otool` check above shows AdServices reaching the process, and
+RevenueCat at debug log level shows the token post.
+
 ## Ad copy rules
 
 Apple Search Ads shows your product page, so the claim audit in `docs/ASO.md`
@@ -167,3 +236,11 @@ After roughly two weeks at this budget there should be enough to act on.
 - [ ] Listing updated to mention Paw Scan, once 1.0.9 is released.
 - [ ] Rating prompt shipped, or at least a plan for getting past 8 reviews.
 - [ ] Apple Search Ads account created and the payment method added.
+- [ ] **RevenueCat → Apple Search Ads integration configured** in the
+      RevenueCat dashboard. Without it tokens are collected and posted and
+      *nothing appears* — the failure is completely silent.
+- [ ] App Store Connect **App Privacy** answers re-reviewed for Advertising
+      Data / Product Interaction. Note AdServices attribution is first-party
+      and does not by itself constitute "tracking" under Apple's definition —
+      if ASA is the only reason a "used to track you" flag is set, that flag is
+      wrong and is costing ATT-prompt friction for nothing.

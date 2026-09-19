@@ -15,6 +15,25 @@ the auth state changes.
 
 ## What is tracked
 
+### Apple Search Ads campaigns (not in `AnalyticsEvents`)
+
+`firebase_campaign` is logged by the **native** Firebase SDK, not through
+`AnalyticsService`, so you will not find it in `analytics_events.dart`.
+GoogleAppMeasurement ships its own Apple Search Ads reporter
+(`APMSearchAdReporter`) which reads the AdServices token, resolves it with
+Apple, and logs `source = Apple`, `medium = search`, `campaign = <campaignId>`,
+`term = <keywordId>` — populating GA4's standard acquisition dimensions.
+
+It is enabled by `AdServices.framework` being loaded in the process; without
+that the SDK logs *"AdServices framework is not linked. Search Ad Attribution
+Reporter is disabled."* and does nothing. `RevenueCat.framework` already links
+AdServices, so no build change was needed — see `docs/ASA.md` for the
+verification command and the fragility that creates.
+
+This keeps the privacy rule above structural rather than procedural: the
+attribution token is an install identifier, and **no Dart code ever holds it**,
+so there is no code path from a token to `logEvent`. See `docs/ASA.md`.
+
 ### Screen views
 Automatic, via `AnalyticsRouteObserver` wired into the AutoRoute navigator. Each
 route change logs a `screen_view` with the route name (e.g. `PetListRoute`).
