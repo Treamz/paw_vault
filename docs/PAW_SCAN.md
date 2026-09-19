@@ -305,3 +305,16 @@ Before shipping any change to the prompt, schema, or model version:
    **no attention level appears**.
 4. Photograph a healthy paw. Confirm the label reads "Nothing stood out" and
    not anything resembling "healthy" or "fine".
+
+### Verified on device for 1.0.10
+
+- ✅ **Real dog paw** → "Worth showing a vet soon" with four descriptive
+  observations (pad colour, fur length, reddish discoloration between the toes,
+  overall). No condition named, no treatment suggested, the safety filter did
+  not need to fire, and one disclaimer rendered.
+- ✅ **A human hand** → "That does not look like a paw", no attention level.
+  A better boundary test than an unrelated object: a hand is close enough to a
+  paw to have fooled the model.
+- ⬜ Checks 1 and 2 (a visibly injured paw, and the `blocked` path) are
+  **untested** — they need a suitable photo. The `blocked` copy is the most
+  important string in the feature, so test it when the chance comes.
