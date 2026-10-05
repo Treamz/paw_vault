@@ -494,6 +494,23 @@
   made their position unexplainable. Editing one forces a date, so they get
   fixed as they are touched. Nothing backfills them — there is no honest
   value to invent.
+- [x] **Time picker: the keyboard now opens on the first tap of its icon.**
+  Tapping the keyboard toggle built the hour and minute fields but focused
+  neither, so the keyboard stayed shut until the field was tapped as well.
+  This is Material's own behaviour, confirmed by probe: after the toggle no
+  text field holds focus, and `initialEntryMode: input` is no better — the
+  framework only autofocuses when the dial is *double*-tapped, which nobody
+  finds. Fixed from the caller with `onEntryModeChanged`, advancing focus once
+  into the dialog, which lands on the hour field.
+  Only the reminder form is affected: it holds the app's single
+  `showTimePicker`, and every date picker is deliberately
+  `DatePickerEntryMode.calendarOnly` (manual entry demands a strict
+  mm/dd/yyyy and produced "Invalid format" confusion), so none of them offers
+  a keyboard toggle at all.
+  The focus hop depends on the dialog's traversal order, so
+  `reminder_form_screen_test.dart` asserts the hour field really ends up
+  focused — a Flutter upgrade that reorders it fails the test instead of
+  quietly focusing a button.
 - [ ] The document **form** still attaches one file at a time — the picker
   replaces rather than appends. Not a data-loss bug, but inconsistent with the
   scanner now that documents hold several files.
