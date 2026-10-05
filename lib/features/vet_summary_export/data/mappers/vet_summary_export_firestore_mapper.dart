@@ -11,6 +11,7 @@ abstract final class VetSummaryExportFirestoreMapper {
         'fileUrl': FirestoreMapping.uriToJson(summaryExport.fileUrl!),
       if (summaryExport.storagePath != null)
         'storagePath': summaryExport.storagePath,
+      if (summaryExport.fileName != null) 'fileName': summaryExport.fileName,
       'createdAt': FirestoreMapping.utcDateTimeToJson(
         summaryExport.createdAt,
       ),
@@ -32,6 +33,8 @@ abstract final class VetSummaryExportFirestoreMapper {
         data['storagePath'],
         'storagePath',
       ),
+      // Absent for exports saved before the name was kept.
+      fileName: _optionalStringFromFirestore(data['fileName'], 'fileName'),
       createdAt: FirestoreMapping.utcDateTimeFromJson(
         data['createdAt'],
         'createdAt',

@@ -171,7 +171,11 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
   }
 
   /// Uploads the generated PDF to storage and records the export.
-  Future<void> saveCopy() async {
+  ///
+  /// [fileName] is what the export is called in the app afterwards; it is
+  /// kept on the record because the storage object is named after the export
+  /// id, so without it the saved copy has no name of its own.
+  Future<void> saveCopy({String? fileName}) async {
     final bytes = state.pdfBytes;
     final userId = state.userId;
     final petId = state.petId;
@@ -211,6 +215,7 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
           createdAt: UtcDateTime(now),
           fileUrl: uploaded.downloadUrl,
           storagePath: uploaded.path,
+          fileName: sanitizeFileName(fileName) ?? defaultFileName(),
         ),
       );
 

@@ -100,6 +100,33 @@ void main() {
       await cubit.close();
     });
 
+    test('saveCopy records the name the owner typed', () async {
+      // The reported bug: the saved copy had no name at all, so the app
+      // listed it by its timestamp instead of 'Jotaro_vet_summary.pdf'.
+      final exportRepo = _FakeExportRepository();
+      final cubit = _cubit(exportRepository: exportRepo, pet: _pet());
+
+      await cubit.generate('pet-1');
+      await cubit.saveCopy(fileName: 'Jotaro checkup');
+
+      expect(exportRepo.savedExport!.fileName, 'Jotaro checkup.pdf');
+      expect(exportRepo.savedExport!.displayName, 'Jotaro checkup.pdf');
+
+      await cubit.close();
+    });
+
+    test('saveCopy falls back to the suggested name', () async {
+      final exportRepo = _FakeExportRepository();
+      final cubit = _cubit(exportRepository: exportRepo, pet: _pet());
+
+      await cubit.generate('pet-1');
+      await cubit.saveCopy(fileName: '   ');
+
+      expect(exportRepo.savedExport!.fileName, cubit.defaultFileName());
+
+      await cubit.close();
+    });
+
     test('load emits the watched export history', () async {
       final export = _export();
       final cubit = _cubit(

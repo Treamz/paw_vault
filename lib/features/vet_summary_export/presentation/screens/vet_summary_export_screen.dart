@@ -54,6 +54,13 @@ class _VetSummaryView extends StatefulWidget {
 class _VetSummaryViewState extends State<_VetSummaryView> {
   final _fileNameController = TextEditingController();
 
+  /// Whether the suggested name has been put in the field already.
+  ///
+  /// Seeding is one-shot so the suggestion never overwrites what the owner
+  /// typed — including clearing the field, which the previous build-time
+  /// assignment undid on the next rebuild.
+  bool _fileNameSeeded = false;
+
   String get petId => widget.petId;
 
   @override
@@ -70,7 +77,9 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
   ) async {
     final downloadService = context.read<PdfDownloadService>();
     final messenger = ScaffoldMessenger.of(context);
-    final fileName =
+    // The name the owner saved it under; only a legacy export with no name
+    // falls back to a date-derived one.
+    final fileName = export.displayName ??
         'vet_summary_${DateFormat('yyyy-MM-dd').format(export.createdAt.value.toLocal())}.pdf';
 
     messenger.showSnackBar(
@@ -106,6 +115,14 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
       body: SafeArea(
         child: BlocConsumer<VetSummaryExportCubit, VetSummaryExportState>(
           listener: (context, state) {
+            // Seeded here rather than in build(), once: the previous code
+            // assigned the controller's text on every rebuild, so the
+            // suggestion came back over anything the owner had cleared.
+            if (state.hasPdf && !_fileNameSeeded) {
+              _fileNameSeeded = true;
+              _fileNameController.text =
+                  context.read<VetSummaryExportCubit>().defaultFileName();
+            }
             if (state.status == VetSummaryExportStatus.saved) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Summary saved to records')),
@@ -154,10 +171,7 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
                 if (state.hasPdf) ...[
                   const SizedBox(height: 16),
                   TextField(
-                    controller: _fileNameController
-                      ..text = _fileNameController.text.isEmpty
-                          ? cubit.defaultFileName()
-                          : _fileNameController.text,
+                    controller: _fileNameController,
                     decoration: const InputDecoration(
                       labelText: 'File name',
                       border: OutlineInputBorder(),
@@ -200,8 +214,11 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: FilledButton.icon(
-                          onPressed:
-                              isSharing || isSaving ? null : cubit.saveCopy,
+                          onPressed: isSharing || isSaving
+                              ? null
+                              : () => cubit.saveCopy(
+                                    fileName: _fileNameController.text,
+                                  ),
                           icon: isSaving
                               ? const SizedBox(
                                   width: 18,
@@ -266,9 +283,12 @@ class _History extends StatelessWidget {
                       key: ValueKey('export-${export.id.value}'),
                       leading: const Icon(Icons.picture_as_pdf),
                       title: Text(
+                        export.displayName ??
+                            dateFormat.format(export.createdAt.value.toLocal()),
+                      ),
+                      subtitle: Text(
                         dateFormat.format(export.createdAt.value.toLocal()),
                       ),
-                      subtitle: const Text('Vet summary PDF'),
                       trailing: export.fileUrl == null
                           ? null
                           : const Icon(Icons.chevron_right),

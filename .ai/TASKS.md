@@ -474,6 +474,16 @@
   (`DocumentAttachmentFirestoreMapper`) so the two features cannot drift.
 - [x] Renamed the pet profile menu entry "Vet Summary Export" to "Vet Summary",
   matching the title of the screen it opens.
+- [x] **A vet summary saved in the app had no name.** `saveCopy()` took no
+  name at all and `VetSummaryExport` had no field for one, so the entered
+  name (and the app's own suggestion) was dropped and the saved-exports list
+  fell back to rendering `createdAt` — the reported "October 5, 2026 5:00 PM".
+  Sharing was unaffected because `share(fileName:)` already passed it through.
+  The export now carries `fileName`, the list shows it with the date as the
+  subtitle, and reopening a saved export uses its own name. Legacy records
+  have no name and still fall back to their date.
+  Also made the file-name field seed its suggestion once instead of on every
+  rebuild, so clearing the name now sticks.
 - [ ] The document **form** still attaches one file at a time — the picker
   replaces rather than appends. Not a data-loss bug, but inconsistent with the
   scanner now that documents hold several files.

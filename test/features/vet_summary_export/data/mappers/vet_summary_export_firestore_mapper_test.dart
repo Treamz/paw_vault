@@ -66,6 +66,57 @@ void main() {
       expect(roundTripped.createdAt, original.createdAt);
     });
 
+    test('round-trips the saved file name', () {
+      final original = VetSummaryExport(
+        id: const EntityId('export-1'),
+        userId: const EntityId('user-1'),
+        petId: const EntityId('pet-1'),
+        createdAt: UtcDateTime(DateTime.utc(2026, 1, 2, 3, 4)),
+        fileName: 'Jotaro_vet_summary.pdf',
+      );
+
+      final data = VetSummaryExportFirestoreMapper.toFirestore(original);
+      expect(data['fileName'], 'Jotaro_vet_summary.pdf');
+
+      expect(
+        VetSummaryExportFirestoreMapper.fromFirestore(
+          id: const EntityId('export-1'),
+          data: data,
+        ).fileName,
+        'Jotaro_vet_summary.pdf',
+      );
+    });
+
+    test('an export saved before names existed has none', () {
+      // Those records must keep loading; the UI falls back to their date.
+      final summaryExport = VetSummaryExportFirestoreMapper.fromFirestore(
+        id: const EntityId('export-1'),
+        data: {
+          'userId': 'user-1',
+          'petId': 'pet-1',
+          'createdAt': Timestamp.fromDate(DateTime.utc(2026, 1, 2, 3, 4)),
+        },
+      );
+
+      expect(summaryExport.fileName, isNull);
+      expect(summaryExport.displayName, isNull);
+    });
+
+    test('a blank stored name counts as no name', () {
+      expect(
+        VetSummaryExportFirestoreMapper.fromFirestore(
+          id: const EntityId('export-1'),
+          data: {
+            'userId': 'user-1',
+            'petId': 'pet-1',
+            'createdAt': Timestamp.fromDate(DateTime.utc(2026, 1, 2, 3, 4)),
+            'fileName': '   ',
+          },
+        ).displayName,
+        isNull,
+      );
+    });
+
     test('uses defaults for missing optional fields', () {
       final summaryExport = VetSummaryExportFirestoreMapper.fromFirestore(
         id: const EntityId('export-1'),
