@@ -36,7 +36,7 @@ void main() {
       'EU Pet Passport',
     );
     // Issue date is required: pick today from the calendar dialog.
-    final issueField = find.text('Issue date');
+    final issueField = find.text('Issue date (required)');
     await tester.ensureVisible(issueField);
     await tester.tap(issueField);
     await tester.pumpAndSettle();
@@ -90,7 +90,7 @@ void main() {
       'Liability insurance',
     );
     // Issue date is required: pick today from the calendar dialog.
-    final issueField = find.text('Issue date');
+    final issueField = find.text('Issue date (required)');
     await tester.ensureVisible(issueField);
     await tester.tap(issueField);
     await tester.pumpAndSettle();

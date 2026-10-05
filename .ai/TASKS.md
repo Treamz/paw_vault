@@ -456,49 +456,44 @@
   `integration_test/screenshots_test.dart`, whose output has the same MD5 as a
   blank frame. **This means `tool/screenshots.sh` currently produces blank App
   Store screenshots.**
-  **Root cause confirmed:** `convertFlutterSurfaceToImage()` is an Android API;
-  on iOS it stops the Flutter layer rendering to the screen entirely. Proof:
-  with the call in place, `xcrun simctl io <udid> screenshot` — which captures
-  the device framebuffer, nothing to do with the binding — shows a *blank grey
-  surface* where the app should be. Delete the call and the same simctl capture
-  shows the app rendering normally. So the fix is to stop calling it on iOS and
-  capture another way (simctl framebuffer, or golden-file tests); until then,
-  visual verification of any integration test has to go through
-  `xcrun simctl io ... screenshot` with the call removed.
-- [x] **Smart Input History showed no attachments.** A scan started from Smart
-  Input saved the files to the document but the History entry kept only text,
-  so the photo the owner attached was nowhere in Smart Input. `SmartMessage`
-  now carries `attachments`, the scan passes `document.files` through, and
-  History renders a thumbnail on the row plus full previews in the details
-  sheet. Attachment serialization is now shared
-  (`DocumentAttachmentFirestoreMapper`) so the two features cannot drift.
-- [x] Renamed the pet profile menu entry "Vet Summary Export" to "Vet Summary",
-  matching the title of the screen it opens.
-- [x] **A vet summary saved in the app had no name.** `saveCopy()` took no
-  name at all and `VetSummaryExport` had no field for one, so the entered
-  name (and the app's own suggestion) was dropped and the saved-exports list
-  fell back to rendering `createdAt` — the reported "October 5, 2026 5:00 PM".
-  Sharing was unaffected because `share(fileName:)` already passed it through.
-  The export now carries `fileName`, the list shows it with the date as the
-  subtitle, and reopening a saved export uses its own name. Legacy records
-  have no name and still fall back to their date.
-  Also made the file-name field seed its suggestion once instead of on every
-  rebuild, so clearing the name now sticks.
-- [x] **Saving a vet summary showed `FirestoreMappingException: Expected
-  createdAt to be Timestamp, got Null` and the history vanished.** `createdAt`
-  is written with `FieldValue.serverTimestamp()`, which reads back as null in
-  the latency-compensated local snapshot until the server acknowledges the
-  write — so the snapshot that arrives milliseconds after "Save copy" has a
-  null `createdAt`. `VetSummaryExport.createdAt` was the only non-nullable
-  `createdAt` in the app, so the mapper threw, which failed the whole
-  snapshot batch (one bad document takes the entire list with it).
-  `createdAt` is now nullable like every other entity, the list sorts a
-  pending export to the top, and the row reads "Saving…" until the timestamp
-  lands. `snapshots()` cannot take `ServerTimestampBehavior.estimate` — the
-  Flutter SDK only exposes it on `get()` — so tolerating null in the mapper is
-  the fix, not an option.
-  Separately, a stream error no longer replaces a list already on screen; that
-  is what made the history disappear until you left the screen and came back.
+  **Two causes, both confirmed; `convertFlutterSurfaceToImage()` is NOT one
+  of them** (an earlier note in this file blamed it — that was wrong).
+  `integration_test/smart_input_scan_history_test.dart` calls both
+  `convertFlutterSurfaceToImage()` and `takeScreenshot()` and produced
+  correct, distinct PNGs (192 KB, 127 KB, 178 KB) on the iPhone 16 simulator,
+  so the binding works on iOS.
+  1. **The notification permission alert.** `AppDependencies.localFirst()`
+     wires `LocalReminderNotificationScheduler`, so the app asks for
+     notification permission at startup. The system alert covers the app, and
+     every capture is then the same blank grey frame — 58815 bytes, MD5
+     `51677bbf…`, which is the hash every blank screenshot in this repo shares.
+     `flutter drive` reinstalls the bundle, which resets the permission, so
+     the prompt comes back on most runs; the one run that produced real PNGs
+     was one where it had already been answered. Proper fix: give the
+     screenshot/integration harness a no-op reminder scheduler so it never
+     asks. Workaround: answer the prompt on the simulator and re-run.
+  2. **`screenshots_test.dart` additionally throws `ProviderNotFoundException`**
+     for `_AccountActionButton` and `_PetProfileView` — the suite does not
+     supply `RepositoryProvider`s the widget tree has since grown, so those
+     screens cannot build even once the alert is gone. Its provider list needs
+     bringing back in line with the app.
+  Until (1) is fixed, visual verification can also go through
+  `xcrun simctl io <udid> screenshot`, which reads the device framebuffer
+  directly — but note it shows the alert too, so dismiss it either way.
+- [x] **Documents: make the issue date clearly required.** It already was —
+  both `PetDocumentFormState.validate()` and the two creation paths reject a
+  document without one, since 2026-08-08 — so no document created today can
+  lack a date. What was missing was (a) any sign that it is required, and
+  (b) a sensible treatment of the documents saved *before* that, which is
+  what QA's screenshot shows. Now: the field reads "Issue date (required)"
+  and no longer offers a clear action; the scan review form shows the
+  field-level error instead of only a generic "Please fix validation errors"
+  snackbar (a scan often cannot read a date off the page); a document with no
+  date says "No date" on its tile; and those documents sort last as a group
+  rather than being slotted in by their invisible `createdAt`, which is what
+  made their position unexplainable. Editing one forces a date, so they get
+  fixed as they are touched. Nothing backfills them — there is no honest
+  value to invent.
 - [ ] The document **form** still attaches one file at a time — the picker
   replaces rather than appends. Not a data-loss bug, but inconsistent with the
   scanner now that documents hold several files.

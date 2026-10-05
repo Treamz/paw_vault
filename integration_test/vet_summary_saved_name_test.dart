@@ -1,15 +1,16 @@
 // Verifies that a vet summary saved inside the app keeps the name the owner
 // entered, instead of being listed by the time it was saved.
 //
-// NOTE: do not add `binding.convertFlutterSurfaceToImage()` here. It is an
-// Android API; on iOS it stops the Flutter layer rendering, which is why every
-// `binding.takeScreenshot` PNG in this repo comes out blank. To look at this
-// flow, run it and capture the device framebuffer instead:
+// Run it with the screenshot driver:
 //
 //   flutter drive --driver=test_driver/screenshots.dart \
 //     --target=integration_test/vet_summary_saved_name_test.dart \
 //     -d <simulator-udid>
-//   xcrun simctl io <simulator-udid> screenshot shot.png
+//
+// `binding.takeScreenshot` works on iOS here. If the PNGs come out blank and
+// byte-identical, check for an undismissed system permission alert covering
+// the app, and for widgets failing to build in the harness -- both render an
+// empty surface. See the screenshot task in .ai/TASKS.md.
 import 'dart:async';
 
 import 'package:flutter/material.dart';

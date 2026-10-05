@@ -125,6 +125,74 @@ void main() {
     expect(find.text('Attached file'), findsOneWidget);
     await binding.takeScreenshot('03_scan_history_details_attachment');
   });
+
+  testWidgets('a scan with no readable date says which field is missing',
+      (tester) async {
+    // Issue date is required. When the scan cannot read one, confirming used
+    // to show only "Please fix validation errors", with nothing on the form
+    // to say what was wrong.
+    final smartInput = _MemorySmartInputRepository();
+    final base = AppDependencies.localFirst();
+    final dependencies = AppDependencies(
+      authRepository: base.authRepository,
+      storageRepository: base.storageRepository,
+      petRepository: FakePetRepository(const [
+        Pet(
+          id: EntityId('pet-1'),
+          userId: EntityId('local-anonymous-user'),
+          name: 'Rex',
+        ),
+      ]),
+      timelineRepository: base.timelineRepository,
+      documentRepository: base.documentRepository,
+      reminderRepository: base.reminderRepository,
+      aiRepository: base.aiRepository,
+      smartInputRepository: smartInput,
+      vetSummaryExportRepository: base.vetSummaryExportRepository,
+      filePicker: base.filePicker,
+      documentFileOpener: base.documentFileOpener,
+      documentExtractionAiRepository:
+          _FakeExtractionAiRepository(detectsIssueDate: false),
+      documentSourcePicker: _FakeDocumentSourcePicker(),
+      petPhotoPicker: base.petPhotoPicker,
+      eventPhotoPicker: base.eventPhotoPicker,
+      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      analyticsService: base.analyticsService,
+      subscriptionService: base.subscriptionService,
+      paywallPresenter: base.paywallPresenter,
+      trackingAuthorizationService: base.trackingAuthorizationService,
+      accountDeletionService: base.accountDeletionService,
+    );
+
+    await tester.pumpWidget(PawVaultApp(dependencies: dependencies));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Rex'));
+    await tester.pumpAndSettle();
+    final smartInputTile = find.text('Smart Input');
+    await tester.ensureVisible(smartInputTile);
+    await tester.tap(smartInputTile);
+    await tester.pumpAndSettle();
+    final attach = find.text('Attach document or photo');
+    await tester.ensureVisible(attach);
+    await tester.tap(attach);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose from gallery'));
+    await tester.pumpAndSettle();
+
+    // The form says the date is required and has none to show.
+    expect(find.text('Issue date (required)'), findsOneWidget);
+    expect(find.text('Not set'), findsWidgets);
+
+    final confirm = find.text('Confirm & save');
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+
+    // Nothing was saved, and the row itself now names the problem.
+    expect(find.text('Issue date is required'), findsOneWidget);
+    expect(smartInput.messages, isEmpty);
+  });
 }
 
 class _FakeDocumentSourcePicker implements DocumentSourcePicker {
@@ -140,15 +208,23 @@ class _FakeDocumentSourcePicker implements DocumentSourcePicker {
 }
 
 class _FakeExtractionAiRepository implements DocumentExtractionAiRepository {
+  _FakeExtractionAiRepository({this.detectsIssueDate = true});
+
+  /// A real scan often cannot read a date off the page, and the date is
+  /// required — so the review form has to handle a draft without one.
+  final bool detectsIssueDate;
+
   @override
   Future<DocumentExtractionDraft> extractDocument({
     required List<DocumentPage> pages,
   }) async {
-    return const DocumentExtractionDraft(
+    return DocumentExtractionDraft(
       requiresConfirmation: true,
       detectedType: PetDocumentType.vaccinationCertificate,
       title: 'Rabies vaccination',
-      issueDate: DateOnly(year: 2026, month: 7, day: 1),
+      issueDate: detectsIssueDate
+          ? const DateOnly(year: 2026, month: 7, day: 1)
+          : null,
       confidence: 0.9,
     );
   }

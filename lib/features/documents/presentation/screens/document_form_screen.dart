@@ -403,14 +403,15 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
             ),
             const SizedBox(height: 16),
             _DateField(
-              label: 'Issue date',
+              label: 'Issue date (required)',
               value: _issueDate,
               format: dateFormat,
               errorText: _validation?.errorFor('issueDate'),
               onTap: _pickIssueDate,
-              onClear: _issueDate == null
-                  ? null
-                  : () => setState(() => _issueDate = null),
+              // No clear action: the date is required, so clearing it only
+              // produces a document that cannot be saved. Tapping the field
+              // picks a different date.
+              onClear: null,
             ),
             const SizedBox(height: 16),
             _DateField(

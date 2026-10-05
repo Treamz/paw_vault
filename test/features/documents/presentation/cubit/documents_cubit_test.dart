@@ -139,6 +139,9 @@ void main() {
         issueDate: const DateOnly(year: 2026, month: 5, day: 10),
         createdAt: DateTime.utc(2026, 5, 10),
       );
+      // A document with no issue date goes last, however recent it is. It
+      // used to be slotted in by its createdAt, which the list does not
+      // show, so its position among the dated ones looked arbitrary.
       final undatedNew = _document(
         id: 'doc-undated',
         createdAt: DateTime.utc(2026, 7),
@@ -150,7 +153,37 @@ void main() {
 
       expect(
         cubit.state.documents.map((d) => d.id.value).toList(),
-        ['doc-undated', 'doc-recent', 'doc-scanned'],
+        ['doc-recent', 'doc-scanned', 'doc-undated'],
+      );
+
+      await cubit.close();
+    });
+
+    test('orders documents with no issue date by when they were added',
+        () async {
+      // Only documents saved before the issue date was required land here,
+      // so they still need a stable order among themselves.
+      final older = _document(
+        id: 'doc-older',
+        createdAt: DateTime.utc(2026, 3),
+      );
+      final newer = _document(
+        id: 'doc-newer',
+        createdAt: DateTime.utc(2026, 7),
+      );
+      final dated = _document(
+        id: 'doc-dated',
+        issueDate: const DateOnly(year: 2024, month: 3, day: 5),
+        createdAt: DateTime.utc(2024, 3, 5),
+      );
+      final cubit = _readyCubit([older, dated, newer]);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        cubit.state.documents.map((d) => d.id.value).toList(),
+        ['doc-dated', 'doc-newer', 'doc-older'],
       );
 
       await cubit.close();

@@ -61,6 +61,12 @@ class _ExtractionViewState extends State<_ExtractionView> {
   DateTime? _expiryDate;
   bool _seeded = false;
 
+  /// Field errors from the last attempt to confirm.
+  ///
+  /// The scan rarely finds an issue date, and the date is required, so a bare
+  /// "Please fix validation errors" left no clue which field was at fault.
+  PetDocumentFormValidation? _validation;
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -91,12 +97,15 @@ class _ExtractionViewState extends State<_ExtractionView> {
 
   void _confirm(BuildContext context) {
     final formState = _buildFormState();
-    if (!formState.validate().isValid) {
+    final validation = formState.validate();
+    if (!validation.isValid) {
+      setState(() => _validation = validation);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fix validation errors')),
       );
       return;
     }
+    setState(() => _validation = null);
     context.read<DocumentExtractionCubit>().confirmExtraction(
           widget.petId,
           formState,
@@ -149,6 +158,7 @@ class _ExtractionViewState extends State<_ExtractionView> {
                   notesController: _notesController,
                   selectedType: _selectedType,
                   issueDate: _issueDate,
+                  issueDateError: _validation?.errorFor('issueDate'),
                   expiryDate: _expiryDate,
                   isSaving: state.status == DocumentExtractionStatus.saving,
                   onTypeChanged: (value) =>
@@ -214,7 +224,10 @@ class _ExtractionViewState extends State<_ExtractionView> {
       lastDate: now,
     );
     if (picked != null) {
-      setState(() => _issueDate = picked);
+      setState(() {
+        _issueDate = picked;
+        _validation = null;
+      });
     }
   }
 
@@ -305,6 +318,7 @@ class _ReviewForm extends StatelessWidget {
     required this.notesController,
     required this.selectedType,
     required this.issueDate,
+    required this.issueDateError,
     required this.expiryDate,
     required this.isSaving,
     required this.onTypeChanged,
@@ -320,6 +334,7 @@ class _ReviewForm extends StatelessWidget {
   final TextEditingController notesController;
   final PetDocumentType? selectedType;
   final DateTime? issueDate;
+  final String? issueDateError;
   final DateTime? expiryDate;
   final bool isSaving;
   final ValueChanged<PetDocumentType?> onTypeChanged;
@@ -408,9 +423,15 @@ class _ReviewForm extends StatelessWidget {
             const SizedBox(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Issue date'),
+              title: const Text('Issue date (required)'),
               subtitle: Text(
-                issueDate != null ? dateFormat.format(issueDate!) : 'Not set',
+                issueDateError ??
+                    (issueDate != null
+                        ? dateFormat.format(issueDate!)
+                        : 'Not set'),
+                style: issueDateError == null
+                    ? null
+                    : TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               trailing: const Icon(Icons.calendar_today),
               onTap: onPickIssueDate,

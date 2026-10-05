@@ -47,10 +47,10 @@ void main() {
         find.text('Vaccination Certificate · Jan 5, 2026'),
         findsOneWidget,
       );
-      // The undated document keeps the plain type label on its tile (the
-      // filter chip bar also carries the type name, so scope to tiles).
+      // A document with no issue date says so, rather than silently showing
+      // just its type: that is what left its place in the list unexplained.
       expect(
-        find.widgetWithText(ListTile, 'Vaccination Certificate'),
+        find.text('Vaccination Certificate · No date'),
         findsOneWidget,
       );
     });

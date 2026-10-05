@@ -51,8 +51,8 @@ void main() {
     });
 
     testWidgets(
-        'notes and issue date are not labeled optional and notes '
-        'is a large field', (tester) async {
+        'notes is not labeled optional, the issue date says it is '
+        'required, and notes is a large field', (tester) async {
       await tester.pumpWidget(
         _app(document: null, opener: _FakeDocumentFileOpener()),
       );
@@ -60,7 +60,7 @@ void main() {
 
       expect(find.text('Notes'), findsOneWidget);
       expect(find.text('Notes (optional)'), findsNothing);
-      expect(find.text('Issue date'), findsOneWidget);
+      expect(find.text('Issue date (required)'), findsOneWidget);
       expect(find.text('Issue date (optional)'), findsNothing);
 
       final notesField = tester.widget<TextField>(

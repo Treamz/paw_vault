@@ -246,10 +246,13 @@ class _DocumentsContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  // Documents saved before the issue date was required have
+                  // none. Saying so beats omitting it silently: the row then
+                  // explains why it sits at the end of the list.
                   document.issueDate != null
                       ? '${_formatDocumentType(document.type)} · '
                           '${DateFormat.yMMMd().format(document.issueDate!.toUtcDateTime())}'
-                      : _formatDocumentType(document.type),
+                      : '${_formatDocumentType(document.type)} · No date',
                 ),
                 if (expiry != null) ...[
                   const SizedBox(height: 4),
