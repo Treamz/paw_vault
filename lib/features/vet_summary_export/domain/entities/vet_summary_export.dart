@@ -6,7 +6,7 @@ class VetSummaryExport {
     required this.id,
     required this.userId,
     required this.petId,
-    required this.createdAt,
+    this.createdAt,
     this.fileUrl,
     this.storagePath,
     this.fileName,
@@ -15,7 +15,15 @@ class VetSummaryExport {
   final EntityId id;
   final EntityId userId;
   final EntityId petId;
-  final UtcDateTime createdAt;
+
+  /// When the export was saved, or null while that is still unknown.
+  ///
+  /// It is written as a Firestore server timestamp, and a server timestamp
+  /// reads back as null in the latency-compensated local snapshot until the
+  /// server acknowledges the write. So null here means "saved a moment ago,
+  /// not yet confirmed" — it must never be treated as an error, which is what
+  /// used to blank the whole history.
+  final UtcDateTime? createdAt;
   final Uri? fileUrl;
   final String? storagePath;
 

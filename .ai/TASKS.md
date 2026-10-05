@@ -484,6 +484,21 @@
   have no name and still fall back to their date.
   Also made the file-name field seed its suggestion once instead of on every
   rebuild, so clearing the name now sticks.
+- [x] **Saving a vet summary showed `FirestoreMappingException: Expected
+  createdAt to be Timestamp, got Null` and the history vanished.** `createdAt`
+  is written with `FieldValue.serverTimestamp()`, which reads back as null in
+  the latency-compensated local snapshot until the server acknowledges the
+  write — so the snapshot that arrives milliseconds after "Save copy" has a
+  null `createdAt`. `VetSummaryExport.createdAt` was the only non-nullable
+  `createdAt` in the app, so the mapper threw, which failed the whole
+  snapshot batch (one bad document takes the entire list with it).
+  `createdAt` is now nullable like every other entity, the list sorts a
+  pending export to the top, and the row reads "Saving…" until the timestamp
+  lands. `snapshots()` cannot take `ServerTimestampBehavior.estimate` — the
+  Flutter SDK only exposes it on `get()` — so tolerating null in the mapper is
+  the fix, not an option.
+  Separately, a stream error no longer replaces a list already on screen; that
+  is what made the history disappear until you left the screen and came back.
 - [ ] The document **form** still attaches one file at a time — the picker
   replaces rather than appends. Not a data-loss bug, but inconsistent with the
   scanner now that documents hold several files.

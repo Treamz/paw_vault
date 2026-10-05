@@ -63,9 +63,17 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
           .watchExports(userId: userId, petId: EntityId(petId))
           .listen(
         (exports) {
-          final sorted = [...exports]..sort(
-              (a, b) => b.createdAt.value.compareTo(a.createdAt.value),
-            );
+          // Newest first. An export whose server timestamp is still pending
+          // sorts to the top: it was just saved, so it is the newest thing
+          // here even though its date is not known yet.
+          final sorted = [...exports]..sort((a, b) {
+              final aAt = a.createdAt?.value;
+              final bAt = b.createdAt?.value;
+              if (aAt == null || bAt == null) {
+                return aAt == bAt ? 0 : (aAt == null ? -1 : 1);
+              }
+              return bAt.compareTo(aAt);
+            });
           emit(
             state.copyWith(
               userId: userId,
@@ -75,6 +83,13 @@ class VetSummaryExportCubit extends Cubit<VetSummaryExportState> {
           );
         },
         onError: (Object error) {
+          // A failed refresh must not replace a list we already have. The
+          // stream survives the error and the next snapshot re-emits, so
+          // blanking the history here left the owner staring at red text
+          // with no way back except leaving the screen and returning.
+          if (state.exports.isNotEmpty) {
+            return;
+          }
           emit(
             state.copyWith(
               historyStatus: VetSummaryHistoryStatus.failure,

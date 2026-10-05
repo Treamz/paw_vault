@@ -79,8 +79,11 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
     final messenger = ScaffoldMessenger.of(context);
     // The name the owner saved it under; only a legacy export with no name
     // falls back to a date-derived one.
+    final savedAt = export.createdAt?.value.toLocal();
     final fileName = export.displayName ??
-        'vet_summary_${DateFormat('yyyy-MM-dd').format(export.createdAt.value.toLocal())}.pdf';
+        (savedAt == null
+            ? 'vet_summary.pdf'
+            : 'vet_summary_${DateFormat('yyyy-MM-dd').format(savedAt)}.pdf');
 
     messenger.showSnackBar(
       const SnackBar(content: Text('Opening saved summary…')),
@@ -252,6 +255,12 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
   }
 }
 
+/// When the export was saved, or null while its server timestamp is pending.
+String? _savedAtLabel(DateFormat dateFormat, VetSummaryExport summaryExport) {
+  final savedAt = summaryExport.createdAt?.value.toLocal();
+  return savedAt == null ? null : dateFormat.format(savedAt);
+}
+
 class _History extends StatelessWidget {
   const _History({required this.state, required this.onOpenExport});
 
@@ -284,10 +293,13 @@ class _History extends StatelessWidget {
                       leading: const Icon(Icons.picture_as_pdf),
                       title: Text(
                         export.displayName ??
-                            dateFormat.format(export.createdAt.value.toLocal()),
+                            _savedAtLabel(dateFormat, export) ??
+                            'Vet summary',
                       ),
+                      // 'Saving…' rather than a blank or a guessed date: the
+                      // server timestamp lands a moment after the write.
                       subtitle: Text(
-                        dateFormat.format(export.createdAt.value.toLocal()),
+                        _savedAtLabel(dateFormat, export) ?? 'Saving…',
                       ),
                       trailing: export.fileUrl == null
                           ? null

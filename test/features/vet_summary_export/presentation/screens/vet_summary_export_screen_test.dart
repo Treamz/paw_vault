@@ -116,6 +116,41 @@ void main() {
       );
     });
 
+    testWidgets('shows a summary whose save has not been confirmed yet',
+        (tester) async {
+      // Its server timestamp has not landed, so it has no date. The row must
+      // still appear, named, instead of the list failing with red text.
+      await tester.pumpWidget(
+        _app(
+          exportRepository: _FakeExportRepository(
+            exports: const [
+              VetSummaryExport(
+                id: EntityId('export-1'),
+                userId: EntityId('user-1'),
+                petId: EntityId('pet-1'),
+                fileName: 'Jotaro_vet_summary.pdf',
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tile = find.byKey(const ValueKey('export-export-1'));
+      expect(
+        find.descendant(
+          of: tile,
+          matching: find.text('Jotaro_vet_summary.pdf'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: tile, matching: find.text('Saving…')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('FirestoreMappingException'), findsNothing);
+    });
+
     testWidgets('still lists a nameless legacy export by its date',
         (tester) async {
       await tester.pumpWidget(

@@ -149,6 +149,66 @@ void main() {
     expect(exports.saved.single.fileName, 'Jotaro annual checkup.pdf');
     expect(find.text('Jotaro annual checkup.pdf'), findsWidgets);
   });
+
+  testWidgets('a summary whose save is not yet confirmed still lists',
+      (tester) async {
+    // A summary is written with a Firestore server timestamp, which reads
+    // back null until the server acknowledges it. That used to fail the
+    // snapshot and replace the whole history with a mapping error.
+    final exports = _MemoryVetSummaryExportRepository()
+      ..saved.add(
+        const VetSummaryExport(
+          id: EntityId('export-1'),
+          userId: EntityId('local-anonymous-user'),
+          petId: EntityId('pet-1'),
+          fileName: 'Jotaro_vet_summary.pdf',
+        ),
+      );
+    final base = AppDependencies.localFirst();
+    final dependencies = AppDependencies(
+      authRepository: base.authRepository,
+      storageRepository: base.storageRepository,
+      petRepository: FakePetRepository(const [
+        Pet(
+          id: EntityId('pet-1'),
+          userId: EntityId('local-anonymous-user'),
+          name: 'Jotaro',
+        ),
+      ]),
+      timelineRepository: base.timelineRepository,
+      documentRepository: base.documentRepository,
+      reminderRepository: base.reminderRepository,
+      aiRepository: base.aiRepository,
+      smartInputRepository: base.smartInputRepository,
+      vetSummaryExportRepository: exports,
+      filePicker: base.filePicker,
+      documentFileOpener: base.documentFileOpener,
+      documentExtractionAiRepository: base.documentExtractionAiRepository,
+      documentSourcePicker: base.documentSourcePicker,
+      petPhotoPicker: base.petPhotoPicker,
+      eventPhotoPicker: base.eventPhotoPicker,
+      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      analyticsService: base.analyticsService,
+      subscriptionService: base.subscriptionService,
+      paywallPresenter: base.paywallPresenter,
+      trackingAuthorizationService: base.trackingAuthorizationService,
+      accountDeletionService: base.accountDeletionService,
+    );
+
+    await tester.pumpWidget(PawVaultApp(dependencies: dependencies));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Jotaro'));
+    await tester.pumpAndSettle();
+    final entry = find.text('Vet Summary');
+    await tester.ensureVisible(entry);
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Jotaro_vet_summary.pdf'), findsOneWidget);
+    expect(find.text('Saving…'), findsOneWidget);
+    expect(find.textContaining('FirestoreMappingException'), findsNothing);
+  });
 }
 
 class _MemoryVetSummaryExportRepository implements VetSummaryExportRepository {

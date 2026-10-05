@@ -12,9 +12,10 @@ abstract final class VetSummaryExportFirestoreMapper {
       if (summaryExport.storagePath != null)
         'storagePath': summaryExport.storagePath,
       if (summaryExport.fileName != null) 'fileName': summaryExport.fileName,
-      'createdAt': FirestoreMapping.utcDateTimeToJson(
-        summaryExport.createdAt,
-      ),
+      if (summaryExport.createdAt != null)
+        'createdAt': FirestoreMapping.utcDateTimeToJson(
+          summaryExport.createdAt!,
+        ),
     };
   }
 
@@ -35,10 +36,14 @@ abstract final class VetSummaryExportFirestoreMapper {
       ),
       // Absent for exports saved before the name was kept.
       fileName: _optionalStringFromFirestore(data['fileName'], 'fileName'),
-      createdAt: FirestoreMapping.utcDateTimeFromJson(
-        data['createdAt'],
-        'createdAt',
-      ),
+      // Null while the server timestamp this was written with is still
+      // pending; every other entity in the app reads createdAt the same way.
+      createdAt: data['createdAt'] == null
+          ? null
+          : FirestoreMapping.utcDateTimeFromJson(
+              data['createdAt'],
+              'createdAt',
+            ),
     );
   }
 

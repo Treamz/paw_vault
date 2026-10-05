@@ -66,6 +66,40 @@ void main() {
       expect(roundTripped.createdAt, original.createdAt);
     });
 
+    test('tolerates a server timestamp that has not landed yet', () {
+      // The reported crash: createdAt is written as a Firestore server
+      // timestamp, which reads back null in the local snapshot until the
+      // server acknowledges the write. Throwing here failed the whole
+      // snapshot and wiped the saved-exports list.
+      final summaryExport = VetSummaryExportFirestoreMapper.fromFirestore(
+        id: const EntityId('export-1'),
+        data: const {
+          'userId': 'user-1',
+          'petId': 'pet-1',
+          'fileName': 'Jotaro_vet_summary.pdf',
+          'createdAt': null,
+        },
+      );
+
+      expect(summaryExport.createdAt, isNull);
+      expect(summaryExport.fileName, 'Jotaro_vet_summary.pdf');
+    });
+
+    test('still rejects a createdAt of the wrong type', () {
+      // Tolerating null must not turn into tolerating anything.
+      expect(
+        () => VetSummaryExportFirestoreMapper.fromFirestore(
+          id: const EntityId('export-1'),
+          data: const {
+            'userId': 'user-1',
+            'petId': 'pet-1',
+            'createdAt': 'not a timestamp',
+          },
+        ),
+        throwsA(isA<FirestoreMappingException>()),
+      );
+    });
+
     test('round-trips the saved file name', () {
       final original = VetSummaryExport(
         id: const EntityId('export-1'),
