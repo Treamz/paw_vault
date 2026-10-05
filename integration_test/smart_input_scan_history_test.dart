@@ -8,7 +8,7 @@
 //     --target=integration_test/smart_input_scan_history_test.dart \
 //     -d <simulator-udid>
 import 'dart:async';
-import 'dart:typed_data';
+import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -193,16 +193,103 @@ void main() {
     expect(find.text('Issue date is required'), findsOneWidget);
     expect(smartInput.messages, isEmpty);
   });
+
+  testWidgets('the review form shows the files attached to the analysis',
+      (tester) async {
+    // Asked for by QA: before saving, you may have forgotten which photo you
+    // attached, so the form has to show it rather than only counting pages.
+    final base = AppDependencies.localFirst();
+    final dependencies = AppDependencies(
+      authRepository: base.authRepository,
+      storageRepository: base.storageRepository,
+      petRepository: FakePetRepository(const [
+        Pet(
+          id: EntityId('pet-1'),
+          userId: EntityId('local-anonymous-user'),
+          name: 'Rex',
+        ),
+      ]),
+      timelineRepository: base.timelineRepository,
+      documentRepository: base.documentRepository,
+      reminderRepository: base.reminderRepository,
+      aiRepository: base.aiRepository,
+      smartInputRepository: _MemorySmartInputRepository(),
+      vetSummaryExportRepository: base.vetSummaryExportRepository,
+      filePicker: base.filePicker,
+      documentFileOpener: base.documentFileOpener,
+      documentExtractionAiRepository: _FakeExtractionAiRepository(),
+      documentSourcePicker: _FakeDocumentSourcePicker(),
+      petPhotoPicker: base.petPhotoPicker,
+      eventPhotoPicker: base.eventPhotoPicker,
+      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      analyticsService: base.analyticsService,
+      subscriptionService: base.subscriptionService,
+      paywallPresenter: base.paywallPresenter,
+      trackingAuthorizationService: base.trackingAuthorizationService,
+      accountDeletionService: base.accountDeletionService,
+    );
+
+    await tester.pumpWidget(PawVaultApp(dependencies: dependencies));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Rex'));
+    await tester.pumpAndSettle();
+    final smartInputTile = find.text('Smart Input');
+    await tester.ensureVisible(smartInputTile);
+    await tester.tap(smartInputTile);
+    await tester.pumpAndSettle();
+    final attach = find.text('Attach document or photo');
+    await tester.ensureVisible(attach);
+    await tester.tap(attach);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose from gallery'));
+    await tester.pumpAndSettle();
+
+    // One page picked, one thumbnail of it on the review form.
+    expect(find.text('1 page attached'), findsOneWidget);
+    expect(_thumbnails(), findsOneWidget);
+
+    // A second page gets its own thumbnail.
+    final addPage = find.text('Add page');
+    await tester.ensureVisible(addPage);
+    await tester.tap(addPage);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take a photo'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 pages attached'), findsOneWidget);
+    expect(_thumbnails(), findsNWidgets(2));
+
+    // Tapping one opens it full screen, so the photo can be checked before
+    // anything is saved.
+    await tester.tap(_thumbnails().first);
+    await tester.pumpAndSettle();
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+  });
 }
 
+/// The review form's attachment thumbnails, which are `Image.memory` widgets
+/// reading the picked bytes.
+Finder _thumbnails() => find.descendant(
+      of: find.byType(InkWell),
+      matching: find.byType(Image),
+    );
+
 class _FakeDocumentSourcePicker implements DocumentSourcePicker {
+  /// A real 1x1 PNG, not placeholder bytes: the review form decodes what was
+  /// picked to show a thumbnail, so junk bytes would only ever exercise the
+  /// error placeholder.
+  static final _png = base64Decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMB'
+    'AQDJ/pLvAAAAAElFTkSuQmCC',
+  );
+
   @override
   Future<PickedFile?> pick(DocumentSource source) async {
     return PickedFile(
-      bytes: Uint8List.fromList([1, 2, 3]),
-      fileName: 'scan.jpg',
-      extension: 'jpg',
-      contentType: 'image/jpeg',
+      bytes: _png,
+      fileName: 'scan.png',
+      extension: 'png',
+      contentType: 'image/png',
     );
   }
 }

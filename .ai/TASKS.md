@@ -511,6 +511,15 @@
   `reminder_form_screen_test.dart` asserts the hour field really ends up
   focused — a Flutter upgrade that reorders it fails the test instead of
   quietly focusing a button.
+- [x] **Smart Input scan: the attached files are now visible before saving.**
+  The review form stated only "N pages attached", so there was no way to
+  check which photo had been picked without discarding and starting again.
+  It now shows a thumbnail per attached page, read straight from the picked
+  bytes (nothing is uploaded until Confirm & save). Tapping an image opens it
+  full screen with pinch-zoom, reusing `showFullScreenImage`; tapping a PDF
+  opens it in `PdfPreview`, the same in-app viewer the vet summary uses. A
+  file of any other kind shows an extension tile and says it has no preview
+  rather than ignoring the tap.
 - [ ] The document **form** still attaches one file at a time — the picker
   replaces rather than appends. Not a data-loss bug, but inconsistent with the
   scanner now that documents hold several files.

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/document_extraction/domain/entities/document_extraction_draft.dart';
 import 'package:paw_vault/features/document_extraction/domain/repositories/document_extraction_ai_repository.dart';
@@ -14,6 +15,7 @@ import 'package:paw_vault/features/documents/domain/repositories/document_reposi
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/documents/presentation/models/pet_document_form_state.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
+import 'package:printing/printing.dart';
 
 @RoutePage()
 class DocumentExtractionScreen extends StatelessWidget {
@@ -152,7 +154,7 @@ class _ExtractionViewState extends State<_ExtractionView> {
               DocumentExtractionStatus.saving =>
                 _ReviewForm(
                   draft: state.draft,
-                  pageCount: state.pickedFiles.length,
+                  pickedFiles: state.pickedFiles,
                   onAddPage: () => _addPage(context),
                   titleController: _titleController,
                   notesController: _notesController,
@@ -309,10 +311,168 @@ class _Busy extends StatelessWidget {
   }
 }
 
+/// Thumbnails of the files attached to this analysis, before anything is
+/// saved.
+///
+/// The review form used to state only how many pages were attached, which is
+/// no help when you have forgotten which photo you picked. These read from
+/// the picked bytes, so nothing has to be uploaded first.
+class _AttachedPages extends StatelessWidget {
+  const _AttachedPages({required this.files});
+
+  static const _imageExtensions = {'jpg', 'jpeg', 'png', 'heic', 'webp'};
+
+  final List<PickedFile> files;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 96,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: files.length,
+        separatorBuilder: (context, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) => _AttachedPageThumbnail(
+          file: files[index],
+          pageNumber: index + 1,
+          isImage:
+              _imageExtensions.contains(files[index].extension.toLowerCase()),
+        ),
+      ),
+    );
+  }
+}
+
+class _AttachedPageThumbnail extends StatelessWidget {
+  const _AttachedPageThumbnail({
+    required this.file,
+    required this.pageNumber,
+    required this.isImage,
+  });
+
+  final PickedFile file;
+  final int pageNumber;
+  final bool isImage;
+
+  void _open(BuildContext context) {
+    if (isImage) {
+      showFullScreenImage(context, MemoryImage(file.bytes));
+      return;
+    }
+
+    if (file.extension.toLowerCase() == 'pdf') {
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute<void>(
+          builder: (_) => _PickedPdfPreviewScreen(file: file),
+        ),
+      );
+      return;
+    }
+
+    // Anything else has no in-app viewer; say so rather than doing nothing.
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'No preview for ${file.extension.isEmpty ? 'this file' : '.${file.extension}'} files',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Page $pageNumber, ${file.fileName}',
+      child: Tooltip(
+        message: file.fileName,
+        child: InkWell(
+          onTap: () => _open(context),
+          borderRadius: BorderRadius.circular(12),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 96,
+              height: 96,
+              child: isImage
+                  ? Image.memory(
+                      file.bytes,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, _, __) => _FileTile(
+                        extension: file.extension,
+                        broken: true,
+                      ),
+                    )
+                  : _FileTile(extension: file.extension),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Stands in for a file that cannot be shown as an image.
+class _FileTile extends StatelessWidget {
+  const _FileTile({required this.extension, this.broken = false});
+
+  final String extension;
+  final bool broken;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ColoredBox(
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            broken
+                ? Icons.broken_image_outlined
+                : Icons.insert_drive_file_outlined,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          if (extension.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              extension.toUpperCase(),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// In-app viewer for a PDF that has been picked but not uploaded yet.
+class _PickedPdfPreviewScreen extends StatelessWidget {
+  const _PickedPdfPreviewScreen({required this.file});
+
+  final PickedFile file;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(file.fileName)),
+      body: PdfPreview(
+        build: (format) async => file.bytes,
+        pdfFileName: file.fileName,
+        canChangeOrientation: false,
+        canChangePageFormat: false,
+        canDebug: false,
+      ),
+    );
+  }
+}
+
 class _ReviewForm extends StatelessWidget {
   const _ReviewForm({
     required this.draft,
-    required this.pageCount,
+    required this.pickedFiles,
     required this.onAddPage,
     required this.titleController,
     required this.notesController,
@@ -328,7 +488,7 @@ class _ReviewForm extends StatelessWidget {
   });
 
   final DocumentExtractionDraft? draft;
-  final int pageCount;
+  final List<PickedFile> pickedFiles;
   final VoidCallback onAddPage;
   final TextEditingController titleController;
   final TextEditingController notesController;
@@ -371,9 +531,9 @@ class _ReviewForm extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    pageCount == 1
+                    pickedFiles.length == 1
                         ? '1 page attached'
-                        : '$pageCount pages attached',
+                        : '${pickedFiles.length} pages attached',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
@@ -384,6 +544,10 @@ class _ReviewForm extends StatelessWidget {
                 ),
               ],
             ),
+            if (pickedFiles.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _AttachedPages(files: pickedFiles),
+            ],
             if (draft?.isLowConfidence ?? false) ...[
               const SizedBox(height: 8),
               Row(
