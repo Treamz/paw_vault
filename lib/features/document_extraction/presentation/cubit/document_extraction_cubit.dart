@@ -89,14 +89,19 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
     }
   }
 
-  /// Confirms the reviewed [formState], uploading the picked file and saving a
-  /// document. Only called after the user explicitly approves the extraction.
+  /// Confirms the reviewed [formState], uploading **every** picked page and
+  /// saving a document. Only called after the user explicitly approves the
+  /// extraction.
+  ///
+  /// This used to upload `pickedFiles.firstOrNull` only, so scanning two pages
+  /// analysed both and silently saved one — the owner lost the rest without
+  /// any warning.
   Future<void> confirmExtraction(
     String petId,
     PetDocumentFormState formState,
   ) async {
-    final file = state.pickedFiles.firstOrNull;
-    if (file == null) {
+    final files = state.pickedFiles;
+    if (files.isEmpty) {
       emit(
         state.copyWith(
           status: DocumentExtractionStatus.failure,
@@ -127,19 +132,18 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
       final now = DateTime.now();
       final documentId = EntityId('${now.microsecondsSinceEpoch}');
 
-      final uploaded = await _uploadService.uploadDocumentFile(
+      final uploaded = await _uploadService.uploadDocumentFiles(
         userId: userId,
         petId: entityPetId,
         documentId: documentId,
-        file: file,
+        files: files,
       );
 
       final document = formState.toDocument(
         id: documentId,
         userId: userId,
         petId: entityPetId,
-        fileUrl: uploaded.downloadUrl,
-        storagePath: uploaded.path,
+        attachments: uploaded,
         createdAt: now,
         updatedAt: now,
       );

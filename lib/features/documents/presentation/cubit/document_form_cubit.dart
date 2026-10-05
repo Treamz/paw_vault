@@ -173,6 +173,10 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
         id: currentDocument.id,
         userId: currentDocument.userId,
         petId: currentDocument.petId,
+        // Carry every attachment through. Rebuilding from the legacy pair
+        // alone would silently drop the extra files of a multi-attachment
+        // document on an unrelated edit, such as fixing its title.
+        attachments: currentDocument.files,
         fileUrl: currentDocument.fileUrl,
         storagePath: currentDocument.storagePath,
         linkedEventId: currentDocument.linkedEventId,
@@ -214,10 +218,11 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
 
     try {
       await _documentRepository.initialize();
-      // Remove the stored file first; only drop the metadata once the file is
+      // Remove the stored files first; only drop the metadata once they are
       // gone so a failed storage delete leaves a consistent, retryable record.
-      final storagePath = currentDocument.storagePath;
-      if (storagePath != null) {
+      // Every path, not just the legacy one — otherwise the extra files of a
+      // multi-attachment document are orphaned in Storage forever.
+      for (final storagePath in currentDocument.storagePaths) {
         await _storageRepository.delete(storagePath);
       }
       await _documentRepository.deleteDocument(

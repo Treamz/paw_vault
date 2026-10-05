@@ -430,3 +430,33 @@
   independently of the ads work.
 - [ ] Update the App Store listing to mention Paw Scan once 1.0.9 is released —
   the live description still lists only Smart Input and document scanning.
+
+## QA fixes
+
+- [x] Documents: a document scanned from several pages saved only the first
+  file. `DocumentExtractionCubit.confirmExtraction` uploaded
+  `pickedFiles.firstOrNull`, and `PetDocument` could hold one file anyway, so
+  the rest were silently discarded — the owner lost data with no warning.
+  Added `DocumentAttachment` + `PetDocument.attachments` (legacy `fileUrl`/
+  `storagePath` kept and still populated, so an older build shows one file
+  rather than none), a per-attachment Storage path, multi-file upload, and
+  rendering of every attachment.
+- [x] Documents: attachments took 2–3s to appear on first open. The previews
+  live inside the details sheet and used `Image.network`, which has no disk
+  cache, so nothing loaded until the sheet opened. Switched to
+  `CachedNetworkImage` and warm the cache when the list arrives, so the first
+  open is instant too.
+- [x] Found while fixing the above, same root cause, not reported by QA:
+  editing a multi-attachment document dropped the extra files (`updateDocument`
+  rebuilt from the legacy pair), and deleting one orphaned them in Storage
+  (`deleteDocument` removed a single path).
+- [ ] **Screenshot capture is broken repo-wide**, not just for this fix. Every
+  PNG from `flutter drive --driver=test_driver/screenshots.dart` comes out
+  blank white and byte-identical — verified by running the known-good
+  `integration_test/screenshots_test.dart`, whose output has the same MD5 as a
+  blank frame. **This means `tool/screenshots.sh` currently produces blank App
+  Store screenshots.** `convertFlutterSurfaceToImage()` is an Android API and
+  is the likely culprit on iOS; needs its own investigation.
+- [ ] The document **form** still attaches one file at a time — the picker
+  replaces rather than appends. Not a data-loss bug, but inconsistent with the
+  scanner now that documents hold several files.

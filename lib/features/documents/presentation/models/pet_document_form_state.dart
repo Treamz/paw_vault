@@ -1,6 +1,7 @@
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
+import 'package:paw_vault/features/documents/domain/entities/document_attachment.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 
 class PetDocumentFormState {
@@ -94,6 +95,7 @@ class PetDocumentFormState {
     required EntityId id,
     required EntityId userId,
     required EntityId petId,
+    List<DocumentAttachment> attachments = const [],
     Uri? fileUrl,
     String? storagePath,
     EntityId? linkedEventId,
@@ -105,14 +107,20 @@ class PetDocumentFormState {
       throw PetDocumentFormValidationException(validation);
     }
 
+    // The legacy single-file pair is kept populated from the first
+    // attachment on purpose: an older build of the app reads only those
+    // fields, so it shows one file instead of none.
+    final first = attachments.isEmpty ? null : attachments.first;
+
     return PetDocument(
       id: id,
       userId: userId,
       petId: petId,
       title: title.trim(),
       type: type!,
-      fileUrl: fileUrl,
-      storagePath: storagePath,
+      attachments: attachments,
+      fileUrl: fileUrl ?? first?.fileUrl,
+      storagePath: storagePath ?? first?.storagePath,
       issueDate: issueDate != null ? DateOnly.fromDateTime(issueDate!) : null,
       expiryDate:
           expiryDate != null ? DateOnly.fromDateTime(expiryDate!) : null,

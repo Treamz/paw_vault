@@ -121,14 +121,14 @@ Widget _app(List<PetDocument> documents) {
   );
 }
 
-PetDocument _document() => PetDocument(
+PetDocument _document({Uri? fileUrl, String? storagePath}) => PetDocument(
       id: const EntityId('doc-1'),
       userId: const EntityId('user-1'),
       petId: const EntityId('pet-1'),
       title: 'Vaccination certificate',
       type: PetDocumentType.vaccinationCertificate,
-      fileUrl: Uri.parse('https://example.com/doc.pdf'),
-      storagePath: 'users/user-1/pets/pet-1/documents/doc-1.pdf',
+      fileUrl: fileUrl ?? Uri.parse('https://example.com/doc.pdf'),
+      storagePath: storagePath ?? 'users/user-1/pets/pet-1/documents/doc-1.pdf',
     );
 
 class _FakeAuthRepository implements AuthRepository {

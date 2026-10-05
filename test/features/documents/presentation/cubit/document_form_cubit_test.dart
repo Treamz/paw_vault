@@ -8,6 +8,7 @@ import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/storage/domain/entities/storage_file.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/documents/application/document_upload_service.dart';
+import 'package:paw_vault/features/documents/domain/entities/document_attachment.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
@@ -177,6 +178,53 @@ void main() {
       await cubit.load('pet-1', 'missing');
 
       expect(cubit.state.status, DocumentFormStatus.notFound);
+    });
+
+    test('updateDocument keeps every attachment of a multi-file document',
+        () async {
+      // Editing only the title must not silently drop the extra files — the
+      // update path used to rebuild from the legacy single-file pair alone.
+      final existing = _multiAttachmentDocument();
+      final documentRepository = _FakeDocumentRepository(document: existing);
+      final cubit = _cubit(
+        documentRepository: documentRepository,
+        picked: _pickedFile(),
+      );
+
+      await cubit.load('pet-1', 'doc-1');
+      await cubit.updateDocument(
+        PetDocumentFormState(
+          type: existing.type,
+          title: 'Renamed',
+          issueDate: DateTime(2024, 1, 15),
+        ),
+      );
+
+      final saved = documentRepository.savedDocument!;
+      expect(saved.title, 'Renamed');
+      expect(saved.attachments, hasLength(2));
+      expect(saved.files, existing.files);
+    });
+
+    test('deleteDocument removes every attachment, not just the first',
+        () async {
+      // Otherwise the extra files stay in Storage forever with no document
+      // referencing them.
+      final existing = _multiAttachmentDocument();
+      final documentRepository = _FakeDocumentRepository(document: existing);
+      final storageRepository = _FakeStorageRepository();
+      final cubit = _cubit(
+        documentRepository: documentRepository,
+        picked: _pickedFile(),
+        storageRepository: storageRepository,
+      );
+
+      await cubit.load('pet-1', 'doc-1');
+      await cubit.deleteDocument();
+
+      expect(storageRepository.deletedPaths, existing.storagePaths);
+      expect(storageRepository.deletedPaths, hasLength(2));
+      expect(documentRepository.deleteCallCount, 1);
     });
 
     test('deleteDocument removes the storage file and the metadata', () async {
@@ -388,6 +436,7 @@ class _FakeStorageRepository implements StorageRepository {
 
   int deleteCallCount = 0;
   String? deletedPath;
+  final deletedPaths = <String>[];
   int uploadCallCount = 0;
 
   @override
@@ -405,10 +454,32 @@ class _FakeStorageRepository implements StorageRepository {
 
   @override
   Future<void> delete(String path) async {
+    deletedPaths.add(path);
     deleteCallCount++;
     if (throwsOnDelete) {
       throw StateError('delete failed');
     }
     deletedPath = path;
   }
+}
+
+PetDocument _multiAttachmentDocument() {
+  return PetDocument(
+    id: const EntityId('doc-1'),
+    userId: const EntityId('user-1'),
+    petId: const EntityId('pet-1'),
+    title: 'Scanned certificate',
+    type: PetDocumentType.vaccinationCertificate,
+    attachments: [
+      DocumentAttachment(
+        fileUrl: Uri.parse('https://example.com/a0.png'),
+        storagePath: 'users/u/pets/p/documents/doc-1/attachment_0.png',
+      ),
+      DocumentAttachment(
+        fileUrl: Uri.parse('https://example.com/a1.jpg'),
+        storagePath: 'users/u/pets/p/documents/doc-1/attachment_1.jpg',
+      ),
+    ],
+    issueDate: const DateOnly(year: 2024, month: 1, day: 15),
+  );
 }

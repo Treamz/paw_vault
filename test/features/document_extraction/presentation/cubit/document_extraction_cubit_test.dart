@@ -145,6 +145,50 @@ void main() {
       await cubit.close();
     });
 
+    test('confirmExtraction uploads every scanned page', () async {
+      // The reported bug: scanning two pages analysed both and saved only the
+      // first, so the owner silently lost the second file.
+      final documentRepository = _FakeDocumentRepository();
+      final storageRepository = _FakeStorageRepository();
+      final picker = _FakePicker(file: _pickedFile());
+      final cubit = _cubit(
+        picker: picker,
+        aiRepository: _FakeAiRepository(draft: _draft()),
+        documentRepository: documentRepository,
+        storageRepository: storageRepository,
+      );
+
+      await cubit.pickAndExtract(DocumentSource.gallery);
+      await cubit.pickAndExtract(DocumentSource.camera);
+      expect(cubit.state.pickedFiles, hasLength(2));
+
+      await cubit.confirmExtraction(
+        'pet-1',
+        PetDocumentFormState(
+          type: PetDocumentType.vaccinationCertificate,
+          title: 'Rabies vaccination',
+          issueDate: DateTime(2024, 1, 15),
+        ),
+      );
+
+      expect(storageRepository.uploadCallCount, 2);
+      expect(storageRepository.uploadedPaths, hasLength(2));
+      // Separate objects — a shared path would overwrite one with the other.
+      expect(
+        storageRepository.uploadedPaths.toSet(),
+        hasLength(2),
+      );
+
+      final saved = documentRepository.savedDocument!;
+      expect(saved.attachments, hasLength(2));
+      expect(saved.files, hasLength(2));
+      // The legacy pair stays populated so an older build still shows a file.
+      expect(saved.fileUrl, isNotNull);
+      expect(saved.storagePath, isNotNull);
+
+      await cubit.close();
+    });
+
     test('confirmExtraction saves the analysis to Smart Input history',
         () async {
       final smartInputRepository = _FakeSmartInputRepository();
@@ -394,6 +438,7 @@ class _FakeDocumentRepository implements DocumentRepository {
 class _FakeStorageRepository implements StorageRepository {
   int uploadCallCount = 0;
   String? uploadedPath;
+  final uploadedPaths = <String>[];
 
   @override
   Future<StorageFile> uploadBytes({
@@ -403,6 +448,7 @@ class _FakeStorageRepository implements StorageRepository {
   }) async {
     uploadCallCount++;
     uploadedPath = path;
+    uploadedPaths.add(path);
     return StorageFile(
       path: path,
       downloadUrl: Uri.parse('https://storage.example.com/$path'),

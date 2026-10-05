@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -517,24 +518,30 @@ class _AttachedFileCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (document.hasImageFile)
-            Image.network(
-              document.fileUrl!.toString(),
-              height: 180,
-              fit: BoxFit.cover,
-              errorBuilder: (context, _, __) => Container(
+          for (final file in document.files)
+            if (file.isImage)
+              CachedNetworkImage(
+                imageUrl: file.fileUrl.toString(),
                 height: 180,
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Icon(Icons.broken_image_outlined, size: 48),
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorWidget: (context, _, __) => Container(
+                  height: 180,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: const Icon(Icons.broken_image_outlined, size: 48),
+                ),
               ),
-            ),
           ListTile(
             leading: Icon(
               document.hasImageFile
                   ? Icons.image_outlined
                   : Icons.picture_as_pdf_outlined,
             ),
-            title: const Text('Attached file'),
+            title: Text(
+              document.files.length <= 1
+                  ? 'Attached file'
+                  : '${document.files.length} attached files',
+            ),
             subtitle: Text(
               extension.isEmpty ? 'File' : extension.toUpperCase(),
             ),

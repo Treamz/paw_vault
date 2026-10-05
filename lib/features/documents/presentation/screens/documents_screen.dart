@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -56,6 +57,26 @@ class _DocumentsViewState extends State<_DocumentsView> {
     return byType;
   }
 
+  /// Warms the image cache for every attachment as soon as the list arrives.
+  ///
+  /// The previews live inside the details sheet, so without this the first tap
+  /// on a document started the download and left the owner watching a blank
+  /// box for a couple of seconds. `CachedNetworkImage` alone only fixes the
+  /// *second* open.
+  void _precacheAttachments(BuildContext context, DocumentsState state) {
+    for (final document in state.documents) {
+      for (final file in document.imageFiles) {
+        precacheImage(
+          CachedNetworkImageProvider(file.fileUrl.toString()),
+          context,
+          // Best effort: a warm-up failure must never surface to the owner.
+          // The widget shows its own error state if the image is really gone.
+          onError: (_, __) {},
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,7 +102,10 @@ class _DocumentsViewState extends State<_DocumentsView> {
         ],
       ),
       body: SafeArea(
-        child: BlocBuilder<DocumentsCubit, DocumentsState>(
+        child: BlocConsumer<DocumentsCubit, DocumentsState>(
+          listenWhen: (previous, current) =>
+              previous.documents != current.documents,
+          listener: _precacheAttachments,
           builder: (context, state) {
             return switch (state.status) {
               DocumentsStatus.initial ||
@@ -294,34 +318,41 @@ class _DocumentsContent extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(document.notes!),
               ],
-              if (document.hasImageFile) ...[
+              // Every attachment, not just the first: a scanned document can
+              // have several pages, and showing one made the rest look lost.
+              for (final file in document.files) ...[
                 const SizedBox(height: 16),
-                GestureDetector(
-                  onTap: () => showFullScreenImage(
-                    context,
-                    NetworkImage(document.fileUrl!.toString()),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      document.fileUrl!.toString(),
-                      height: 220,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, _, __) => Container(
-                        height: 120,
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        child: const Icon(Icons.broken_image_outlined),
+                if (file.isImage)
+                  GestureDetector(
+                    onTap: () => showFullScreenImage(
+                      context,
+                      CachedNetworkImageProvider(file.fileUrl.toString()),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CachedNetworkImage(
+                        imageUrl: file.fileUrl.toString(),
+                        height: 220,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorWidget: (context, _, __) => Container(
+                          height: 120,
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: const Icon(Icons.broken_image_outlined),
+                        ),
                       ),
                     ),
+                  )
+                else
+                  OutlinedButton.icon(
+                    onPressed: () => fileOpener.open(file.fileUrl),
+                    icon: const Icon(Icons.open_in_new),
+                    label: Text(
+                      file.fileExtension.isEmpty
+                          ? 'Open file'
+                          : 'Open ${file.fileExtension.toUpperCase()}',
+                    ),
                   ),
-                ),
-              ] else if (document.hasFile) ...[
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: () => fileOpener.open(document.fileUrl!),
-                  icon: const Icon(Icons.open_in_new),
-                  label: const Text('Open file'),
-                ),
               ],
               const SizedBox(height: 24),
               FilledButton.icon(
