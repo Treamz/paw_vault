@@ -1,5 +1,6 @@
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/firebase/firestore/firestore_mapping.dart';
+import 'package:paw_vault/features/documents/data/mappers/document_attachment_firestore_mapper.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 
 abstract final class SmartMessageFirestoreMapper {
@@ -10,6 +11,10 @@ abstract final class SmartMessageFirestoreMapper {
       'originalText': message.originalText,
       'detectedIntent': FirestoreMapping.enumToJson(message.detectedIntent),
       'extractedData': message.extractedData,
+      if (message.attachments.isNotEmpty)
+        'attachments': DocumentAttachmentFirestoreMapper.listToFirestore(
+          message.attachments,
+        ),
       'suggestedActions': message.suggestedActions
           .map(
             (action) => {
@@ -40,6 +45,9 @@ abstract final class SmartMessageFirestoreMapper {
         SmartMessageIntent.values,
       ),
       extractedData: _mapFromFirestore(data['extractedData'], 'extractedData'),
+      attachments: DocumentAttachmentFirestoreMapper.listFromFirestore(
+        data['attachments'],
+      ),
       suggestedActions: _suggestedActionsFromFirestore(
         data['suggestedActions'],
         'suggestedActions',

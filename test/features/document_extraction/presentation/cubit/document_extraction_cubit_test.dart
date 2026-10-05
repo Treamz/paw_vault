@@ -217,6 +217,37 @@ void main() {
       await cubit.close();
     });
 
+    test('the Smart Input entry carries every scanned file', () async {
+      // The reported bug: files attached in Smart Input were nowhere to be
+      // seen in History, which showed text only.
+      final smartInputRepository = _FakeSmartInputRepository();
+      final documentRepository = _FakeDocumentRepository();
+      final cubit = _cubit(
+        picker: _FakePicker(file: _pickedFile()),
+        aiRepository: _FakeAiRepository(draft: _draft()),
+        documentRepository: documentRepository,
+        smartInputRepository: smartInputRepository,
+      );
+
+      await cubit.pickAndExtract(DocumentSource.gallery);
+      await cubit.pickAndExtract(DocumentSource.camera);
+      await cubit.confirmExtraction(
+        'pet-1',
+        PetDocumentFormState(
+          type: PetDocumentType.vaccinationCertificate,
+          title: 'Rabies vaccination',
+          issueDate: DateTime(2024, 1, 15),
+        ),
+      );
+
+      final message = smartInputRepository.savedMessages.single;
+      expect(message.attachments, hasLength(2));
+      // The same files the document itself got, not a second upload.
+      expect(message.attachments, documentRepository.savedDocument!.files);
+
+      await cubit.close();
+    });
+
     test('confirmExtraction fails when no file was picked', () async {
       final documentRepository = _FakeDocumentRepository();
       final cubit = _cubit(

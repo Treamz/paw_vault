@@ -1,6 +1,7 @@
 // Verifies that attaching a file/photo from Smart Input and confirming the
 // AI extraction saves the analysis to Smart Input's History (not only the
-// document to Documents). Run with the screenshot driver:
+// document to Documents), and that the History entry shows the attached
+// files. Run with the screenshot driver:
 //
 //   SCREENSHOT_DIR=build/verify_screenshots flutter drive \
 //     --driver=test_driver/screenshots.dart \
@@ -9,6 +10,8 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:paw_vault/app/app.dart';
@@ -106,6 +109,21 @@ void main() {
     final saved = smartInput.messages.single;
     expect(saved.status, SmartMessageStatus.confirmed);
     expect(saved.extractedData['title'], 'Rabies vaccination');
+    // The reported bug: the attached photo appeared nowhere in History.
+    expect(saved.attachments, hasLength(1));
+
+    final tile = find.byKey(ValueKey('smart-message-${saved.id.value}'));
+    expect(tile, findsOneWidget);
+    expect(
+      find.descendant(of: tile, matching: find.byType(CachedNetworkImage)),
+      findsOneWidget,
+    );
+
+    // Opening the entry shows a preview of the file, not just the text.
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+    expect(find.text('Attached file'), findsOneWidget);
+    await binding.takeScreenshot('03_scan_history_details_attachment');
   });
 }
 

@@ -1,6 +1,6 @@
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/firebase/firestore/firestore_mapping.dart';
-import 'package:paw_vault/features/documents/domain/entities/document_attachment.dart';
+import 'package:paw_vault/features/documents/data/mappers/document_attachment_firestore_mapper.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 
 abstract final class PetDocumentFirestoreMapper {
@@ -14,13 +14,9 @@ abstract final class PetDocumentFirestoreMapper {
         'fileUrl': FirestoreMapping.uriToJson(document.fileUrl!),
       if (document.storagePath != null) 'storagePath': document.storagePath,
       if (document.attachments.isNotEmpty)
-        'attachments': [
-          for (final attachment in document.attachments)
-            {
-              'fileUrl': FirestoreMapping.uriToJson(attachment.fileUrl),
-              'storagePath': attachment.storagePath,
-            },
-        ],
+        'attachments': DocumentAttachmentFirestoreMapper.listToFirestore(
+          document.attachments,
+        ),
       if (document.extractedText != null)
         'extractedText': document.extractedText,
       'extractedData': document.extractedData,
@@ -57,7 +53,9 @@ abstract final class PetDocumentFirestoreMapper {
       fileUrl: data['fileUrl'] == null
           ? null
           : FirestoreMapping.uriFromJson(data['fileUrl'], 'fileUrl'),
-      attachments: _attachmentsFromFirestore(data['attachments']),
+      attachments: DocumentAttachmentFirestoreMapper.listFromFirestore(
+        data['attachments'],
+      ),
       storagePath: _optionalStringFromFirestore(
         data['storagePath'],
         'storagePath',
@@ -139,43 +137,5 @@ abstract final class PetDocumentFirestoreMapper {
       expectedType: 'Map<String, Object?>',
       actualValue: value,
     );
-  }
-
-  /// Reads the attachment list. Absent for documents saved before
-  /// multi-attachment support — those keep their single file in the legacy
-  /// `fileUrl`/`storagePath` fields, which `PetDocument.files` falls back to.
-  static List<DocumentAttachment> _attachmentsFromFirestore(Object? value) {
-    if (value == null) {
-      return const [];
-    }
-
-    if (value is! List) {
-      throw FirestoreMappingException.expectedType(
-        fieldName: 'attachments',
-        expectedType: 'List',
-        actualValue: value,
-      );
-    }
-
-    return [
-      for (final entry in value)
-        if (entry is Map)
-          DocumentAttachment(
-            fileUrl: FirestoreMapping.uriFromJson(
-              entry['fileUrl'],
-              'attachments.fileUrl',
-            ),
-            storagePath: _stringFromFirestore(
-              entry['storagePath'],
-              'attachments.storagePath',
-            ),
-          )
-        else
-          throw FirestoreMappingException.expectedType(
-            fieldName: 'attachments',
-            expectedType: 'Map',
-            actualValue: entry,
-          ),
-    ];
   }
 }

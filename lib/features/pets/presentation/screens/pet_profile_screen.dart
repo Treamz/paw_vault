@@ -320,7 +320,7 @@ class _PetProfileView extends StatelessWidget {
       (Icons.pets, 'Paw Scan', PawScanRoute(petId: petId), true),
       (
         Icons.summarize,
-        'Vet Summary Export',
+        'Vet Summary',
         VetSummaryExportRoute(petId: petId),
         false,
       ),

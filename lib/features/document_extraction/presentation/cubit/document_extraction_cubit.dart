@@ -161,6 +161,9 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
             petId: entityPetId,
             originalText: 'Scanned document: ${document.title}',
             detectedIntent: SmartMessageIntent.addNote,
+            // Every file that was scanned, so History shows the same
+            // attachments the document itself carries.
+            attachments: document.files,
             extractedData: {
               'type': document.type.name,
               'title': document.title,

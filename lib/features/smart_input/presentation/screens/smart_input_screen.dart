@@ -1,10 +1,14 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
+import 'package:paw_vault/features/documents/domain/entities/document_attachment.dart';
+import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
@@ -697,7 +701,7 @@ class _HistoryTab extends StatelessWidget {
                   Card(
                     child: ListTile(
                       key: ValueKey('smart-message-${message.id.value}'),
-                      leading: const Icon(Icons.auto_awesome),
+                      leading: _HistoryLeading(message: message),
                       title: Text(
                         message.originalText,
                         maxLines: 2,
@@ -717,7 +721,11 @@ class _HistoryTab extends StatelessWidget {
                             .read<SmartInputCubit>()
                             .deleteMessage(message),
                       ),
-                      onTap: () => _showDetails(context, message),
+                      onTap: () => _showDetails(
+                        context,
+                        message,
+                        context.read<DocumentFileOpener>(),
+                      ),
                     ),
                   ),
               ],
@@ -725,7 +733,11 @@ class _HistoryTab extends StatelessWidget {
     };
   }
 
-  void _showDetails(BuildContext context, SmartMessage message) {
+  void _showDetails(
+    BuildContext context,
+    SmartMessage message,
+    DocumentFileOpener fileOpener,
+  ) {
     final theme = Theme.of(context);
     showModalBottomSheet<void>(
       context: context,
@@ -748,6 +760,22 @@ class _HistoryTab extends StatelessWidget {
             Text('Your note', style: theme.textTheme.labelLarge),
             const SizedBox(height: 4),
             Text(message.originalText),
+            if (message.attachments.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                message.attachments.length == 1
+                    ? 'Attached file'
+                    : '${message.attachments.length} attached files',
+                style: theme.textTheme.labelLarge,
+              ),
+              for (final attachment in message.attachments) ...[
+                const SizedBox(height: 8),
+                _AttachmentPreview(
+                  attachment: attachment,
+                  fileOpener: fileOpener,
+                ),
+              ],
+            ],
             const SizedBox(height: 12),
             Text('Detected intent', style: theme.textTheme.labelLarge),
             const SizedBox(height: 4),
@@ -812,6 +840,97 @@ class _HistoryTab extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The History row's leading slot.
+///
+/// A scanned entry shows its own photo so the list says at a glance that files
+/// are attached; everything else keeps the AI glyph. Using
+/// [CachedNetworkImage] here also warms the disk cache, so the full previews
+/// in the details sheet are already there when it opens.
+class _HistoryLeading extends StatelessWidget {
+  const _HistoryLeading({required this.message});
+
+  final SmartMessage message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final thumbnail = message.imageAttachments.firstOrNull;
+
+    if (thumbnail != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: CachedNetworkImage(
+          imageUrl: thumbnail.fileUrl.toString(),
+          width: 40,
+          height: 40,
+          fit: BoxFit.cover,
+          errorWidget: (context, _, __) =>
+              const Icon(Icons.broken_image_outlined),
+        ),
+      );
+    }
+
+    if (message.attachments.isNotEmpty) {
+      return Icon(
+        Icons.attach_file,
+        color: theme.colorScheme.onSurfaceVariant,
+      );
+    }
+
+    return const Icon(Icons.auto_awesome);
+  }
+}
+
+/// One attached file in the details sheet: images inline and tappable to full
+/// screen, anything else behind an open button, matching the Documents sheet.
+class _AttachmentPreview extends StatelessWidget {
+  const _AttachmentPreview({
+    required this.attachment,
+    required this.fileOpener,
+  });
+
+  final DocumentAttachment attachment;
+  final DocumentFileOpener fileOpener;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (!attachment.isImage) {
+      return OutlinedButton.icon(
+        onPressed: () => fileOpener.open(attachment.fileUrl),
+        icon: const Icon(Icons.open_in_new),
+        label: Text(
+          attachment.fileExtension.isEmpty
+              ? 'Open file'
+              : 'Open ${attachment.fileExtension.toUpperCase()}',
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () => showFullScreenImage(
+        context,
+        CachedNetworkImageProvider(attachment.fileUrl.toString()),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: CachedNetworkImage(
+          imageUrl: attachment.fileUrl.toString(),
+          height: 220,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorWidget: (context, _, __) => Container(
+            height: 120,
+            color: theme.colorScheme.surfaceContainerHighest,
+            child: const Icon(Icons.broken_image_outlined),
+          ),
         ),
       ),
     );

@@ -455,8 +455,25 @@
   blank white and byte-identical — verified by running the known-good
   `integration_test/screenshots_test.dart`, whose output has the same MD5 as a
   blank frame. **This means `tool/screenshots.sh` currently produces blank App
-  Store screenshots.** `convertFlutterSurfaceToImage()` is an Android API and
-  is the likely culprit on iOS; needs its own investigation.
+  Store screenshots.**
+  **Root cause confirmed:** `convertFlutterSurfaceToImage()` is an Android API;
+  on iOS it stops the Flutter layer rendering to the screen entirely. Proof:
+  with the call in place, `xcrun simctl io <udid> screenshot` — which captures
+  the device framebuffer, nothing to do with the binding — shows a *blank grey
+  surface* where the app should be. Delete the call and the same simctl capture
+  shows the app rendering normally. So the fix is to stop calling it on iOS and
+  capture another way (simctl framebuffer, or golden-file tests); until then,
+  visual verification of any integration test has to go through
+  `xcrun simctl io ... screenshot` with the call removed.
+- [x] **Smart Input History showed no attachments.** A scan started from Smart
+  Input saved the files to the document but the History entry kept only text,
+  so the photo the owner attached was nowhere in Smart Input. `SmartMessage`
+  now carries `attachments`, the scan passes `document.files` through, and
+  History renders a thumbnail on the row plus full previews in the details
+  sheet. Attachment serialization is now shared
+  (`DocumentAttachmentFirestoreMapper`) so the two features cannot drift.
+- [x] Renamed the pet profile menu entry "Vet Summary Export" to "Vet Summary",
+  matching the title of the screen it opens.
 - [ ] The document **form** still attaches one file at a time — the picker
   replaces rather than appends. Not a data-loss bug, but inconsistent with the
   scanner now that documents hold several files.
