@@ -237,10 +237,28 @@ void main() {
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
 
+    // QA hit this with the title focused: the keyboard stayed over the
+    // calendar, which squeezed the dialog and left the selected day's circle
+    // cramped and off-centre.
+    //
+    // This pins the invariant rather than guarding the fix: `tester.tap`
+    // releases focus from a text field where iOS does not, so removing the
+    // screen's own unfocus call still leaves this passing. Verified by
+    // removing it and re-running. It would still catch code that actively
+    // put focus back.
+    await tester.tap(find.widgetWithText(TextFormField, 'Title *'));
+    await tester.pumpAndSettle();
+    expect(_focusedEditable(), isNotNull);
+
     final reminderDate = find.text('Reminder Date');
     await tester.ensureVisible(reminderDate);
     await tester.tap(reminderDate);
     await tester.pumpAndSettle();
+    expect(
+      _focusedEditable(),
+      isNull,
+      reason: 'nothing may hold focus once the calendar is open',
+    );
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
 

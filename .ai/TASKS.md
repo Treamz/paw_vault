@@ -640,6 +640,18 @@
   than midnight, which reads as "no time was set". The time is now shown
   wherever the reminder is — the tile and the detail sheet — otherwise setting
   it would be invisible.
+- [x] **Event date picker opened with the keyboard over it, and the selected
+  day's circle looked off-centre.** Both are the same thing, and both were
+  already fixed by the unfocus work above — QA's screenshot came from a build
+  that predates it. Verified on current code: the calendar opens with no
+  keyboard (`Add Event`/`Cancel` visible where the keyboard had been), and the
+  selected day sits dead centre in a full-size circle. The cramped circle was
+  a consequence, not a separate bug: the keyboard shrank the dialog's height,
+  the grid compressed, and the day cell ended up tight around the digit —
+  which is exactly what QA guessed would resolve itself.
+  Ruled out as causes while checking: no custom `fontFamily`, no `TextTheme`
+  override and no `datePickerTheme` in `AppTheme`, so nothing of ours was
+  distorting the cell metrics.
 - [ ] **An event's reminder does not notify.** Found while adding the time
   above, and worth deciding on: `nextReminderDate` is only ever rendered on
   the timeline tile and in the event detail. Nothing schedules a local
