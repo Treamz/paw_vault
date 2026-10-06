@@ -151,7 +151,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Add document'));
     await tester.pumpAndSettle();
-    final attach = find.text('Attach photo or file (optional)');
+    final attach = find.text('Attach photos or files (optional)');
     await tester.ensureVisible(attach);
     await tester.tap(attach);
     await tester.pumpAndSettle();

@@ -22,12 +22,29 @@ class DocumentSourcePickerImpl implements DocumentSourcePicker {
     };
   }
 
+  @override
+  Future<List<PickedFile>> pickMultipleFromGallery() async {
+    final images = await _imagePicker.pickMultiImage();
+
+    // Read sequentially: a document scan is full resolution, so decoding
+    // several at once is a large memory spike on a phone.
+    final picked = <PickedFile>[];
+    for (final image in images) {
+      picked.add(await _toPickedFile(image));
+    }
+    return picked;
+  }
+
   Future<PickedFile?> _pickImage(ImageSource source) async {
     final image = await _imagePicker.pickImage(source: source);
     if (image == null) {
       return null;
     }
 
+    return _toPickedFile(image);
+  }
+
+  Future<PickedFile> _toPickedFile(XFile image) async {
     final bytes = await image.readAsBytes();
     final extension = _extensionOf(image.name);
 

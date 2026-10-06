@@ -33,4 +33,9 @@ class PickedEventPhoto {
 /// image picker; the presentation layer depends only on this abstraction.
 abstract interface class EventPhotoPicker {
   Future<PickedEventPhoto?> pick(EventPhotoSource source);
+
+  /// Selects several gallery photos at once; empty if the user cancels.
+  ///
+  /// The camera takes one photo at a time, so that path keeps using [pick].
+  Future<List<PickedEventPhoto>> pickMultipleFromGallery();
 }

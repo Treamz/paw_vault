@@ -403,6 +403,11 @@ class _FakeDocumentSourcePicker implements DocumentSourcePicker {
       contentType: 'image/png',
     );
   }
+
+  @override
+  Future<List<PickedFile>> pickMultipleFromGallery() async =>
+      pick(DocumentSource.gallery)
+          .then((file) => file == null ? <PickedFile>[] : [file]);
 }
 
 class _FakeExtractionAiRepository implements DocumentExtractionAiRepository {

@@ -10,6 +10,7 @@ import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/storage/domain/entities/storage_file.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/features/document_extraction/domain/services/document_source_picker.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
@@ -75,6 +76,47 @@ void main() {
       expect(notesField.maxLines, 6);
     });
 
+    testWidgets('one gallery pick attaches several files, and each can go',
+        (tester) async {
+      // Asked for by QA: picking several photos should not mean opening the
+      // picker once per photo.
+      await tester.pumpWidget(
+        _app(
+          document: null,
+          opener: _FakeDocumentFileOpener(),
+          sourcePicker: _FakeSourcePicker(
+            files: [
+              _pickedFile('page_1.jpg'),
+              _pickedFile('page_2.jpg'),
+              _pickedFile('page_3.jpg'),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Attach photos or files (optional)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Choose from gallery'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('page_1.jpg'), findsOneWidget);
+      expect(find.text('page_2.jpg'), findsOneWidget);
+      expect(find.text('page_3.jpg'), findsOneWidget);
+      // Still room to add more, rather than the picker replacing the lot.
+      expect(find.text('Add more'), findsOneWidget);
+
+      final removeSecond = find.byTooltip('Remove page_2.jpg');
+      await tester.ensureVisible(removeSecond);
+      await tester.pumpAndSettle();
+      await tester.tap(removeSecond);
+      await tester.pumpAndSettle();
+
+      expect(find.text('page_2.jpg'), findsNothing);
+      expect(find.text('page_1.jpg'), findsOneWidget);
+      expect(find.text('page_3.jpg'), findsOneWidget);
+    });
+
     testWidgets('create mode has no attached file section', (tester) async {
       await tester.pumpWidget(
         _app(document: null, opener: _FakeDocumentFileOpener()),
@@ -90,6 +132,7 @@ Widget _app({
   required PetDocument? document,
   required DocumentFileOpener opener,
   DocumentRepository? repository,
+  DocumentSourcePicker? sourcePicker,
 }) {
   return MultiRepositoryProvider(
     providers: [
@@ -105,6 +148,9 @@ Widget _app({
         value: const NoopAnalyticsService(),
       ),
       RepositoryProvider<DocumentFileOpener>.value(value: opener),
+      RepositoryProvider<DocumentSourcePicker>.value(
+        value: sourcePicker ?? _FakeSourcePicker(),
+      ),
     ],
     child: MaterialApp(
       home: DocumentFormScreen(
@@ -112,6 +158,30 @@ Widget _app({
         documentId: document?.id.value,
       ),
     ),
+  );
+}
+
+/// Hands back [files] for a gallery pick, so the multi-select path can be
+/// driven without a platform picker.
+class _FakeSourcePicker implements DocumentSourcePicker {
+  _FakeSourcePicker({this.files = const []});
+
+  final List<PickedFile> files;
+
+  @override
+  Future<PickedFile?> pick(DocumentSource source) async => files.firstOrNull;
+
+  @override
+  Future<List<PickedFile>> pickMultipleFromGallery() async => files;
+}
+
+PickedFile _pickedFile(String name) {
+  final extension = name.split('.').last;
+  return PickedFile(
+    bytes: Uint8List.fromList([1, 2, 3]),
+    fileName: name,
+    extension: extension,
+    contentType: extension == 'pdf' ? 'application/pdf' : 'image/$extension',
   );
 }
 
@@ -209,4 +279,8 @@ class _FakeStorageRepository implements StorageRepository {
 class _FakeFilePicker implements FilePicker {
   @override
   Future<PickedFile?> pickDocument() async => null;
+
+  @override
+  Future<List<PickedFile>> pickDocuments() async =>
+      pickDocument().then((file) => file == null ? <PickedFile>[] : [file]);
 }

@@ -125,6 +125,37 @@ void main() {
       await t.cubit.close();
     });
 
+    test('one gallery pick can bring several photos at once', () async {
+      // Asked for by QA: four paws should not mean four trips through the
+      // picker.
+      final t = _build();
+      t.picker.nextMultiple = [_picked(), _picked(), _picked()];
+
+      await t.cubit.addPhoto(PawPhotoSource.gallery);
+
+      expect(t.cubit.state.photos, hasLength(3));
+      expect(t.picker.multiPickCallCount, 1);
+      expect(t.cubit.state.status, PawScanStatus.idle);
+      await t.cubit.close();
+    });
+
+    test('keeps what fits when more photos are picked than the cap allows',
+        () async {
+      // Over-selecting is the owner misjudging, not an error worth throwing
+      // the whole selection away for: keep the first four and say so.
+      final t = _build();
+      t.picker.nextMultiple = [
+        for (var i = 0; i < kMaxPawScanPhotos + 2; i++) _picked(),
+      ];
+
+      await t.cubit.addPhoto(PawPhotoSource.gallery);
+
+      expect(t.cubit.state.photos, hasLength(kMaxPawScanPhotos));
+      expect(t.cubit.state.status, PawScanStatus.idle);
+      expect(t.cubit.state.errorMessage, contains('2 photos were left out'));
+      await t.cubit.close();
+    });
+
     test('refuses more than the photo cap and does not open the picker',
         () async {
       final t = _build();
@@ -698,12 +729,27 @@ class _FakePawScanAiRepository implements PawScanAiRepository {
 
 class _FakePawPhotoPicker implements PawPhotoPicker {
   PickedFile? next;
+
+  /// What the gallery hands back; defaults to [next] as a single photo.
+  List<PickedFile>? nextMultiple;
   int pickCallCount = 0;
+  int multiPickCallCount = 0;
 
   @override
   Future<PickedFile?> pick(PawPhotoSource source) async {
     pickCallCount++;
     return next;
+  }
+
+  @override
+  Future<List<PickedFile>> pickMultipleFromGallery() async {
+    multiPickCallCount++;
+    final multiple = nextMultiple;
+    if (multiple != null) {
+      return multiple;
+    }
+    final single = next;
+    return single == null ? const [] : [single];
   }
 }
 

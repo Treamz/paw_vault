@@ -4,9 +4,9 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
-import 'package:paw_vault/core/storage/domain/entities/storage_file.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/documents/application/document_upload_service.dart';
+import 'package:paw_vault/features/documents/domain/entities/document_attachment.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
@@ -75,12 +75,12 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
     }
   }
 
-  /// Saves a new document. [file] is optional: when provided it is uploaded
-  /// and linked to the document; without it only the metadata is saved.
+  /// Saves a new document. [files] is optional: whatever is given is uploaded
+  /// and linked to the document; with none, only the metadata is saved.
   Future<void> createDocument(
     String petId,
     PetDocumentFormState formState, {
-    PickedFile? file,
+    List<PickedFile> files = const [],
   }) async {
     // Validate before uploading so invalid metadata never leaves an orphaned
     // file in storage.
@@ -106,22 +106,20 @@ class DocumentFormCubit extends Cubit<DocumentFormState> {
       final now = DateTime.now();
       final documentId = EntityId('${now.microsecondsSinceEpoch}');
 
-      StorageFile? uploaded;
-      if (file != null) {
-        uploaded = await _uploadService.uploadDocumentFile(
-          userId: userId,
-          petId: entityPetId,
-          documentId: documentId,
-          file: file,
-        );
-      }
+      final uploaded = files.isEmpty
+          ? const <DocumentAttachment>[]
+          : await _uploadService.uploadDocumentFiles(
+              userId: userId,
+              petId: entityPetId,
+              documentId: documentId,
+              files: files,
+            );
 
       final document = formState.toDocument(
         id: documentId,
         userId: userId,
         petId: entityPetId,
-        fileUrl: uploaded?.downloadUrl,
-        storagePath: uploaded?.path,
+        attachments: uploaded,
         createdAt: now,
         updatedAt: now,
       );

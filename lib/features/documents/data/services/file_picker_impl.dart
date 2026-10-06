@@ -26,7 +26,29 @@ class FilePickerImpl implements FilePicker {
       return null;
     }
 
-    final file = result.files.first;
+    return _toPickedFile(result.files.first);
+  }
+
+  @override
+  Future<List<PickedFile>> pickDocuments() async {
+    final result = await fp.FilePicker.pickFiles(
+      type: fp.FileType.custom,
+      allowedExtensions: _allowedExtensions,
+      withData: true,
+      allowMultiple: true,
+    );
+
+    if (result == null) {
+      return const [];
+    }
+
+    return [
+      for (final file in result.files)
+        if (_toPickedFile(file) case final PickedFile picked) picked,
+    ];
+  }
+
+  PickedFile? _toPickedFile(fp.PlatformFile file) {
     final bytes = file.bytes;
     if (bytes == null) {
       return null;

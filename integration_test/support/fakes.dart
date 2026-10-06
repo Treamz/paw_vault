@@ -396,4 +396,9 @@ class FakePawPhotoPicker implements PawPhotoPicker {
     lastSource = source;
     return file;
   }
+
+  @override
+  Future<List<PickedFile>> pickMultipleFromGallery() async =>
+      pick(PawPhotoSource.gallery)
+          .then((file) => file == null ? <PickedFile>[] : [file]);
 }

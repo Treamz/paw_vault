@@ -202,6 +202,11 @@ class _FakeEventPhotoPicker implements EventPhotoPicker {
       extension: 'png',
     );
   }
+
+  @override
+  Future<List<PickedEventPhoto>> pickMultipleFromGallery() async =>
+      pick(EventPhotoSource.gallery)
+          .then((p) => p == null ? <PickedEventPhoto>[] : [p]);
 }
 
 class _RecordingStorageRepository implements StorageRepository {

@@ -70,6 +70,10 @@ class _FakeFilePicker implements FilePicker {
 
   @override
   Future<PickedFile?> pickDocument() async => picked;
+
+  @override
+  Future<List<PickedFile>> pickDocuments() async =>
+      pickDocument().then((file) => file == null ? <PickedFile>[] : [file]);
 }
 
 class _FakeStorageRepository implements StorageRepository {

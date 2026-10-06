@@ -74,7 +74,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
   PetDocumentType? _selectedType;
   DateTime? _issueDate;
   DateTime? _expiryDate;
-  PickedFile? _pickedFile;
+  final List<PickedFile> _pickedFiles = [];
   PetDocumentFormValidation? _validation;
   bool _populated = false;
   bool _submitted = false;
@@ -113,11 +113,23 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
     }
 
     try {
-      final picked = await context.read<DocumentSourcePicker>().pick(source);
-      if (picked == null || !mounted) {
+      final picker = context.read<DocumentSourcePicker>();
+      // The gallery can hand over several files at once; the camera and the
+      // file browser return one.
+      final List<PickedFile> picked;
+      if (source == DocumentSource.gallery) {
+        picked = await picker.pickMultipleFromGallery();
+      } else {
+        final single = await picker.pick(source);
+        picked = single == null ? const [] : [single];
+      }
+
+      if (picked.isEmpty || !mounted) {
         return;
       }
-      setState(() => _pickedFile = picked);
+      // Appended, not replaced: picking again used to throw away what was
+      // already attached.
+      setState(() => _pickedFiles.addAll(picked));
     } catch (_) {
       if (!mounted) {
         return;
@@ -212,7 +224,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
     if (widget.isEditMode) {
       cubit.updateDocument(formState);
     } else {
-      cubit.createDocument(widget.petId, formState, file: _pickedFile);
+      cubit.createDocument(widget.petId, formState, files: _pickedFiles);
     }
   }
 
@@ -339,7 +351,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
                                 Text(
                                   state.status == DocumentFormStatus.deleting
                                       ? 'Deleting…'
-                                      : _pickedFile != null
+                                      : _pickedFiles.isNotEmpty
                                           ? 'Uploading document…'
                                           : 'Saving…',
                                 ),
@@ -434,30 +446,39 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
             ),
             if (!widget.isEditMode) ...[
               const SizedBox(height: 16),
-              _pickedFile == null
-                  ? OutlinedButton.icon(
-                      onPressed: isSaving ? null : _pickAttachment,
-                      icon: const Icon(Icons.attach_file),
-                      label: const Text('Attach photo or file (optional)'),
-                    )
-                  : Card(
-                      margin: EdgeInsets.zero,
-                      child: ListTile(
-                        leading: const Icon(Icons.attach_file),
-                        title: Text(
-                          _pickedFile!.fileName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.clear),
-                          tooltip: 'Remove attachment',
-                          onPressed: isSaving
-                              ? null
-                              : () => setState(() => _pickedFile = null),
-                        ),
+              if (_pickedFiles.isEmpty)
+                OutlinedButton.icon(
+                  onPressed: isSaving ? null : _pickAttachment,
+                  icon: const Icon(Icons.attach_file),
+                  label: const Text('Attach photos or files (optional)'),
+                )
+              else ...[
+                for (final (index, file) in _pickedFiles.indexed)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: const Icon(Icons.attach_file),
+                      title: Text(
+                        file.fileName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Remove ${file.fileName}',
+                        onPressed: isSaving
+                            ? null
+                            : () =>
+                                setState(() => _pickedFiles.removeAt(index)),
                       ),
                     ),
+                  ),
+                OutlinedButton.icon(
+                  onPressed: isSaving ? null : _pickAttachment,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add more'),
+                ),
+              ],
             ],
             const SizedBox(height: 24),
             FilledButton.icon(

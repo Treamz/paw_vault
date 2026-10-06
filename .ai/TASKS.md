@@ -581,6 +581,28 @@
   Smart Input depending on the documents feature is deliberate and
   pre-existing: a scanned analysis keeps the same `DocumentAttachment`s the
   document got.
-- [ ] The document **form** still attaches one file at a time — the picker
-  replaces rather than appends. Not a data-loss bug, but inconsistent with the
-  scanner now that documents hold several files.
+- [x] **Gallery multi-select everywhere it means something.** Nothing in the
+  app used `pickMultiImage` — not even Paw Scan, which QA cited as already
+  having it; what Paw Scan has is the ability to *hold* four photos, added one
+  at a time. All four pickers gained a `pickMultipleFromGallery()` (or
+  `pickDocuments()`) alongside the single-pick method the camera still needs,
+  and four screens now use it: Paw Scan, the document scan, the timeline event
+  form and the document form.
+  Paw Scan keeps the first four of an over-selection and says how many were
+  left out, rather than refusing the lot. The document scan analyses every
+  page picked in one AI request. The document form's picker now **appends**
+  instead of replacing, with a per-file remove and an "Add more" button —
+  which closes the separate task below about it attaching one file at a time.
+  A single file there now goes through the same `attachment_N` storage path
+  the scanner uses, so a hand-made and a scanned document are stored alike;
+  the legacy `fileUrl`/`storagePath` pair stays populated for older builds.
+  **Deliberately excluded:** the pet profile photo. It is one avatar, so
+  multi-select has nothing to mean there. The file browser's single-pick path
+  is also unchanged — the request was about the gallery.
+- [ ] **`integration_test/paw_scan_flow_test.dart` fails on this branch**, and
+  did so before the multi-select work — verified by stashing the change and
+  re-running: identical `+1 -3`. Image-resource exceptions during the journal
+  thumbnails, so likely the same noop-storage relative URI that makes
+  thumbnails unloadable in local-first. Needs its own look.
+- [x] The document **form** attached one file at a time, replacing rather than
+  appending. Fixed with the gallery multi-select work above.

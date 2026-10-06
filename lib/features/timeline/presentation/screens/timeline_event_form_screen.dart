@@ -93,12 +93,21 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
   Future<void> _pickAttachmentPhoto(EventPhotoSource source) async {
     final picker = context.read<EventPhotoPicker>();
     try {
-      final photo = await picker.pick(source);
-      if (photo == null || !mounted) {
+      // The gallery can hand over several photos at once; the camera and the
+      // file browser return one.
+      final List<PickedEventPhoto> photos;
+      if (source == EventPhotoSource.gallery) {
+        photos = await picker.pickMultipleFromGallery();
+      } else {
+        final single = await picker.pick(source);
+        photos = single == null ? const [] : [single];
+      }
+
+      if (photos.isEmpty || !mounted) {
         return;
       }
       setState(() {
-        _pendingPhotos.add(photo);
+        _pendingPhotos.addAll(photos);
         _updateFormState();
       });
     } catch (_) {

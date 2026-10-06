@@ -33,6 +33,27 @@ class PawPhotoPickerImpl implements PawPhotoPicker {
       return null;
     }
 
+    return _toPickedFile(image);
+  }
+
+  @override
+  Future<List<PickedFile>> pickMultipleFromGallery() async {
+    final images = await _imagePicker.pickMultiImage(
+      maxWidth: maxDimension,
+      maxHeight: maxDimension,
+      imageQuality: jpegQuality,
+    );
+
+    // Read sequentially: decoding several downscaled photos at once is a
+    // large, pointless memory spike on a phone.
+    final picked = <PickedFile>[];
+    for (final image in images) {
+      picked.add(await _toPickedFile(image));
+    }
+    return picked;
+  }
+
+  Future<PickedFile> _toPickedFile(XFile image) async {
     final bytes = await image.readAsBytes();
 
     // `imageQuality` forces a re-encode to JPEG, but the returned name can

@@ -26,6 +26,23 @@ class EventPhotoPickerImpl implements EventPhotoPicker {
     };
   }
 
+  @override
+  Future<List<PickedEventPhoto>> pickMultipleFromGallery() async {
+    final images = await _imagePicker.pickMultiImage(
+      maxWidth: _maxDimension,
+      maxHeight: _maxDimension,
+      imageQuality: _imageQuality,
+    );
+
+    // Read sequentially: decoding several photos at once is a large,
+    // pointless memory spike on a phone.
+    final picked = <PickedEventPhoto>[];
+    for (final image in images) {
+      picked.add(await _toPickedPhoto(image));
+    }
+    return picked;
+  }
+
   Future<PickedEventPhoto?> _pickImage(ImageSource source) async {
     final image = await _imagePicker.pickImage(
       source: source,
@@ -37,6 +54,10 @@ class EventPhotoPickerImpl implements EventPhotoPicker {
       return null;
     }
 
+    return _toPickedPhoto(image);
+  }
+
+  Future<PickedEventPhoto> _toPickedPhoto(XFile image) async {
     final bytes = await image.readAsBytes();
     final extension = _extensionOf(image.name);
 

@@ -46,8 +46,17 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
     );
 
     try {
-      final file = await _picker.pick(source);
-      if (file == null) {
+      // The gallery can hand over several pages at once; the camera and the
+      // file browser's single-pick path return one.
+      final List<PickedFile> newFiles;
+      if (source == DocumentSource.gallery) {
+        newFiles = await _picker.pickMultipleFromGallery();
+      } else {
+        final single = await _picker.pick(source);
+        newFiles = single == null ? const [] : [single];
+      }
+
+      if (newFiles.isEmpty) {
         // User cancelled the picker.
         emit(
           existingFiles.isEmpty
@@ -57,7 +66,7 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
         return;
       }
 
-      final files = [...existingFiles, file];
+      final files = [...existingFiles, ...newFiles];
       emit(
         DocumentExtractionState(
           status: DocumentExtractionStatus.extracting,

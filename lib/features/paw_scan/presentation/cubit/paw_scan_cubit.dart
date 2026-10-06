@@ -237,20 +237,39 @@ class PawScanCubit extends Cubit<PawScanState> {
     emit(state.copyWith(status: PawScanStatus.capturing));
 
     try {
-      final picked = await _picker.pick(source);
+      // The gallery can hand over several photos at once; the camera takes
+      // one at a time.
+      final List<PickedFile> picked;
+      if (source == PawPhotoSource.gallery) {
+        picked = await _picker.pickMultipleFromGallery();
+      } else {
+        final single = await _picker.pick(source);
+        picked = single == null ? const [] : [single];
+      }
 
-      if (picked == null) {
+      if (picked.isEmpty) {
         // Cancelled: leave the photos already taken alone.
         emit(state.copyWith(status: previousStatus));
         return;
       }
 
+      // More than the remaining slots is the owner over-selecting, not an
+      // error worth stopping on: keep what fits and say what happened.
+      final free = kMaxPawScanPhotos - state.photos.length;
+      final kept = picked.take(free).toList();
+      final dropped = picked.length - kept.length;
+
       emit(
         state.copyWith(
           status: PawScanStatus.idle,
-          photos: [...state.photos, picked],
+          photos: [...state.photos, ...kept],
+          errorMessage: dropped == 0
+              ? null
+              : 'A scan can hold up to $kMaxPawScanPhotos photos, so '
+                  '${dropped == 1 ? '1 photo was' : '$dropped photos were'} '
+                  'left out.',
           clearDraft: true,
-          clearErrorMessage: true,
+          clearErrorMessage: dropped == 0,
           clearLoggedCheckId: true,
         ),
       );

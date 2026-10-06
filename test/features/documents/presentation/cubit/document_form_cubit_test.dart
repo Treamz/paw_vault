@@ -31,7 +31,7 @@ void main() {
           title: 'EU Pet Passport',
           issueDate: DateTime(2024, 1, 15),
         ),
-        file: _pickedFile(),
+        files: [_pickedFile()],
       );
 
       expect(cubit.state.status, DocumentFormStatus.ready);
@@ -43,7 +43,12 @@ void main() {
         saved.storagePath,
         startsWith('users/user-1/pets/pet-1/documents/'),
       );
-      expect(saved.fileUrl.toString(), contains('original.pdf'));
+      // A single file now goes through the same attachment path the scanner
+      // uses, so one document and a scanned one are stored alike.
+      expect(saved.fileUrl.toString(), contains('attachment_0.pdf'));
+      expect(saved.attachments, hasLength(1));
+      // The legacy pair stays populated so an older build still shows it.
+      expect(saved.storagePath, saved.attachments.single.storagePath);
       expect(cubit.state.document, saved);
     });
 
@@ -88,7 +93,7 @@ void main() {
       await cubit.createDocument(
         'pet-1',
         const PetDocumentFormState(),
-        file: _pickedFile(),
+        files: [_pickedFile()],
       );
 
       expect(cubit.state.status, DocumentFormStatus.failure);
@@ -111,7 +116,7 @@ void main() {
           title: 'EU Pet Passport',
           issueDate: DateTime(2024, 1, 15),
         ),
-        file: _pickedFile(),
+        files: [_pickedFile()],
       );
 
       expect(cubit.state.status, DocumentFormStatus.failure);
@@ -427,6 +432,10 @@ class _FakeFilePicker implements FilePicker {
 
   @override
   Future<PickedFile?> pickDocument() async => picked;
+
+  @override
+  Future<List<PickedFile>> pickDocuments() async =>
+      pickDocument().then((file) => file == null ? <PickedFile>[] : [file]);
 }
 
 class _FakeStorageRepository implements StorageRepository {
