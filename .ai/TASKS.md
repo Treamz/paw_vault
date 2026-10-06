@@ -604,5 +604,29 @@
   re-running: identical `+1 -3`. Image-resource exceptions during the journal
   thumbnails, so likely the same noop-storage relative URI that makes
   thumbnails unloadable in local-first. Needs its own look.
+- [x] **Timeline keyboard that would not go away.** Reported as intermittent,
+  surviving the way out to the main menu, and only cured by killing the app.
+  Mechanism found in the code: the form's fields are `enabled: !isSaving`, so
+  the moment saving starts a field that still holds focus is *disabled*, which
+  tears its input connection down abruptly — and the same cubit transition
+  pops the route from a `BlocListener`. The platform is told to close a
+  connection belonging to a field and a route that are both already going, and
+  iOS can be left showing a keyboard with nothing focused anywhere, which no
+  later screen can dismiss. That also explains "sometimes": it needs a field
+  to still be focused when Save is tapped, and on iOS tapping a button does
+  not take focus off a text field.
+  Fix: give up focus *first*, while the field is still mounted and enabled, so
+  the keyboard closes the ordinary way — on save, on cancel, on the two
+  programmatic pops, and before the date and photo pickers take over.
+  The same `enabled: !isSaving` pattern exists in the pet form, Paw Scan's
+  note field and Smart Input's input, so each of those now unfocuses on submit
+  too. QA only hit Timeline, but the defect is identical.
+  **Not verified end to end.** The discriminating condition cannot be
+  reproduced in a test: `tester.tap` releases focus from a text field where
+  iOS does not, so by the time the form disables its fields the test has
+  already unfocused. The new integration test pins the weaker invariant that
+  no field keeps focus after the form closes. Confirming the fix needs a
+  device with the simulator's hardware keyboard disconnected, and an
+  intermittent bug makes a single manual pass inconclusive either way.
 - [x] The document **form** attached one file at a time, replacing rather than
   appending. Fixed with the gallery multi-select work above.

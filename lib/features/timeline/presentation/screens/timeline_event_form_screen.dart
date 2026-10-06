@@ -91,6 +91,9 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
   final List<PickedEventPhoto> _pendingPhotos = [];
 
   Future<void> _pickAttachmentPhoto(EventPhotoSource source) async {
+    // The platform picker takes over the screen; coming back with a field
+    // still focused is the other way the keyboard ends up stranded.
+    _dismissKeyboard();
     final picker = context.read<EventPhotoPicker>();
     try {
       // The gallery can hand over several photos at once; the camera and the
@@ -118,6 +121,12 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
         const SnackBar(content: Text('Could not pick a photo')),
       );
     }
+  }
+
+  /// Gives up focus so the keyboard closes the ordinary way, while the field
+  /// holding it is still mounted and enabled.
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   void _removeStoredAttachment(int index) {
@@ -223,6 +232,7 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
   }
 
   Future<void> _selectDate() async {
+    _dismissKeyboard();
     final now = DateTime.now();
     final initialDate = _selectedDate ?? now;
     final picked = await showDatePicker(
@@ -242,6 +252,7 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
   }
 
   Future<void> _selectReminderDate() async {
+    _dismissKeyboard();
     final now = DateTime.now();
     final initialDate = _selectedReminderDate ?? _selectedDate ?? now;
     // A reminder may be earlier than the event itself (e.g. a heads-up a few
@@ -271,6 +282,15 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
   }
 
   void _saveEvent() {
+    // Before anything else, and specifically before the fields are disabled
+    // below: saving flips them to `enabled: false`, and disabling a field
+    // that still holds focus tears its input connection down abruptly. The
+    // same cubit transition then pops the route, so the platform is told to
+    // close a connection belonging to a field and a route that are both on
+    // their way out, and iOS can be left showing the keyboard with nothing
+    // focused anywhere — which no later screen can dismiss.
+    _dismissKeyboard();
+
     _updateFormState();
     final validation = _formState.validate();
 
@@ -317,6 +337,7 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Event deleted successfully')),
             );
+            _dismissKeyboard();
             context.router.back();
           }
         }
@@ -327,6 +348,7 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Event saved successfully')),
           );
+          _dismissKeyboard();
           context.router.back();
         }
 
@@ -591,7 +613,12 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
                     ),
                     const SizedBox(height: 8),
                     TextButton(
-                      onPressed: isSaving ? null : () => context.router.back(),
+                      onPressed: isSaving
+                          ? null
+                          : () {
+                              _dismissKeyboard();
+                              context.router.back();
+                            },
                       child: const Text('Cancel'),
                     ),
                   ],

@@ -263,6 +263,12 @@ class _PetFormViewState extends State<_PetFormView> {
   }
 
   void _savePet() {
+    // Saving disables every field, and disabling one that still holds focus
+    // tears its input connection down abruptly, which can leave the platform
+    // keyboard on screen with nothing focused. Give up focus first so it
+    // closes the ordinary way. See the Timeline form, where QA hit this.
+    FocusManager.instance.primaryFocus?.unfocus();
+
     _updateFormState();
 
     if (_validation?.isValid != true) {

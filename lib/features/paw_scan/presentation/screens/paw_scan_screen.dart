@@ -145,11 +145,16 @@ class _PawScanViewState extends State<_PawScanView>
             includeInVetSummary: _includeInVetSummary,
             onIncludeChanged: (value) =>
                 setState(() => _includeInVetSummary = value),
-            onLog: () => cubit.logCheck(
-              widget.petId,
-              ownerNote: _noteController.text,
-              includeInVetSummary: _includeInVetSummary,
-            ),
+            onLog: () {
+              // The note field is disabled while the check saves, and
+              // disabling a focused field can strand the platform keyboard.
+              FocusManager.instance.primaryFocus?.unfocus();
+              cubit.logCheck(
+                widget.petId,
+                ownerNote: _noteController.text,
+                includeInVetSummary: _includeInVetSummary,
+              );
+            },
             onDiscard: cubit.discardDraft,
           ),
           const SizedBox(height: 24),

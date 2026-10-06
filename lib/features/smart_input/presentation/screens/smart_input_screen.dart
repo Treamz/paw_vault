@@ -272,9 +272,12 @@ class _SmartInputViewState extends State<_SmartInputView>
           FilledButton.icon(
             onPressed: isProcessing || isSaving
                 ? null
-                : () => context.read<SmartInputCubit>().submit(
-                      _controller.text,
-                    ),
+                : () {
+                    // The input is disabled while analysing, and disabling a
+                    // focused field can strand the platform keyboard.
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    context.read<SmartInputCubit>().submit(_controller.text);
+                  },
             icon: isProcessing
                 ? const SizedBox(
                     width: 18,

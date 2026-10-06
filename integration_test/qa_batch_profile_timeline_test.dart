@@ -168,6 +168,120 @@ void main() {
     expect(find.text('Rabies shot'), findsOneWidget);
     await binding.takeScreenshot('05_timeline_event_saved');
   });
+
+  testWidgets('saving an event with the title focused dismisses the keyboard',
+      (tester) async {
+    // Reported by QA: the Timeline keyboard sometimes stayed up, survived the
+    // way back to the main menu, and only went away by killing the app. It is
+    // the only form that pops itself from a BlocListener on save, so it can
+    // leave the route while a field still holds focus.
+    final picker = _FakeEventPhotoPicker(await _makePng());
+    final pets = _MemoryPetRepository([
+      const Pet(
+        id: EntityId('pet-1'),
+        userId: EntityId('user-1'),
+        name: 'Rex',
+      ),
+    ]);
+    final timeline = _MemoryTimelineRepository();
+    final base = AppDependencies.localFirst();
+    final dependencies = AppDependencies(
+      authRepository: FakeAuthRepository(),
+      storageRepository: _RecordingStorageRepository(),
+      petRepository: pets,
+      timelineRepository: timeline,
+      documentRepository: base.documentRepository,
+      reminderRepository: base.reminderRepository,
+      aiRepository: base.aiRepository,
+      smartInputRepository: base.smartInputRepository,
+      vetSummaryExportRepository: base.vetSummaryExportRepository,
+      filePicker: base.filePicker,
+      documentFileOpener: base.documentFileOpener,
+      documentExtractionAiRepository: base.documentExtractionAiRepository,
+      documentSourcePicker: base.documentSourcePicker,
+      petPhotoPicker: base.petPhotoPicker,
+      eventPhotoPicker: picker,
+      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      analyticsService: base.analyticsService,
+      subscriptionService: base.subscriptionService,
+      paywallPresenter: base.paywallPresenter,
+      trackingAuthorizationService: base.trackingAuthorizationService,
+      accountDeletionService: base.accountDeletionService,
+    );
+
+    await tester.pumpWidget(PawVaultApp(dependencies: dependencies));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Rex'));
+    await tester.pumpAndSettle();
+    final timelineTile = find.text('Timeline');
+    await tester.ensureVisible(timelineTile);
+    await tester.tap(timelineTile);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Add event'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(DropdownButtonFormField<PetEventType>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vaccination').last);
+    await tester.pumpAndSettle();
+
+    // Deliberately no TextInputAction.done here: the point is to save while
+    // the field still has focus, which is what the owner does.
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Title *'),
+      'Rabies shot',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      _focusedEditable(),
+      isNotNull,
+      reason: 'the title should be focused',
+    );
+
+    final dateTile = find.text('Date *');
+    await tester.ensureVisible(dateTile);
+    await tester.tap(dateTile);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    final addEvent = find.widgetWithText(FilledButton, 'Add Event');
+    await tester.ensureVisible(addEvent);
+    await tester.tap(addEvent);
+    await tester.pumpAndSettle();
+
+    // Back on the timeline, nothing may still hold focus: an orphaned focused
+    // field is what kept the keyboard on screen all the way out to the menu.
+    expect(timeline.savedEvent, isNotNull);
+    expect(
+      _focusedEditable(),
+      isNull,
+      reason: 'no text field may keep focus after the form closes',
+    );
+
+    // And still nothing after walking back out to the pet list.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(_focusedEditable(), isNull);
+  });
+}
+
+/// The focused text field, if any.
+///
+/// A focused `EditableText` is what holds the platform keyboard open, so this
+/// is the thing to assert on — the keyboard itself is drawn by the OS and not
+/// visible to the test.
+EditableText? _focusedEditable() {
+  for (final element in find.byType(EditableText).evaluate()) {
+    final editable = element.widget as EditableText;
+    if (editable.focusNode.hasFocus) {
+      return editable;
+    }
+  }
+  return null;
 }
 
 Future<Uint8List> _makePng() async {
