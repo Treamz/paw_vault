@@ -520,6 +520,29 @@
   opens it in `PdfPreview`, the same in-app viewer the vet summary uses. A
   file of any other kind shows an extension tile and says it has no preview
   rather than ignoring the tap.
+- [x] **Scan: the issue date row goes red, and the prompt works harder to
+  find the date.** The field-level error already landed with the "issue date
+  required" work; it coloured only the subtitle, so now the title, the message
+  and the trailing calendar icon all turn red — the row reads as the required
+  field it is. The extraction prompt now tells the model where issue dates
+  hide on pet documents ("issued", "date of issue", "vaccination date",
+  "administered", "visit date", "prescribed on", stamps), to expand a
+  two-digit year, and to return null rather than guess — a health record must
+  never carry an invented date. An empty field is still a valid outcome, which
+  is exactly when the red row earns its keep.
+- [x] **Scan: the expiry date is filled in when the document says so, and can
+  be removed.** It stays optional. The prompt now looks for the wording that
+  marks one ("expires", "expiry", "valid until", "valid through", "next due",
+  "booster due") and is told to leave the field null when no such wording
+  appears and never to derive one from the issue date. Because the scan can
+  now fill it in — and can misread it — the row has a clear (✕) action, which
+  replaces the calendar icon only while a date is set. There is nothing to
+  fall back to on an optional field, so removing it had to be possible.
+- [x] Found while doing the above, not reported: picking a date cleared *every*
+  field error, so a missing title stopped being flagged until the next save
+  attempt. The pickers now re-validate instead. Type and Title also had the
+  issue date's original problem — required, but failing with only a generic
+  snackbar — so both now show their own `errorText`.
 - [ ] The document **form** still attaches one file at a time — the picker
   replaces rather than appends. Not a data-loss bug, but inconsistent with the
   scanner now that documents hold several files.

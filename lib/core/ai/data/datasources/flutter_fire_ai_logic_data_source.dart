@@ -145,8 +145,18 @@ with these keys:
 - "type": one of passport, vaccinationCertificate, insurance, labResult,
   prescription, receipt, vetReport, other
 - "title": a short human-readable title
-- "issueDate": the issue date as "YYYY-MM-DD" or null
-- "expiryDate": the expiry date as "YYYY-MM-DD" or null
+- "issueDate": the date the document was issued, as "YYYY-MM-DD". This is
+  required wherever the document shows it, so look over the whole page:
+  it may be labelled "date", "issued", "date of issue", "vaccination date",
+  "administered", "visit date" or "prescribed on", or appear only in a stamp
+  or signature block. Expand a two-digit year to four. Use null only when no
+  such date is printed anywhere — never guess or infer one, because the owner
+  relies on this date being the document's own.
+- "expiryDate": the date the document stops being valid, as "YYYY-MM-DD",
+  when the document actually says so — look for "expires", "expiry",
+  "valid until", "valid through", "next due" or "booster due". Most documents
+  carry no such wording; leave it null then, and never derive one from the
+  issue date.
 - "notes": a brief plain-text summary
 - "confidence": a number between 0 and 1
 Do not diagnose or give medical advice. Only structure what the document says.

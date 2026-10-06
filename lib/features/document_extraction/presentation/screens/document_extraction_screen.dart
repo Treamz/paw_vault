@@ -161,7 +161,10 @@ class _ExtractionViewState extends State<_ExtractionView> {
                   selectedType: _selectedType,
                   issueDate: _issueDate,
                   issueDateError: _validation?.errorFor('issueDate'),
+                  typeError: _validation?.errorFor('type'),
+                  titleError: _validation?.errorFor('title'),
                   expiryDate: _expiryDate,
+                  onClearExpiryDate: _clearExpiryDate,
                   isSaving: state.status == DocumentExtractionStatus.saving,
                   onTypeChanged: (value) =>
                       setState(() => _selectedType = value),
@@ -228,7 +231,11 @@ class _ExtractionViewState extends State<_ExtractionView> {
     if (picked != null) {
       setState(() {
         _issueDate = picked;
-        _validation = null;
+        // Re-validate rather than clearing: another field may still be at
+        // fault, and its error should stay on screen.
+        if (_validation != null) {
+          _validation = _buildFormState().validate();
+        }
       });
     }
   }
@@ -243,8 +250,24 @@ class _ExtractionViewState extends State<_ExtractionView> {
       lastDate: DateTime(now.year + 100),
     );
     if (picked != null) {
-      setState(() => _expiryDate = picked);
+      setState(() {
+        _expiryDate = picked;
+        // An expiry before the issue date is a validation error, so refresh
+        // it the same way picking an issue date does.
+        if (_validation != null) {
+          _validation = _buildFormState().validate();
+        }
+      });
     }
+  }
+
+  void _clearExpiryDate() {
+    setState(() {
+      _expiryDate = null;
+      if (_validation != null) {
+        _validation = _buildFormState().validate();
+      }
+    });
   }
 }
 
@@ -479,7 +502,10 @@ class _ReviewForm extends StatelessWidget {
     required this.selectedType,
     required this.issueDate,
     required this.issueDateError,
+    required this.typeError,
+    required this.titleError,
     required this.expiryDate,
+    required this.onClearExpiryDate,
     required this.isSaving,
     required this.onTypeChanged,
     required this.onPickIssueDate,
@@ -495,7 +521,10 @@ class _ReviewForm extends StatelessWidget {
   final PetDocumentType? selectedType;
   final DateTime? issueDate;
   final String? issueDateError;
+  final String? typeError;
+  final String? titleError;
   final DateTime? expiryDate;
+  final VoidCallback onClearExpiryDate;
   final bool isSaving;
   final ValueChanged<PetDocumentType?> onTypeChanged;
   final VoidCallback onPickIssueDate;
@@ -505,6 +534,8 @@ class _ReviewForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat.yMMMMd();
+    final issueDateErrorColor =
+        issueDateError == null ? null : Theme.of(context).colorScheme.error;
 
     return AbsorbPointer(
       absorbing: isSaving,
@@ -572,7 +603,10 @@ class _ReviewForm extends StatelessWidget {
             DropdownButtonFormField<PetDocumentType>(
               initialValue: selectedType,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Type'),
+              decoration: InputDecoration(
+                labelText: 'Type',
+                errorText: typeError,
+              ),
               items: [
                 for (final type in PetDocumentType.values)
                   DropdownMenuItem(value: type, child: Text(_formatType(type))),
@@ -582,22 +616,37 @@ class _ReviewForm extends StatelessWidget {
             const SizedBox(height: 16),
             TextFormField(
               controller: titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
+              decoration: InputDecoration(
+                labelText: 'Title',
+                errorText: titleError,
+              ),
             ),
             const SizedBox(height: 16),
+            // The whole row turns red once saving has been attempted without
+            // a date, rather than only its subtitle: the scan often cannot
+            // read a date off the page, and this is the one field the owner
+            // then has to fill in themselves.
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Issue date (required)'),
+              title: Text(
+                'Issue date (required)',
+                style: issueDateErrorColor == null
+                    ? null
+                    : TextStyle(color: issueDateErrorColor),
+              ),
               subtitle: Text(
                 issueDateError ??
                     (issueDate != null
                         ? dateFormat.format(issueDate!)
                         : 'Not set'),
-                style: issueDateError == null
+                style: issueDateErrorColor == null
                     ? null
-                    : TextStyle(color: Theme.of(context).colorScheme.error),
+                    : TextStyle(color: issueDateErrorColor),
               ),
-              trailing: const Icon(Icons.calendar_today),
+              trailing: Icon(
+                Icons.calendar_today,
+                color: issueDateErrorColor,
+              ),
               onTap: onPickIssueDate,
             ),
             ListTile(
@@ -606,7 +655,16 @@ class _ReviewForm extends StatelessWidget {
               subtitle: Text(
                 expiryDate != null ? dateFormat.format(expiryDate!) : 'Not set',
               ),
-              trailing: const Icon(Icons.calendar_today),
+              // Clearable because the scan fills this in when the document
+              // shows one, and a misread date has to be removable — the
+              // field is optional, so there is no date to fall back to.
+              trailing: expiryDate == null
+                  ? const Icon(Icons.calendar_today)
+                  : IconButton(
+                      icon: const Icon(Icons.clear),
+                      tooltip: 'Clear expiry date',
+                      onPressed: onClearExpiryDate,
+                    ),
               onTap: onPickExpiryDate,
             ),
             const SizedBox(height: 16),

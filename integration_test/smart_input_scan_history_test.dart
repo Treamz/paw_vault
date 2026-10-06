@@ -189,9 +189,28 @@ void main() {
     await tester.tap(confirm);
     await tester.pumpAndSettle();
 
-    // Nothing was saved, and the row itself now names the problem.
+    // Nothing was saved, and the row itself now names the problem — in the
+    // error colour, so it reads as the required field it is.
     expect(find.text('Issue date is required'), findsOneWidget);
     expect(smartInput.messages, isEmpty);
+
+    final errorColor = Theme.of(
+      tester.element(find.text('Issue date is required')),
+    ).colorScheme.error;
+    for (final label in ['Issue date (required)', 'Issue date is required']) {
+      expect(
+        tester.widget<Text>(find.text(label)).style?.color,
+        errorColor,
+        reason: '"$label" should be shown in the error colour',
+      );
+    }
+
+    // Picking a date clears it again.
+    await tester.tap(find.text('Issue date (required)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(find.text('Issue date is required'), findsNothing);
   });
 
   testWidgets('the review form shows the files attached to the analysis',
@@ -265,6 +284,78 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(InteractiveViewer), findsOneWidget);
   });
+
+  testWidgets('a scanned expiry date can be removed again', (tester) async {
+    // Expiry stays optional: the scan fills it in when the document says so,
+    // and a wrong one has to be removable since there is nothing to fall
+    // back to.
+    final base = AppDependencies.localFirst();
+    final dependencies = AppDependencies(
+      authRepository: base.authRepository,
+      storageRepository: base.storageRepository,
+      petRepository: FakePetRepository(const [
+        Pet(
+          id: EntityId('pet-1'),
+          userId: EntityId('local-anonymous-user'),
+          name: 'Rex',
+        ),
+      ]),
+      timelineRepository: base.timelineRepository,
+      documentRepository: base.documentRepository,
+      reminderRepository: base.reminderRepository,
+      aiRepository: base.aiRepository,
+      smartInputRepository: _MemorySmartInputRepository(),
+      vetSummaryExportRepository: base.vetSummaryExportRepository,
+      filePicker: base.filePicker,
+      documentFileOpener: base.documentFileOpener,
+      documentExtractionAiRepository:
+          _FakeExtractionAiRepository(detectsExpiryDate: true),
+      documentSourcePicker: _FakeDocumentSourcePicker(),
+      petPhotoPicker: base.petPhotoPicker,
+      eventPhotoPicker: base.eventPhotoPicker,
+      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      analyticsService: base.analyticsService,
+      subscriptionService: base.subscriptionService,
+      paywallPresenter: base.paywallPresenter,
+      trackingAuthorizationService: base.trackingAuthorizationService,
+      accountDeletionService: base.accountDeletionService,
+    );
+
+    await tester.pumpWidget(PawVaultApp(dependencies: dependencies));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Rex'));
+    await tester.pumpAndSettle();
+    final smartInputTile = find.text('Smart Input');
+    await tester.ensureVisible(smartInputTile);
+    await tester.tap(smartInputTile);
+    await tester.pumpAndSettle();
+    final attach = find.text('Attach document or photo');
+    await tester.ensureVisible(attach);
+    await tester.tap(attach);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose from gallery'));
+    await tester.pumpAndSettle();
+
+    // The scan read one off the document, so it is filled in.
+    expect(find.text('July 1, 2027'), findsOneWidget);
+
+    final clear = find.byTooltip('Clear expiry date');
+    await tester.ensureVisible(clear);
+    await tester.tap(clear);
+    await tester.pumpAndSettle();
+
+    expect(find.text('July 1, 2027'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.widgetWithText(ListTile, 'Expiry date (optional)'),
+        matching: find.text('Not set'),
+      ),
+      findsOneWidget,
+    );
+    // Removing it leaves nothing to clear.
+    expect(find.byTooltip('Clear expiry date'), findsNothing);
+  });
 }
 
 /// The review form's attachment thumbnails, which are `Image.memory` widgets
@@ -295,11 +386,18 @@ class _FakeDocumentSourcePicker implements DocumentSourcePicker {
 }
 
 class _FakeExtractionAiRepository implements DocumentExtractionAiRepository {
-  _FakeExtractionAiRepository({this.detectsIssueDate = true});
+  _FakeExtractionAiRepository({
+    this.detectsIssueDate = true,
+    this.detectsExpiryDate = false,
+  });
 
   /// A real scan often cannot read a date off the page, and the date is
   /// required — so the review form has to handle a draft without one.
   final bool detectsIssueDate;
+
+  /// Whether the document carried wording like "valid until". Most do not,
+  /// so the draft leaves the field empty by default.
+  final bool detectsExpiryDate;
 
   @override
   Future<DocumentExtractionDraft> extractDocument({
@@ -311,6 +409,9 @@ class _FakeExtractionAiRepository implements DocumentExtractionAiRepository {
       title: 'Rabies vaccination',
       issueDate: detectsIssueDate
           ? const DateOnly(year: 2026, month: 7, day: 1)
+          : null,
+      expiryDate: detectsExpiryDate
+          ? const DateOnly(year: 2027, month: 7, day: 1)
           : null,
       confidence: 0.9,
     );
