@@ -6,7 +6,7 @@ enum PawPhotoSource { camera, gallery }
 ///
 /// Implementations live in the data layer and are expected to downscale the
 /// image before returning it: paw photos are only ever used for on-screen
-/// review, one AI request, and a thumbnail in the journal.
+/// review, one AI request, and a thumbnail in History.
 abstract interface class PawPhotoPicker {
   /// Prompts for a photo, or returns `null` if the owner cancelled.
   Future<PickedFile?> pick(PawPhotoSource source);

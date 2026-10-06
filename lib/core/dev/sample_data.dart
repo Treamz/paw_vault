@@ -225,7 +225,7 @@ abstract final class SampleData {
         ),
       ];
 
-  /// Two checks of the same paw, twelve days apart, so the journal's
+  /// Two checks of the same paw, twelve days apart, so the history's
   /// before/after comparison has something to compare.
   static List<PawCheck> pawChecksFor(EntityId userId) => <PawCheck>[
         PawCheck(

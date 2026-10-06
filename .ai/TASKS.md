@@ -652,6 +652,37 @@
   Ruled out as causes while checking: no custom `fontFamily`, no `TextTheme`
   override and no `datePickerTheme` in `AppTheme`, so nothing of ours was
   distorting the cell metrics.
+- [x] **One name for the saved list: History, not Journal.** Paw Scan called
+  it Journal; Smart Input already called it History. The analysis behind
+  choosing History:
+  1. Smart Input is already on History, so unifying there changes one screen
+     instead of two.
+  2. Nothing external is committed to "Journal" — it appears in no store copy
+     (`docs/ASO.md`, `docs/ASA.md`), only in two internal doc lines.
+  3. `docs/PAW_SCAN.md` already glossed it as "journal → per-pet *history*",
+     so the design doc was reaching for "history" to explain the word.
+  4. "Journal" suggests something the owner writes in; these are saved scan
+     results they approved, so it slightly overpromises.
+  5. Vet Summary's list is "Saved exports", a neutral record phrasing that
+     sits better beside History than beside Journal.
+  Renamed the tab and copy, plus the internal names so one word means one
+  thing: `PawJournalStatus` → `PawHistoryStatus`, `journalStatus` →
+  `historyStatus`, `journalError` → `historyError`, `_JournalTab` →
+  `_HistoryTab` — which also matches what Smart Input and Vet Summary already
+  call those fields. Checked that the blanket pass touched only comments in
+  `analytics_events.dart`, the AI prompt file and `sample_data.dart`: no event
+  key, prompt text or stored value changed.
+- [x] **Paw Scan: "Log this check" is now "Save".**
+- [x] **Paw Scan: the "saved" message would not go away.** It rode along to
+  the main menu and stayed until the app was killed. It had no `duration` and
+  nothing ever took it down, while Smart Input's equivalent — fixed in an
+  earlier QA round for the same symptom — sets three seconds and hides itself
+  when its action is tapped. Paw Scan was missed.
+  Now: an explicit three seconds, `hideCurrentSnackBar()` when "View" is
+  tapped, the previous message closed rather than queued when saving twice,
+  and — the part that answers the complaint directly — the message is closed
+  in `dispose()`. It names this screen's History and its action moves this
+  screen's tabs, so it has no business outliving the screen.
 - [ ] **An event's reminder does not notify.** Found while adding the time
   above, and worth deciding on: `nextReminderDate` is only ever rendered on
   the timeline tile and in the event detail. Nothing schedules a local

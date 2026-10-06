@@ -60,6 +60,7 @@ Widget _app({
   required _FakePawScanAiRepository ai,
   _FakePawCheckRepository? repository,
   _FakePawPhotoPicker? picker,
+  bool pushed = false,
 }) {
   return MultiRepositoryProvider(
     providers: [
@@ -79,7 +80,27 @@ Widget _app({
         value: const NoopAnalyticsService(),
       ),
     ],
-    child: const MaterialApp(home: PawScanScreen(petId: 'pet-1')),
+    child: MaterialApp(
+      // `pushed` puts the screen on a route that can be popped, so a test can
+      // leave it. The ScaffoldMessenger lives above at the MaterialApp, so a
+      // message it showed survives the pop unless the screen takes it down.
+      home: pushed
+          ? Builder(
+              builder: (context) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const PawScanScreen(petId: 'pet-1'),
+                      ),
+                    ),
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            )
+          : const PawScanScreen(petId: 'pet-1'),
+    ),
   );
 }
 
@@ -210,7 +231,33 @@ void main() {
         findsOneWidget,
       );
       expect(find.text(PawScanCopy.nothingSavedYet), findsOneWidget);
-      expect(find.text('Log this check'), findsOneWidget);
+      expect(find.text('Save'), findsOneWidget);
+    });
+
+    testWidgets('the saved message does not outlive the screen',
+        (tester) async {
+      // QA: the "saved" message rode along to the main menu and stayed there
+      // until the app was killed. It names this screen's History and its
+      // action moves this screen's tabs, so closing the screen takes it down.
+      _useTallSurface(tester);
+      final ai = _FakePawScanAiRepository()..next = _draft();
+      final picker = _FakePawPhotoPicker()..next = _picked();
+      await tester.pumpWidget(_app(ai: ai, picker: picker, pushed: true));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await _analyze(tester, picker);
+
+      final save = find.text('Save');
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(find.text('Paw check saved to History'), findsOneWidget);
+
+      // Leaving the screen takes the message with it.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.text('Paw check saved to History'), findsNothing);
     });
 
     testWidgets('warns when the safety filter rewrote something',
@@ -245,7 +292,7 @@ void main() {
       await _analyze(tester, picker);
 
       expect(find.text('That does not look like a paw'), findsOneWidget);
-      expect(find.text('Log this check'), findsNothing);
+      expect(find.text('Save'), findsNothing);
       for (final level in PawAttentionLevel.values) {
         expect(
           find.text(formatPawAttentionLevel(level)),
@@ -280,7 +327,7 @@ void main() {
       );
       // It is presented as a failed read, with a retake offered.
       expect(find.text('Could not read the result'), findsOneWidget);
-      expect(find.text('Log this check'), findsNothing);
+      expect(find.text('Save'), findsNothing);
     });
 
     testWidgets('a blocked reply tells the owner to call their vet',
@@ -296,7 +343,7 @@ void main() {
 
       expect(find.text('Could not analyse this photo'), findsOneWidget);
       expect(find.textContaining('contact your vet now'), findsOneWidget);
-      expect(find.text('Log this check'), findsNothing);
+      expect(find.text('Save'), findsNothing);
     });
   });
 
@@ -437,18 +484,18 @@ void main() {
     });
   });
 
-  group('journal', () {
+  group('history', () {
     testWidgets('shows an empty state with no checks', (tester) async {
       await tester.pumpWidget(_app(ai: _FakePawScanAiRepository()));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Journal'));
+      await tester.tap(find.text('History'));
       await tester.pumpAndSettle();
 
       expect(find.text('No paw checks yet'), findsOneWidget);
     });
 
-    testWidgets('a journal tile with every action fits a narrow phone',
+    testWidgets('a history tile with every action fits a narrow phone',
         (tester) async {
       // Caught on device: the chip plus the actions overflowed a Row by 13px,
       // clipping the delete button. Two checks of the same paw enable the
@@ -469,7 +516,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Journal'));
+      await tester.tap(find.text('History'));
       await tester.pumpAndSettle();
 
       // A RenderFlex overflow surfaces as a thrown FlutterError.
@@ -486,7 +533,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Journal'));
+      await tester.tap(find.text('History'));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('paw-check-check-1')), findsOneWidget);

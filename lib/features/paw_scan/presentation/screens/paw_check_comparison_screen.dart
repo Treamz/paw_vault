@@ -126,7 +126,7 @@ class _CheckColumn extends StatelessWidget {
               child: CachedNetworkImage(
                 imageUrl: check.photoUrls.first.toString(),
                 fit: BoxFit.cover,
-                // The journal can hold many checks; decoding at display size
+                // The history can hold many checks; decoding at display size
                 // keeps a long comparison from churning memory.
                 memCacheWidth: 600,
                 errorWidget: (context, url, error) => const ColoredBox(

@@ -6,7 +6,7 @@ import 'package:paw_vault/features/paw_scan/domain/services/paw_photo_picker.dar
 ///
 /// Unlike the document picker this one downscales and re-encodes: a paw photo
 /// is only ever reviewed on screen, sent once to the model, and shown as a
-/// journal thumbnail, so a full-resolution capture would cost a slower AI
+/// history thumbnail, so a full-resolution capture would cost a slower AI
 /// request, more storage, and more egress for no visible benefit.
 class PawPhotoPickerImpl implements PawPhotoPicker {
   PawPhotoPickerImpl({ImagePicker? imagePicker})

@@ -380,7 +380,7 @@ Set "attentionLevel" to:
       final draft = PawScanDraft(
         // The owner's own answer, never the model's guess: a model cannot tell
         // front-left from front-right in a close-up, and a wrong tag would
-        // quietly corrupt the journal's before/after comparison.
+        // quietly corrupt the history's before/after comparison.
         location: requestedLocation,
         observations: [
           if (observations is List)

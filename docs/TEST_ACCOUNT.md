@@ -72,7 +72,7 @@ item in `.ai/TASKS.md` (Phase 14). See `docs/MONETIZATION.md`.
 - **Documents and exports point at `example.com`.** The metadata is real but
   the files are not, so opening a seeded document or export will fail. Upload a
   real file through the app if you need that path to work.
-- **Paw checks have no photos.** `photoUrls` is empty, so the journal shows a
+- **Paw checks have no photos.** `photoUrls` is empty, so History shows a
   placeholder and the before/after comparison has no images. Run a real scan to
   get photos.
 - **Pets have no profile photo.** Add one through the app if you need it.

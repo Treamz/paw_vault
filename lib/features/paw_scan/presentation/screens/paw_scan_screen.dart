@@ -63,10 +63,18 @@ class _PawScanViewState extends State<_PawScanView>
   late final TabController _tabController =
       TabController(length: 2, vsync: this);
   final _noteController = TextEditingController();
+
+  /// The "saved" message, so it can be taken down again.
+  ///
+  /// It names this screen's History and its action moves this screen's tabs,
+  /// so it has no business outliving the screen — QA saw it ride along to the
+  /// main menu and stay there until the app was killed.
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _savedMessage;
   bool _includeInVetSummary = false;
 
   @override
   void dispose() {
+    _savedMessage?.close();
     _tabController.dispose();
     _noteController.dispose();
     super.dispose();
@@ -81,7 +89,7 @@ class _PawScanViewState extends State<_PawScanView>
           controller: _tabController,
           tabs: const [
             Tab(text: 'Scan'),
-            Tab(text: 'Journal'),
+            Tab(text: 'History'),
           ],
         ),
       ),
@@ -91,12 +99,20 @@ class _PawScanViewState extends State<_PawScanView>
           if (state.status == PawScanStatus.saved) {
             _noteController.clear();
             setState(() => _includeInVetSummary = false);
-            ScaffoldMessenger.of(context).showSnackBar(
+            final messenger = ScaffoldMessenger.of(context);
+            // Replace rather than queue: saving twice in a row used to stack
+            // two four-second messages.
+            _savedMessage?.close();
+            _savedMessage = messenger.showSnackBar(
               SnackBar(
-                content: const Text('Paw check saved to the journal'),
+                content: const Text('Paw check saved to History'),
+                duration: const Duration(seconds: 3),
                 action: SnackBarAction(
                   label: 'View',
-                  onPressed: () => _tabController.animateTo(1),
+                  onPressed: () {
+                    messenger.hideCurrentSnackBar();
+                    _tabController.animateTo(1);
+                  },
                 ),
               ),
             );
@@ -107,7 +123,7 @@ class _PawScanViewState extends State<_PawScanView>
             controller: _tabController,
             children: [
               _buildScanTab(context, state),
-              _JournalTab(state: state, petName: state.petName),
+              _HistoryTab(state: state, petName: state.petName),
             ],
           );
         },
@@ -508,7 +524,7 @@ class _ResultSection extends StatelessWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.check),
-                label: Text(isSaving ? 'Saving…' : 'Log this check'),
+                label: Text(isSaving ? 'Saving…' : 'Save'),
               ),
             ),
           ],
@@ -638,21 +654,21 @@ class _ErrorBanner extends StatelessWidget {
   }
 }
 
-class _JournalTab extends StatelessWidget {
-  const _JournalTab({required this.state, required this.petName});
+class _HistoryTab extends StatelessWidget {
+  const _HistoryTab({required this.state, required this.petName});
 
   final PawScanState state;
   final String petName;
 
   @override
   Widget build(BuildContext context) {
-    return switch (state.journalStatus) {
-      PawJournalStatus.loading => const LoadingView(),
-      PawJournalStatus.failure => ErrorStateView(
-          title: 'Could not load the journal',
-          message: state.journalError ?? 'Please try again.',
+    return switch (state.historyStatus) {
+      PawHistoryStatus.loading => const LoadingView(),
+      PawHistoryStatus.failure => ErrorStateView(
+          title: 'Could not load History',
+          message: state.historyError ?? 'Please try again.',
         ),
-      PawJournalStatus.ready => state.checks.isEmpty
+      PawHistoryStatus.ready => state.checks.isEmpty
           ? const EmptyStateView(
               icon: Icons.pets,
               title: 'No paw checks yet',

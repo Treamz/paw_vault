@@ -419,7 +419,7 @@ void main() {
         PawScanDraft.unusable(photoQuality: PawScanPhotoQuality.notAPaw),
         PawScanDraft.unusable(photoQuality: PawScanPhotoQuality.blurry),
         PawScanDraft.blocked(),
-        // A "no result" check would sit in the journal looking like a check
+        // A "no result" check would sit in History looking like a check
         // that found nothing — which a vet could read as a negative finding.
         PawScanDraft(status: PawScanDraftStatus.lowConfidenceReview),
       ];
@@ -470,7 +470,7 @@ void main() {
     });
   });
 
-  group('journal', () {
+  group('history', () {
     test('loads checks newest first', () async {
       final t = _build();
       t.repository.checks = [
@@ -481,7 +481,7 @@ void main() {
       await t.cubit.load('pet-1');
       await Future<void>.delayed(Duration.zero);
 
-      expect(t.cubit.state.journalStatus, PawJournalStatus.ready);
+      expect(t.cubit.state.historyStatus, PawHistoryStatus.ready);
       expect(
         t.cubit.state.checks.map((c) => c.id.value),
         ['newer', 'older'],
@@ -507,15 +507,15 @@ void main() {
       await t.cubit.close();
     });
 
-    test('a stream error only affects the journal', () async {
+    test('a stream error only affects History', () async {
       final t = _build();
       t.repository.throwsOnWatch = true;
 
       await t.cubit.load('pet-1');
       await Future<void>.delayed(Duration.zero);
 
-      expect(t.cubit.state.journalStatus, PawJournalStatus.failure);
-      expect(t.cubit.state.journalError, isNotNull);
+      expect(t.cubit.state.historyStatus, PawHistoryStatus.failure);
+      expect(t.cubit.state.historyError, isNotNull);
       expect(t.cubit.state.status, PawScanStatus.idle);
       await t.cubit.close();
     });

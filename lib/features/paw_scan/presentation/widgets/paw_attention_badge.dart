@@ -40,7 +40,7 @@ import 'package:paw_vault/features/paw_scan/domain/paw_scan_copy.dart';
   };
 }
 
-/// Compact attention chip, for journal rows and comparison columns.
+/// Compact attention chip, for history rows and comparison columns.
 class PawAttentionBadge extends StatelessWidget {
   const PawAttentionBadge({required this.level, super.key});
 
