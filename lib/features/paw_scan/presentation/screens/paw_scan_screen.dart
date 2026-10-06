@@ -164,7 +164,19 @@ class _PawScanViewState extends State<_PawScanView>
           ),
           const SizedBox(height: 16),
         ],
+        // A result is the end of the flow, so nothing follows its buttons.
+        // The capture controls used to sit below them, which read as the
+        // first step repeating itself — and the paw selector was worse than
+        // redundant there: the saved check takes its location from the draft,
+        // so changing it after a result silently did nothing. Discarding
+        // clears the photos and returns here.
         if (state.hasResult) ...[
+          if (state.hasPhotos) ...[
+            // Read-only: context for what the result describes, not a step
+            // to redo. Removing a photo would invalidate the result anyway.
+            _PhotoStrip(state: state),
+            const SizedBox(height: 16),
+          ],
           _ResultSection(
             state: state,
             noteController: _noteController,
@@ -183,39 +195,39 @@ class _PawScanViewState extends State<_PawScanView>
             },
             onDiscard: cubit.discardDraft,
           ),
-          const SizedBox(height: 24),
-        ],
-        if (state.hasPhotos) ...[
-          _PhotoStrip(
-            state: state,
-            onRemove: state.isBusy ? null : cubit.removePhoto,
-          ),
-          const SizedBox(height: 16),
-          // Asked only once there is a photo to label. Before that it is a
-          // question about nothing.
-          Text('Which paw?', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          _PawLocationSelector(
-            location: state.location,
-            onChanged: state.isBusy ? null : cubit.setLocation,
-          ),
-          const SizedBox(height: 16),
         ] else ...[
-          // Above the buttons on purpose: one tap now opens the camera, so
-          // this is the only moment the owner can read the framing advice
-          // before shooting.
-          Text(
-            PawScanCopy.captureTips,
-            style: Theme.of(context).textTheme.bodySmall,
+          if (state.hasPhotos) ...[
+            _PhotoStrip(
+              state: state,
+              onRemove: state.isBusy ? null : cubit.removePhoto,
+            ),
+            const SizedBox(height: 16),
+            // Asked only once there is a photo to label. Before that it is a
+            // question about nothing.
+            Text('Which paw?', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            _PawLocationSelector(
+              location: state.location,
+              onChanged: state.isBusy ? null : cubit.setLocation,
+            ),
+            const SizedBox(height: 16),
+          ] else ...[
+            // Above the buttons on purpose: one tap now opens the camera, so
+            // this is the only moment the owner can read the framing advice
+            // before shooting.
+            Text(
+              PawScanCopy.captureTips,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+          ],
+          _CaptureActions(
+            state: state,
+            onCamera: () => cubit.addPhoto(PawPhotoSource.camera),
+            onGallery: () => cubit.addPhoto(PawPhotoSource.gallery),
+            onAnalyze: cubit.analyze,
           ),
-          const SizedBox(height: 16),
         ],
-        _CaptureActions(
-          state: state,
-          onCamera: () => cubit.addPhoto(PawPhotoSource.camera),
-          onGallery: () => cubit.addPhoto(PawPhotoSource.gallery),
-          onAnalyze: cubit.analyze,
-        ),
       ],
     );
   }

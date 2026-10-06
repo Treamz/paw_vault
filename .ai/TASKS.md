@@ -703,6 +703,19 @@
   `ScaffoldFeatureController.close()` reads the head of an empty queue. The
   controller is now forgotten via its `closed` future, so `dispose` only ever
   closes one that is still showing.
+- [x] **Paw Scan: a result is now the end of the flow.** The capture controls
+  sat *below* Discard/Save — photo strip, "Which paw?", "Describe", Camera,
+  Gallery — so the first step looked like it repeated itself after the last
+  one. The result section now ends the list, with the photo strip moved above
+  it and made read-only: it is context for what the result describes, and
+  removing a photo would invalidate the result anyway.
+  Worth recording as more than tidiness: the paw selector there was
+  **actively misleading**. `logCheck` builds the saved check from
+  `draft.location`, not `state.location`, so changing "Which paw?" after a
+  result visibly moved the selection and changed nothing that was saved. To
+  correct a mis-tagged paw the owner has to Discard and describe again —
+  which is coherent now that Discard clears the photos and returns to the
+  empty start state.
 - [ ] **An event's reminder does not notify.** Found while adding the time
   above, and worth deciding on: `nextReminderDate` is only ever rendered on
   the timeline tile and in the event detail. Nothing schedules a local

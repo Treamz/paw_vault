@@ -339,6 +339,60 @@ void main() {
       );
     });
 
+    testWidgets('a result is the end of the flow, with nothing after it',
+        (tester) async {
+      // QA: the capture controls sat below Discard/Save, so the first step
+      // looked like it repeated itself. The paw selector there was worse than
+      // redundant — the saved check takes its location from the draft, so
+      // changing it after a result silently did nothing.
+      _useTallSurface(tester);
+      final ai = _FakePawScanAiRepository()..next = _draft();
+      final picker = _FakePawPhotoPicker()..next = _picked();
+      await tester.pumpWidget(_app(ai: ai, picker: picker));
+      await tester.pumpAndSettle();
+
+      // With a photo taken but not yet described, the capture step is there.
+      await tester.tap(find.text(PawScanCopy.takePhoto));
+      await tester.pumpAndSettle();
+      expect(find.text('Which paw?'), findsOneWidget);
+      expect(find.text(PawScanCopy.camera), findsOneWidget);
+      expect(find.textContaining('Describe'), findsOneWidget);
+
+      await tester.tap(find.textContaining('Describe'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Save'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+      expect(find.text('Which paw?'), findsNothing);
+      expect(find.text(PawScanCopy.camera), findsNothing);
+      expect(find.text(PawScanCopy.gallery), findsNothing);
+      expect(find.textContaining('Describe'), findsNothing);
+      // The photo stays as context for what the result describes, but with
+      // no way to remove it.
+      expect(find.byType(Image), findsWidgets);
+      expect(find.byTooltip('Remove photo 1'), findsNothing);
+    });
+
+    testWidgets('discarding a result returns to the capture step',
+        (tester) async {
+      _useTallSurface(tester);
+      final ai = _FakePawScanAiRepository()..next = _draft();
+      final picker = _FakePawPhotoPicker()..next = _picked();
+      await tester.pumpWidget(_app(ai: ai, picker: picker));
+      await tester.pumpAndSettle();
+      await _analyze(tester, picker);
+
+      final discard = find.text('Discard');
+      await tester.ensureVisible(discard);
+      await tester.tap(discard);
+      await tester.pumpAndSettle();
+
+      // Discard clears the photos too, so this is the empty start state.
+      expect(find.text('Save'), findsNothing);
+      expect(find.text(PawScanCopy.takePhoto), findsOneWidget);
+      expect(find.text('Which paw?'), findsNothing);
+    });
+
     testWidgets('warns when the safety filter rewrote something',
         (tester) async {
       _useTallSurface(tester);
