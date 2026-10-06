@@ -169,6 +169,115 @@ void main() {
     await binding.takeScreenshot('05_timeline_event_saved');
   });
 
+  testWidgets('an event reminder takes a time as well as a date',
+      (tester) async {
+    // Asked for by QA: a reminder is for a moment, so a date alone is not
+    // enough. nextReminderDate was already a full timestamp; only the form
+    // had no way to set the time of day.
+    final pets = _MemoryPetRepository([
+      const Pet(
+        id: EntityId('pet-1'),
+        userId: EntityId('user-1'),
+        name: 'Rex',
+      ),
+    ]);
+    final timeline = _MemoryTimelineRepository();
+    final base = AppDependencies.localFirst();
+    final dependencies = AppDependencies(
+      authRepository: FakeAuthRepository(),
+      storageRepository: _RecordingStorageRepository(),
+      petRepository: pets,
+      timelineRepository: timeline,
+      documentRepository: base.documentRepository,
+      reminderRepository: base.reminderRepository,
+      aiRepository: base.aiRepository,
+      smartInputRepository: base.smartInputRepository,
+      vetSummaryExportRepository: base.vetSummaryExportRepository,
+      filePicker: base.filePicker,
+      documentFileOpener: base.documentFileOpener,
+      documentExtractionAiRepository: base.documentExtractionAiRepository,
+      documentSourcePicker: base.documentSourcePicker,
+      petPhotoPicker: base.petPhotoPicker,
+      eventPhotoPicker: _FakeEventPhotoPicker(await _makePng()),
+      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      analyticsService: base.analyticsService,
+      subscriptionService: base.subscriptionService,
+      paywallPresenter: base.paywallPresenter,
+      trackingAuthorizationService: base.trackingAuthorizationService,
+      accountDeletionService: base.accountDeletionService,
+    );
+
+    await tester.pumpWidget(PawVaultApp(dependencies: dependencies));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Rex'));
+    await tester.pumpAndSettle();
+    final timelineTile = find.text('Timeline');
+    await tester.ensureVisible(timelineTile);
+    await tester.tap(timelineTile);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Add event'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(DropdownButtonFormField<PetEventType>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vaccination').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Title *'),
+      'Booster due',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    final dateTile = find.text('Date *');
+    await tester.ensureVisible(dateTile);
+    await tester.tap(dateTile);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    final reminderDate = find.text('Reminder Date');
+    await tester.ensureVisible(reminderDate);
+    await tester.tap(reminderDate);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    final reminderTime = find.text('Reminder Time');
+    expect(reminderTime, findsOneWidget);
+    await tester.ensureVisible(reminderTime);
+    await tester.tap(reminderTime);
+    await tester.pumpAndSettle();
+
+    // The picker opens on the dial; type the time instead, which also
+    // exercises the keyboard-entry focus fix.
+    await tester.tap(find.byIcon(Icons.keyboard_outlined));
+    await tester.pumpAndSettle();
+    final hourField = find
+        .descendant(
+          of: find.byType(TimePickerDialog),
+          matching: find.byType(EditableText),
+        )
+        .first;
+    await tester.enterText(hourField, '14');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK').last);
+    await tester.pumpAndSettle();
+
+    final addEvent = find.widgetWithText(FilledButton, 'Add Event');
+    await tester.ensureVisible(addEvent);
+    await tester.tap(addEvent);
+    await tester.pumpAndSettle();
+
+    final saved = timeline.savedEvent!;
+    final remindAt = saved.nextReminderDate!.value.toLocal();
+    expect(remindAt.hour, 14, reason: 'the chosen hour must be kept');
+    // A date picked on its own lands on a sensible hour, not midnight, which
+    // would read as "no time was set".
+    expect(remindAt.minute, 0);
+  });
+
   testWidgets('saving an event with the title focused dismisses the keyboard',
       (tester) async {
     // Reported by QA: the Timeline keyboard sometimes stayed up, survived the

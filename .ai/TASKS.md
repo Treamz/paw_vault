@@ -628,5 +628,26 @@
   no field keeps focus after the form closes. Confirming the fix needs a
   device with the simulator's hardware keyboard disconnected, and an
   intermittent bug makes a single manual pass inconclusive either way.
+- [x] **Timeline event reminders take a time, not just a date.** `PetEvent`
+  already stored `nextReminderDate` as a full `UtcDateTime`, so nothing in the
+  entity, mapper or validation had to change — the form simply had no way to
+  set the time of day. Added a "Reminder Time" row beside the date, with the
+  keyboard-entry focus fix applied (that helper moved to
+  `core/presentation/widgets/time_picker_keyboard_focus.dart` now that the
+  reminder form and this one both use it).
+  Choosing a date keeps a time already picked, and choosing a time before a
+  date takes the event's day. A date picked on its own lands on 09:00 rather
+  than midnight, which reads as "no time was set". The time is now shown
+  wherever the reminder is — the tile and the detail sheet — otherwise setting
+  it would be invisible.
+- [ ] **An event's reminder does not notify.** Found while adding the time
+  above, and worth deciding on: `nextReminderDate` is only ever rendered on
+  the timeline tile and in the event detail. Nothing schedules a local
+  notification from it — `ReminderNotificationScheduler` is wired to the
+  Reminders feature alone. So an event reminder is a note to self that the app
+  shows, not something that will alert the owner, and a time makes it read
+  more like a promise than it was before. Either wire event reminders through
+  the scheduler (and cancel/reschedule them when the event is edited or
+  deleted), or relabel the field so it does not promise a notification.
 - [x] The document **form** attached one file at a time, replacing rather than
   appending. Fixed with the gallery multi-select work above.

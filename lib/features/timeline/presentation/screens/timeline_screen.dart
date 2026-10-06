@@ -128,7 +128,10 @@ class _TimelineContent extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Reminder ${DateFormat.yMMMd().format(event.nextReminderDate!.value.toLocal())}',
+                        // With the time: a reminder for a specific moment
+                        // reads as a guess without it.
+                        'Reminder '
+                        '${DateFormat.yMMMd().add_jm().format(event.nextReminderDate!.value.toLocal())}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context).colorScheme.primary,
                             ),
@@ -186,6 +189,7 @@ class _TimelineContent extends StatelessWidget {
                 _DetailRow(
                   'Reminder',
                   DateFormat.yMMMMd()
+                      .add_jm()
                       .format(event.nextReminderDate!.value.toLocal()),
                 ),
               if (event.description != null &&

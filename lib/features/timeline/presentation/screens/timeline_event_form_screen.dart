@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/time_picker_keyboard_focus.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/timeline/application/event_attachment_upload_service.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
@@ -268,10 +269,57 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
 
     if (picked != null) {
       setState(() {
-        _selectedReminderDate = picked;
+        // Keep the time already chosen; the date picker only knows the day.
+        final time = _selectedReminderDate;
+        _selectedReminderDate = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          time?.hour ?? _defaultReminderHour,
+          time?.minute ?? 0,
+        );
         _updateFormState();
       });
     }
+  }
+
+  /// The hour a reminder lands on when only a date has been chosen.
+  ///
+  /// Not midnight: a reminder is something to read, and the start of the day
+  /// reads as "no time was set" rather than a deliberate one.
+  static const _defaultReminderHour = 9;
+
+  Future<void> _selectReminderTime() async {
+    _dismissKeyboard();
+    final current = _selectedReminderDate;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: current != null
+          ? TimeOfDay(hour: current.hour, minute: current.minute)
+          : const TimeOfDay(hour: _defaultReminderHour, minute: 0),
+      // Same fix as the reminder form: the picker does not focus its hour
+      // field when the keyboard toggle switches modes, so the keyboard stays
+      // shut until the field is tapped as well.
+      onEntryModeChanged: focusTimeEntryField,
+    );
+
+    if (picked == null) {
+      return;
+    }
+
+    setState(() {
+      // Choosing a time before a date is allowed: it fixes the time of day
+      // and takes the event's date, or today, for the day itself.
+      final day = _selectedReminderDate ?? _selectedDate ?? DateTime.now();
+      _selectedReminderDate = DateTime(
+        day.year,
+        day.month,
+        day.day,
+        picked.hour,
+        picked.minute,
+      );
+      _updateFormState();
+    });
   }
 
   void _clearReminderDate() {
@@ -326,6 +374,7 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat.yMMMMd();
+    final timeFormat = DateFormat.jm();
 
     return BlocListener<TimelineEventCubit, TimelineEventState>(
       listener: (context, state) {
@@ -492,6 +541,17 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
                         ],
                       ),
                       onTap: isSaving ? null : _selectReminderDate,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    ListTile(
+                      title: const Text('Reminder Time'),
+                      subtitle: Text(
+                        _selectedReminderDate != null
+                            ? timeFormat.format(_selectedReminderDate!)
+                            : 'Not set',
+                      ),
+                      trailing: const Icon(Icons.schedule),
+                      onTap: isSaving ? null : _selectReminderTime,
                       contentPadding: EdgeInsets.zero,
                     ),
                     if (_validation?.errorFor('nextReminderDate') != null) ...[
