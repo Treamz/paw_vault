@@ -683,6 +683,26 @@
   and — the part that answers the complaint directly — the message is closed
   in `dispose()`. It names this screen's History and its action moves this
   screen's tabs, so it has no business outliving the screen.
+- [x] **Paw Scan: "View" now lands on something identifiable.** It only
+  switched to the History tab, so with other checks already there the list
+  looked unchanged and nothing said which row was new — QA read that as "it
+  does not open this document". There is no detail screen behind a check; the
+  History card *is* the record, so rather than invent one:
+  the just-saved check is outlined and tinted (cleared as soon as the next
+  scan starts, which the cubit already did via `clearLoggedCheckId`), the list
+  scrolls back to the top when a check is saved because it keeps its scroll
+  position across tab switches, and the card now shows **every** observation
+  instead of truncating to the first — that truncation was hiding part of what
+  the owner had approved, which is the "вся информация" half of the report.
+  The second half of the report — the grey message disappearing and moving to
+  History on the next try — is the snackbar fix from the previous commit
+  behaving consistently.
+- [x] Found in my own previous commit while testing the above: closing the
+  saved message in `dispose()` threw `Bad state: No element` whenever it had
+  already gone (timed out, or hidden by "View"), because
+  `ScaffoldFeatureController.close()` reads the head of an empty queue. The
+  controller is now forgotten via its `closed` future, so `dispose` only ever
+  closes one that is still showing.
 - [ ] **An event's reminder does not notify.** Found while adding the time
   above, and worth deciding on: `nextReminderDate` is only ever rendered on
   the timeline tile and in the event detail. Nothing schedules a local

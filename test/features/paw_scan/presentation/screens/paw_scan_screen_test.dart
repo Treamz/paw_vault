@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -43,7 +44,11 @@ PickedFile _picked() => PickedFile(
       contentType: 'image/png',
     );
 
-PawCheck _check({String id = 'check-1', DateTime? checkedAt}) {
+PawCheck _check({
+  String id = 'check-1',
+  DateTime? checkedAt,
+  List<String> observations = const ['A dark area near the centre of the pad.'],
+}) {
   return PawCheck(
     id: EntityId(id),
     userId: const EntityId('user-1'),
@@ -51,7 +56,7 @@ PawCheck _check({String id = 'check-1', DateTime? checkedAt}) {
     location: PawLocation.frontLeft,
     attentionLevel: PawAttentionLevel.monitor,
     checkedAt: UtcDateTime(checkedAt ?? DateTime.utc(2026, 9, 18)),
-    observations: const ['A dark area near the centre of the pad.'],
+    observations: observations,
     status: PawCheckStatus.confirmed,
   );
 }
@@ -258,6 +263,80 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
       expect(find.text('Paw check saved to History'), findsNothing);
+    });
+
+    testWidgets('shows every observation, not just the first', (tester) async {
+      // The card is the whole record of a check — there is no detail screen
+      // behind it — so truncating to the first observation hid part of what
+      // the owner had approved.
+      _useTallSurface(tester);
+      final repository = _FakePawCheckRepository([
+        _check(
+          observations: const [
+            'A dark area near the centre of the pad.',
+            'The nail on this toe is longer than the others.',
+            'Some redness between the toes.',
+          ],
+        ),
+      ]);
+      await tester.pumpWidget(
+        _app(ai: _FakePawScanAiRepository(), repository: repository),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('History'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('A dark area near the centre of the pad.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('The nail on this toe is longer than the others.'),
+        findsOneWidget,
+      );
+      expect(find.text('Some redness between the toes.'), findsOneWidget);
+    });
+
+    testWidgets('marks the check that was just saved', (tester) async {
+      // QA: tapping View landed on a list that looked unchanged, with no way
+      // to tell which row was the one just saved.
+      _useTallSurface(tester);
+      final ai = _FakePawScanAiRepository()..next = _draft();
+      final picker = _FakePawPhotoPicker()..next = _picked();
+      final repository = _FakePawCheckRepository([_check(id: 'older')]);
+      await tester.pumpWidget(
+        _app(ai: ai, picker: picker, repository: repository),
+      );
+      await tester.pumpAndSettle();
+      await _analyze(tester, picker);
+
+      final save = find.text('Save');
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+
+      // Follow the snackbar's own action, as the owner does.
+      await tester.tap(find.text('View'));
+      await tester.pumpAndSettle();
+
+      final saved = repository.saved.last;
+      final savedCard = tester.widget<Card>(
+        find.byKey(ValueKey('paw-check-${saved.id.value}')),
+      );
+      final olderCard = tester.widget<Card>(
+        find.byKey(const ValueKey('paw-check-older')),
+      );
+      expect(
+        savedCard.shape,
+        isA<RoundedRectangleBorder>(),
+        reason: 'the just-saved check is outlined',
+      );
+      expect(savedCard.color, isNotNull);
+      expect(
+        olderCard.shape,
+        isNull,
+        reason: 'older checks are left alone',
+      );
     });
 
     testWidgets('warns when the safety filter rewrote something',
@@ -561,7 +640,15 @@ PawScanDraft _draft({
 }
 
 class _FakePawCheckRepository implements PawCheckRepository {
-  List<PawCheck> checks = const [];
+  _FakePawCheckRepository([List<PawCheck>? seed])
+      : checks = List.of(seed ?? const []);
+
+  /// Behaves like a store rather than a fixed list: saving has to show up in
+  /// the watched stream, or a test cannot see what the owner would see after
+  /// saving.
+  List<PawCheck> checks;
+  final saved = <PawCheck>[];
+  final _controller = StreamController<List<PawCheck>>.broadcast();
 
   @override
   Future<void> initialize() async {}
@@ -570,8 +657,9 @@ class _FakePawCheckRepository implements PawCheckRepository {
   Stream<List<PawCheck>> watchChecks({
     required EntityId userId,
     required EntityId petId,
-  }) {
-    return Stream.value(checks);
+  }) async* {
+    yield List.of(checks);
+    yield* _controller.stream;
   }
 
   @override
@@ -584,14 +672,21 @@ class _FakePawCheckRepository implements PawCheckRepository {
   }
 
   @override
-  Future<void> saveCheck(PawCheck check) async {}
+  Future<void> saveCheck(PawCheck check) async {
+    saved.add(check);
+    checks = [check, ...checks.where((other) => other.id != check.id)];
+    _controller.add(List.of(checks));
+  }
 
   @override
   Future<void> deleteCheck({
     required EntityId userId,
     required EntityId petId,
     required EntityId checkId,
-  }) async {}
+  }) async {
+    checks = checks.where((other) => other.id != checkId).toList();
+    _controller.add(List.of(checks));
+  }
 }
 
 class _FakePetRepository implements PetRepository {

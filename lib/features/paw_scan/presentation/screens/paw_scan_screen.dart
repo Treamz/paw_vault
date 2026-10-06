@@ -103,7 +103,7 @@ class _PawScanViewState extends State<_PawScanView>
             // Replace rather than queue: saving twice in a row used to stack
             // two four-second messages.
             _savedMessage?.close();
-            _savedMessage = messenger.showSnackBar(
+            final shown = messenger.showSnackBar(
               SnackBar(
                 content: const Text('Paw check saved to History'),
                 duration: const Duration(seconds: 3),
@@ -116,6 +116,16 @@ class _PawScanViewState extends State<_PawScanView>
                 ),
               ),
             );
+            _savedMessage = shown;
+            // Forget it once it has gone, however it went — timed out, was
+            // hidden by "View", or was replaced. `close()` on an already
+            // dismissed message throws `Bad state: No element`, so dispose
+            // must only ever close one that is still showing.
+            shown.closed.then((_) {
+              if (_savedMessage == shown) {
+                _savedMessage = null;
+              }
+            });
           }
         },
         builder: (context, state) {
@@ -654,11 +664,49 @@ class _ErrorBanner extends StatelessWidget {
   }
 }
 
-class _HistoryTab extends StatelessWidget {
+class _HistoryTab extends StatefulWidget {
   const _HistoryTab({required this.state, required this.petName});
 
   final PawScanState state;
   final String petName;
+
+  @override
+  State<_HistoryTab> createState() => _HistoryTabState();
+}
+
+class _HistoryTabState extends State<_HistoryTab> {
+  final _scrollController = ScrollController();
+
+  PawScanState get state => widget.state;
+  String get petName => widget.petName;
+
+  @override
+  void didUpdateWidget(_HistoryTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A check that has just been saved is the newest, so it is the first row.
+    // The list keeps its scroll position across tab switches though, so
+    // without this "View" could land the owner halfway down an old list with
+    // the new check off-screen above.
+    final saved = widget.state.loggedCheckId;
+    if (saved != null && saved != oldWidget.state.loggedCheckId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scrollController.hasClients) {
+          return;
+        }
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -676,6 +724,7 @@ class _HistoryTab extends StatelessWidget {
                   'you can show your vet.',
             )
           : ListView.separated(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
               itemCount: state.checks.length,
               separatorBuilder: (context, index) => const SizedBox(height: 12),
@@ -684,6 +733,10 @@ class _HistoryTab extends StatelessWidget {
                 return _PawCheckTile(
                   check: check,
                   petName: petName,
+                  // Marks the check the owner has just saved, so "View" lands
+                  // on something identifiable rather than a list that looks
+                  // unchanged. Cleared as soon as the next scan starts.
+                  isJustSaved: check.id == state.loggedCheckId,
                   // Checks are newest first, so the comparison target is the
                   // next one down that is the same paw.
                   previousForSamePaw: state.checks
@@ -702,10 +755,14 @@ class _PawCheckTile extends StatelessWidget {
     required this.check,
     required this.petName,
     this.previousForSamePaw,
+    this.isJustSaved = false,
   });
 
   final PawCheck check;
   final String petName;
+
+  /// Whether this is the check the owner has just saved.
+  final bool isJustSaved;
 
   /// The most recent earlier check of the same paw, when there is one.
   final PawCheck? previousForSamePaw;
@@ -724,6 +781,13 @@ class _PawCheckTile extends StatelessWidget {
 
     return Card(
       key: ValueKey('paw-check-${check.id.value}'),
+      color: isJustSaved ? theme.colorScheme.secondaryContainer : null,
+      shape: isJustSaved
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: theme.colorScheme.primary),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -742,14 +806,12 @@ class _PawCheckTile extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: PawAttentionBadge(level: check.attentionLevel),
             ),
-            if (check.observations.isNotEmpty) ...[
+            // Every observation, not just the first: this card is the whole
+            // record of the check — there is no detail screen behind it — so
+            // truncating here hid part of what the owner approved.
+            for (final observation in check.observations) ...[
               const SizedBox(height: 8),
-              Text(
-                check.observations.first,
-                style: theme.textTheme.bodyMedium,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+              Text(observation, style: theme.textTheme.bodyMedium),
             ],
             if (check.ownerNote != null) ...[
               const SizedBox(height: 8),
