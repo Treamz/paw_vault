@@ -450,36 +450,23 @@
   editing a multi-attachment document dropped the extra files (`updateDocument`
   rebuilt from the legacy pair), and deleting one orphaned them in Storage
   (`deleteDocument` removed a single path).
-- [ ] **Screenshot capture is broken repo-wide**, not just for this fix. Every
-  PNG from `flutter drive --driver=test_driver/screenshots.dart` comes out
-  blank white and byte-identical — verified by running the known-good
-  `integration_test/screenshots_test.dart`, whose output has the same MD5 as a
-  blank frame. **This means `tool/screenshots.sh` currently produces blank App
-  Store screenshots.**
-  **Two causes, both confirmed; `convertFlutterSurfaceToImage()` is NOT one
-  of them** (an earlier note in this file blamed it — that was wrong).
-  `integration_test/smart_input_scan_history_test.dart` calls both
-  `convertFlutterSurfaceToImage()` and `takeScreenshot()` and produced
-  correct, distinct PNGs (192 KB, 127 KB, 178 KB) on the iPhone 16 simulator,
-  so the binding works on iOS.
-  1. **The notification permission alert.** `AppDependencies.localFirst()`
-     wires `LocalReminderNotificationScheduler`, so the app asks for
-     notification permission at startup. The system alert covers the app, and
-     every capture is then the same blank grey frame — 58815 bytes, MD5
-     `51677bbf…`, which is the hash every blank screenshot in this repo shares.
-     `flutter drive` reinstalls the bundle, which resets the permission, so
-     the prompt comes back on most runs; the one run that produced real PNGs
-     was one where it had already been answered. Proper fix: give the
-     screenshot/integration harness a no-op reminder scheduler so it never
-     asks. Workaround: answer the prompt on the simulator and re-run.
-  2. **`screenshots_test.dart` additionally throws `ProviderNotFoundException`**
-     for `_AccountActionButton` and `_PetProfileView` — the suite does not
-     supply `RepositoryProvider`s the widget tree has since grown, so those
-     screens cannot build even once the alert is gone. Its provider list needs
-     bringing back in line with the app.
-  Until (1) is fixed, visual verification can also go through
-  `xcrun simctl io <udid> screenshot`, which reads the device framebuffer
-  directly — but note it shows the alert too, so dismiss it either way.
+- [ ] **App Store screenshots are still blank**, though
+  `integration_test/screenshots_test.dart` itself now passes. Every PNG is
+  the same 58815 bytes.
+  Ruled out, each by trying it: `convertFlutterSurfaceToImage()` is not the
+  culprit — `smart_input_scan_history_test` calls it and produces correct,
+  distinct PNGs on the same simulator; the notification permission alert,
+  which does blank captures in suites that boot the app but cannot appear in
+  this one (it never builds `PawVaultApp`, and its scheduler is now a silent
+  fake); the suite's missing providers, now fixed; and re-running the
+  conversion for every shot instead of once, which changed nothing.
+  The live difference worth chasing next: the suites that *do* produce real
+  PNGs pump `PawVaultApp` once and never replace the root, while this one
+  calls `pumpWidget` with a brand-new root per shot. Try one shot from a
+  suite that keeps a single root and navigates between screens instead.
+  Note separately that the permission alert really does blank captures in
+  app-booting suites, so a screenshot run still wants it answered or a silent
+  scheduler wired in.
 - [x] **Documents: make the issue date clearly required.** It already was —
   both `PetDocumentFormState.validate()` and the two creation paths reject a
   document without one, since 2026-08-08 — so no document created today can
@@ -599,11 +586,36 @@
   **Deliberately excluded:** the pet profile photo. It is one avatar, so
   multi-select has nothing to mean there. The file browser's single-pick path
   is also unchanged — the request was about the gallery.
-- [ ] **`integration_test/paw_scan_flow_test.dart` fails on this branch**, and
-  did so before the multi-select work — verified by stashing the change and
-  re-running: identical `+1 -3`. Image-resource exceptions during the journal
-  thumbnails, so likely the same noop-storage relative URI that makes
-  thumbnails unloadable in local-first. Needs its own look.
+- [x] **Every integration test is green again.** Four were failing, all of
+  them stale tests or wrong fakes rather than broken app behaviour:
+  * `smart_input_flow_test` — written for a two-field Add Detail dialog. It
+    takes one field now (the value; the name comes from the draft's intent),
+    so the test typed the name over the value and asserted a key that never
+    existed. It also tapped a `chevron_right` on a History row, which is the
+    delete action's slot now — the row itself opens the sheet. Retargeted,
+    including the de-duplicated key: the intent is `addVaccination`, so the
+    suggested name `vaccine` is taken and the screen numbers it `vaccine 2`
+    rather than overwriting the correction.
+  * `paw_scan_flow_test` — three separate causes. The file's 1x1 PNG had a
+    **corrupt IDAT** (bad CRC, zlib refused to inflate), so every test in it
+    died on "Could not decompress image" from the photo strip whatever its
+    assertions did. `FakePawCheckRepository.watchChecks` handed out a one-shot
+    `Stream.value`, so a saved check never reached History and the assertion
+    that it does was failing against the fake rather than the app. And the
+    Discard tap was computed before the scroll had been pumped, landing 55px
+    below the button and silently doing nothing.
+  * `document_create_no_file_test` — expected the attach label from before
+    `52666b2` renamed it, and never picked an issue date, which the form has
+    required since `fdeb415`. Both predate this branch.
+  * `screenshots_test` — threw `ProviderNotFoundException` for
+    `OwnerProfileRepository`, `WeightEntryRepository`, `SubscriptionService`,
+    `AccountDeletionService` and `ReminderNotificationScheduler`, so those
+    screens rendered an error box instead. Now supplied from one shared list,
+    with a silent notification scheduler so the suite cannot raise the
+    permission alert either.
+  Worth remembering: none of these were caught by `flutter test`, and the
+  fakes were wrong in two of the four. A fake that cannot show what the app
+  shows makes its test prove nothing.
 - [x] **Timeline keyboard that would not go away.** Reported as intermittent,
   surviving the way out to the main menu, and only cured by killing the app.
   Mechanism found in the code: the form's fields are `enabled: !isSaving`, so

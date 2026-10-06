@@ -8,17 +8,25 @@ import 'package:integration_test/integration_test.dart';
 import 'package:paw_vault/app/theme/app_theme.dart';
 import 'package:paw_vault/core/analytics/data/services/noop_analytics_service.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
+import 'package:paw_vault/core/auth/data/services/noop_account_deletion_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/auth/domain/services/account_deletion_service.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/core/subscription/data/services/noop_subscription_service.dart';
+import 'package:paw_vault/core/subscription/domain/services/subscription_service.dart';
 import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
+import 'package:paw_vault/features/account/data/repositories/local_owner_profile_repository.dart';
+import 'package:paw_vault/features/account/domain/repositories/owner_profile_repository.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/presentation/screens/documents_screen.dart';
+import 'package:paw_vault/features/pets/data/repositories/local_weight_entry_repository.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+import 'package:paw_vault/features/pets/domain/repositories/weight_entry_repository.dart';
 import 'package:paw_vault/features/pets/presentation/screens/pet_list_screen.dart';
 import 'package:paw_vault/features/pets/presentation/screens/pet_profile_screen.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/reminders/presentation/screens/reminders_screen.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 import 'package:paw_vault/features/smart_input/presentation/screens/smart_input_screen.dart';
@@ -48,6 +56,34 @@ void main() {
   final pdfGenerator = FakeVetSummaryPdfGenerator();
   final shareService = FakePdfShareService();
   const analytics = NoopAnalyticsService();
+
+  // Supplied to every screen. These are read by widgets that turn up on more
+  // than one of them — the account action on the pet list, the subscription
+  // gate and the owner's details on the profile — and a missing one throws
+  // ProviderNotFoundException, which renders an error box instead of the
+  // screen. That is why every App Store screenshot came out blank.
+  final shared = [
+    RepositoryProvider<AuthRepository>.value(value: auth),
+    RepositoryProvider<AccountAuthRepository>.value(value: auth),
+    RepositoryProvider<PetRepository>.value(value: pets),
+    RepositoryProvider<OwnerProfileRepository>.value(
+      value: LocalOwnerProfileRepository(),
+    ),
+    RepositoryProvider<WeightEntryRepository>.value(
+      value: LocalWeightEntryRepository(),
+    ),
+    RepositoryProvider<SubscriptionService>.value(
+      value: const NoopSubscriptionService(),
+    ),
+    RepositoryProvider<AccountDeletionService>.value(
+      value: const NoopAccountDeletionService(),
+    ),
+    RepositoryProvider<StorageRepository>.value(value: storage),
+    RepositoryProvider<AnalyticsService>.value(value: analytics),
+    RepositoryProvider<ReminderNotificationScheduler>.value(
+      value: FakeReminderNotificationScheduler(),
+    ),
+  ];
 
   const petId = 'pet-1';
 
@@ -79,6 +115,7 @@ void main() {
       '01_pets',
       MultiRepositoryProvider(
         providers: [
+          ...shared,
           RepositoryProvider<AuthRepository>.value(value: auth),
           RepositoryProvider<AccountAuthRepository>.value(value: auth),
           RepositoryProvider<PetRepository>.value(value: pets),
@@ -91,6 +128,7 @@ void main() {
       '02_profile',
       MultiRepositoryProvider(
         providers: [
+          ...shared,
           RepositoryProvider<AuthRepository>.value(value: auth),
           RepositoryProvider<PetRepository>.value(value: pets),
         ],
@@ -102,6 +140,7 @@ void main() {
       '03_timeline',
       MultiRepositoryProvider(
         providers: [
+          ...shared,
           RepositoryProvider<AuthRepository>.value(value: auth),
           RepositoryProvider<TimelineRepository>.value(value: timeline),
         ],
@@ -113,6 +152,7 @@ void main() {
       '04_documents',
       MultiRepositoryProvider(
         providers: [
+          ...shared,
           RepositoryProvider<AuthRepository>.value(value: auth),
           RepositoryProvider<DocumentRepository>.value(value: documents),
         ],
@@ -124,6 +164,7 @@ void main() {
       '05_reminders',
       MultiRepositoryProvider(
         providers: [
+          ...shared,
           RepositoryProvider<AuthRepository>.value(value: auth),
           RepositoryProvider<ReminderRepository>.value(value: reminders),
         ],
@@ -135,6 +176,7 @@ void main() {
       '06_smart_input',
       MultiRepositoryProvider(
         providers: [
+          ...shared,
           RepositoryProvider<AuthRepository>.value(value: auth),
           RepositoryProvider<AnalyticsService>.value(value: analytics),
           RepositoryProvider<SmartInputRepository>.value(value: smartInput),
@@ -147,6 +189,7 @@ void main() {
       '07_vet_summary',
       MultiRepositoryProvider(
         providers: [
+          ...shared,
           RepositoryProvider<AuthRepository>.value(value: auth),
           RepositoryProvider<AnalyticsService>.value(value: analytics),
           RepositoryProvider<StorageRepository>.value(value: storage),

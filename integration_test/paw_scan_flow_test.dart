@@ -26,9 +26,13 @@ import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart'
 
 import 'support/fakes.dart';
 
+/// A real 1x1 PNG. The bytes here used to be a PNG with a corrupt IDAT — bad
+/// CRC, and zlib refused to inflate it — so every test in this file failed on
+/// "Could not decompress image" from the photo strip, whatever its
+/// assertions did.
 final _pngBytes = base64Decode(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8AAAwAB/AF+0B0a'
-  'AAAAAElFTkSuQmCC',
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMB'
+  'AQDJ/pLvAAAAAElFTkSuQmCC',
 );
 
 PickedFile _pawPhoto() => PickedFile(
@@ -211,6 +215,11 @@ void main() {
 
     final discard = find.widgetWithText(OutlinedButton, 'Discard');
     await tester.ensureVisible(discard);
+    // Pump before tapping: `ensureVisible` schedules the scroll but does not
+    // pump, so without this the tap is computed from the old layout and
+    // lands off-screen — it was missing the button by 55px and silently
+    // doing nothing, which read as "discard did not work".
+    await tester.pumpAndSettle();
     await tester.tap(discard);
     await tester.pumpAndSettle();
 

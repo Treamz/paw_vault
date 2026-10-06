@@ -68,7 +68,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // Attachment is optional; the save button no longer forces a file pick.
-    expect(find.text('Attach file (optional)'), findsOneWidget);
+    expect(
+      find.text('Attach photos or files (optional)'),
+      findsOneWidget,
+    );
     expect(find.text('Pick file & save'), findsNothing);
 
     // Fill the required fields.
@@ -82,11 +85,24 @@ void main() {
     );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
+
+    // The issue date is one of those required fields — it has been since the
+    // form started rejecting documents without one, which this test predated
+    // and so saved nothing.
+    final issueDate = find.text('Issue date (required)');
+    await tester.ensureVisible(issueDate);
+    await tester.pumpAndSettle();
+    await tester.tap(issueDate);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
     await binding.takeScreenshot('01_add_document_no_file_form');
 
     // Save without attaching anything.
     final saveButton = find.widgetWithText(FilledButton, 'Save');
     await tester.ensureVisible(saveButton);
+    await tester.pumpAndSettle();
     await tester.tap(saveButton);
     await tester.pumpAndSettle();
 
