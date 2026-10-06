@@ -66,18 +66,19 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.descendant(
-          of: tile,
-          matching: find.byIcon(Icons.auto_awesome),
-        ),
-        findsNothing,
+        find.descendant(of: tile, matching: find.text('1 file')),
+        findsOneWidget,
       );
+      // The glyph is not asserted absent here: it also stands in while the
+      // photo loads, so that it never leaves an empty leading slot. The
+      // typed-entry test is what pins the glyph-only case.
     });
 
     testWidgets('marks a History entry whose only file is a PDF',
         (tester) async {
-      // A PDF cannot be thumbnailed, but the row must still say a file is
-      // attached rather than looking like a typed note.
+      // A PDF cannot be thumbnailed, so the paperclip in the subtitle is
+      // what keeps the row from reading like a typed note. The leading slot
+      // stays the AI glyph, which says what kind of entry this is.
       await tester.pumpWidget(
         _app(
           history: [
@@ -101,6 +102,71 @@ void main() {
       expect(
         find.descendant(of: tile, matching: find.byIcon(Icons.attach_file)),
         findsOneWidget,
+      );
+      expect(
+        find.descendant(of: tile, matching: find.text('1 file')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: tile, matching: find.byIcon(Icons.auto_awesome)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('counts every attached file on a History row', (tester) async {
+      // A scan of two pages keeps both, so the row has to say "2 files"
+      // rather than implying a single attachment.
+      await tester.pumpWidget(
+        _app(
+          history: [
+            _message(
+              attachments: [
+                DocumentAttachment(
+                  fileUrl: Uri.parse('https://example.com/attachment_0.png'),
+                  storagePath: 'users/user-1/pets/pet-1/documents/doc-1/'
+                      'attachment_0.png',
+                ),
+                DocumentAttachment(
+                  fileUrl: Uri.parse('https://example.com/attachment_1.pdf'),
+                  storagePath: 'users/user-1/pets/pet-1/documents/doc-1/'
+                      'attachment_1.pdf',
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('History'));
+      await tester.pumpAndSettle();
+
+      final tile = find.byKey(const ValueKey('smart-message-message-1'));
+      expect(
+        find.descendant(of: tile, matching: find.text('2 files')),
+        findsOneWidget,
+      );
+      // The image of the two is what gets the thumbnail.
+      expect(
+        find.descendant(of: tile, matching: find.byType(CachedNetworkImage)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('says nothing about files for a typed History entry',
+        (tester) async {
+      await tester.pumpWidget(_app(history: [_message()]));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('History'));
+      await tester.pumpAndSettle();
+
+      final tile = find.byKey(const ValueKey('smart-message-message-1'));
+      expect(
+        find.descendant(of: tile, matching: find.byIcon(Icons.attach_file)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: tile, matching: find.textContaining('file')),
+        findsNothing,
       );
     });
 

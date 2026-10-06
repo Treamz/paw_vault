@@ -563,6 +563,24 @@
   Resize Images extension), which is infrastructure, not app code.
   The leading circle still shows the type icon — a deliberate earlier choice
   for scannability — so the thumbnail went to the trailing edge instead.
+- [x] **Smart Input History matches Documents for attachments.** The sheet
+  already showed every attached file; what was missing was the row indicator
+  and, less visibly, the same empty-box bug — History's preview had no
+  `placeholder` either, so it looked like nothing was attached while a photo
+  downloaded. Both screens now share
+  `documents/presentation/widgets/attachment_views.dart`
+  (`AttachmentLabel`, `AttachmentPreview`, `AttachmentThumbnail`), which is
+  why they can no longer drift: the duplicated previews had already drifted
+  once, only one of them gaining the placeholder.
+  A History row now carries the same paperclip and file count as a document
+  row, and a scanned entry shows its photo as a thumbnail in the leading slot.
+  The AI glyph stands in there while the photo loads or if it cannot be
+  loaded, so the slot is never empty — the paperclip carries the "has files"
+  signal regardless, which is why the glyph no longer doubles as an
+  attachment marker.
+  Smart Input depending on the documents feature is deliberate and
+  pre-existing: a scanned analysis keeps the same `DocumentAttachment`s the
+  document got.
 - [ ] The document **form** still attaches one file at a time — the picker
   replaces rather than appends. Not a data-loss bug, but inconsistent with the
   scanner now that documents hold several files.

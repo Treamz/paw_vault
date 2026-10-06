@@ -1,14 +1,12 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
-import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
-import 'package:paw_vault/features/documents/domain/entities/document_attachment.dart';
 import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
+import 'package:paw_vault/features/documents/presentation/widgets/attachment_views.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
@@ -707,13 +705,28 @@ class _HistoryTab extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      subtitle: Text(
-                        message.createdAt != null
-                            ? DateFormat.yMMMd().add_jm().format(
-                                  message.createdAt!.value.toLocal(),
-                                )
-                            : formatSmartIntent(message.detectedIntent),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            message.createdAt != null
+                                ? DateFormat.yMMMd().add_jm().format(
+                                      message.createdAt!.value.toLocal(),
+                                    )
+                                : formatSmartIntent(message.detectedIntent),
+                          ),
+                          // Same indicator as the Documents list, so an entry
+                          // with files reads the same way in both places —
+                          // and it needs no network, unlike the thumbnail.
+                          if (message.attachments.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            AttachmentLabel(
+                              count: message.attachments.length,
+                            ),
+                          ],
+                        ],
                       ),
+                      isThreeLine: message.attachments.isNotEmpty,
                       trailing: IconButton(
                         icon: const Icon(Icons.delete_outline),
                         tooltip: 'Delete analysis',
@@ -768,9 +781,11 @@ class _HistoryTab extends StatelessWidget {
                     : '${message.attachments.length} attached files',
                 style: theme.textTheme.labelLarge,
               ),
+              // Every attached file, not just the first: the analysis keeps
+              // the same files the document got.
               for (final attachment in message.attachments) ...[
                 const SizedBox(height: 8),
-                _AttachmentPreview(
+                AttachmentPreview(
                   attachment: attachment,
                   fileOpener: fileOpener,
                 ),
@@ -848,9 +863,11 @@ class _HistoryTab extends StatelessWidget {
 
 /// The History row's leading slot.
 ///
-/// A scanned entry shows its own photo so the list says at a glance that files
-/// are attached; everything else keeps the AI glyph. Using
-/// [CachedNetworkImage] here also warms the disk cache, so the full previews
+/// A scanned entry shows its own photo; everything else keeps the AI glyph,
+/// which says what kind of entry this is. Whether files are attached is said
+/// by the paperclip in the subtitle, so it is not repeated here.
+///
+/// Using the shared thumbnail also warms the disk cache, so the full previews
 /// in the details sheet are already there when it opens.
 class _HistoryLeading extends StatelessWidget {
   const _HistoryLeading({required this.message});
@@ -859,80 +876,18 @@ class _HistoryLeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final thumbnail = message.imageAttachments.firstOrNull;
-
-    if (thumbnail != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: CachedNetworkImage(
-          imageUrl: thumbnail.fileUrl.toString(),
-          width: 40,
-          height: 40,
-          fit: BoxFit.cover,
-          errorWidget: (context, _, __) =>
-              const Icon(Icons.broken_image_outlined),
-        ),
-      );
+    if (thumbnail == null) {
+      return const Icon(Icons.auto_awesome);
     }
 
-    if (message.attachments.isNotEmpty) {
-      return Icon(
-        Icons.attach_file,
-        color: theme.colorScheme.onSurfaceVariant,
-      );
-    }
-
-    return const Icon(Icons.auto_awesome);
-  }
-}
-
-/// One attached file in the details sheet: images inline and tappable to full
-/// screen, anything else behind an open button, matching the Documents sheet.
-class _AttachmentPreview extends StatelessWidget {
-  const _AttachmentPreview({
-    required this.attachment,
-    required this.fileOpener,
-  });
-
-  final DocumentAttachment attachment;
-  final DocumentFileOpener fileOpener;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    if (!attachment.isImage) {
-      return OutlinedButton.icon(
-        onPressed: () => fileOpener.open(attachment.fileUrl),
-        icon: const Icon(Icons.open_in_new),
-        label: Text(
-          attachment.fileExtension.isEmpty
-              ? 'Open file'
-              : 'Open ${attachment.fileExtension.toUpperCase()}',
-        ),
-      );
-    }
-
-    return GestureDetector(
-      onTap: () => showFullScreenImage(
-        context,
-        CachedNetworkImageProvider(attachment.fileUrl.toString()),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: CachedNetworkImage(
-          imageUrl: attachment.fileUrl.toString(),
-          height: 220,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorWidget: (context, _, __) => Container(
-            height: 120,
-            color: theme.colorScheme.surfaceContainerHighest,
-            child: const Icon(Icons.broken_image_outlined),
-          ),
-        ),
-      ),
+    return AttachmentThumbnail(
+      attachment: thumbnail,
+      // Never an empty leading slot: if the photo cannot be loaded the row
+      // falls back to the glyph, and the paperclip still says a file is
+      // attached.
+      fallback: const Icon(Icons.auto_awesome),
+      key: ValueKey('thumbnail-${thumbnail.storagePath}'),
     );
   }
 }

@@ -10,7 +10,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -24,6 +23,7 @@ import 'package:paw_vault/features/document_extraction/domain/repositories/docum
 import 'package:paw_vault/features/document_extraction/domain/services/document_source_picker.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
+import 'package:paw_vault/features/documents/presentation/widgets/attachment_views.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
@@ -114,8 +114,28 @@ void main() {
 
     final tile = find.byKey(ValueKey('smart-message-${saved.id.value}'));
     expect(tile, findsOneWidget);
+    // The paperclip, not the thumbnail: local-first storage hands out a
+    // relative URI that never resolves, so asserting on a loaded image here
+    // would only be testing the fake.
     expect(
-      find.descendant(of: tile, matching: find.byType(CachedNetworkImage)),
+      find.descendant(of: tile, matching: find.byIcon(Icons.attach_file)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: tile, matching: find.text('1 file')),
+      findsOneWidget,
+    );
+    // The leading slot always holds something: the photo's thumbnail, or the
+    // glyph standing in while it loads or if it cannot be loaded at all.
+    expect(
+      find.descendant(
+        of: tile,
+        matching: find.byType(AttachmentThumbnail),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: tile, matching: find.byIcon(Icons.auto_awesome)),
       findsOneWidget,
     );
 

@@ -6,12 +6,12 @@ import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
-import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
 import 'package:paw_vault/features/documents/presentation/cubit/documents_cubit.dart';
+import 'package:paw_vault/features/documents/presentation/widgets/attachment_views.dart';
 
 @RoutePage()
 class DocumentsScreen extends StatelessWidget {
@@ -256,7 +256,7 @@ class _DocumentsContent extends StatelessWidget {
                 ),
                 if (document.hasFile) ...[
                   const SizedBox(height: 4),
-                  _AttachmentLabel(count: document.files.length),
+                  AttachmentLabel(count: document.files.length),
                 ],
                 if (expiry != null) ...[
                   const SizedBox(height: 4),
@@ -330,54 +330,7 @@ class _DocumentsContent extends StatelessWidget {
               // have several pages, and showing one made the rest look lost.
               for (final file in document.files) ...[
                 const SizedBox(height: 16),
-                if (file.isImage)
-                  GestureDetector(
-                    onTap: () => showFullScreenImage(
-                      context,
-                      CachedNetworkImageProvider(file.fileUrl.toString()),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: CachedNetworkImage(
-                        imageUrl: file.fileUrl.toString(),
-                        height: 220,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        // Without a placeholder this was an empty box while
-                        // the photo downloaded, so the sheet looked as though
-                        // the document had nothing attached at all.
-                        placeholder: (context, _) => Container(
-                          height: 220,
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          alignment: Alignment.center,
-                          child: const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                        // The default half-second fade is dead time on top of
-                        // the download.
-                        fadeInDuration: const Duration(milliseconds: 120),
-                        errorWidget: (context, _, __) => Container(
-                          height: 220,
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          alignment: Alignment.center,
-                          child: const Icon(Icons.broken_image_outlined),
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  OutlinedButton.icon(
-                    onPressed: () => fileOpener.open(file.fileUrl),
-                    icon: const Icon(Icons.open_in_new),
-                    label: Text(
-                      file.fileExtension.isEmpty
-                          ? 'Open file'
-                          : 'Open ${file.fileExtension.toUpperCase()}',
-                    ),
-                  ),
+                AttachmentPreview(attachment: file, fileOpener: fileOpener),
               ],
               const SizedBox(height: 24),
               FilledButton.icon(
@@ -447,93 +400,21 @@ String _formatDocumentType(PetDocumentType type) {
   };
 }
 
-/// A thumbnail of the document's first photo, on the row's trailing edge.
-///
-/// Two jobs. It shows at a glance what is inside the document, and — because
-/// a mounted image widget really does drive the download and fill the shared
-/// disk cache — the details sheet usually opens with the photo already there
-/// instead of waiting on the network. `precacheImage` alone is best effort
-/// and ran only when the list changed.
-class _DocumentThumbnail extends StatefulWidget {
+/// The row's trailing thumbnail, when the document has a photo to show.
+class _DocumentThumbnail extends StatelessWidget {
   const _DocumentThumbnail({required this.document});
 
   final PetDocument document;
 
   @override
-  State<_DocumentThumbnail> createState() => _DocumentThumbnailState();
-}
-
-class _DocumentThumbnailState extends State<_DocumentThumbnail> {
-  bool _failed = false;
-
-  @override
-  void didUpdateWidget(_DocumentThumbnail oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.document.id != widget.document.id) {
-      _failed = false;
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final thumbnail = widget.document.imageFiles.firstOrNull;
-    if (thumbnail == null || _failed) {
+    final thumbnail = document.imageFiles.firstOrNull;
+    if (thumbnail == null) {
       return const SizedBox.shrink();
     }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: CachedNetworkImage(
-        imageUrl: thumbnail.fileUrl.toString(),
-        width: 40,
-        height: 40,
-        fit: BoxFit.cover,
-        // Decoded small: the row needs 40 logical pixels, not a full photo.
-        memCacheWidth: 160,
-        placeholder: (context, _) => ColoredBox(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          child: const SizedBox(width: 40, height: 40),
-        ),
-        errorWidget: (context, _, __) {
-          // Drop the thumbnail rather than leaving a broken-image box in
-          // every row; the paperclip still says a file is attached.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && !_failed) {
-              setState(() => _failed = true);
-            }
-          });
-          return const SizedBox(width: 40, height: 40);
-        },
-      ),
-    );
-  }
-}
-
-/// Says that a document carries files, without waiting for any of them to
-/// download.
-class _AttachmentLabel extends StatelessWidget {
-  const _AttachmentLabel({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(
-          Icons.attach_file,
-          size: 14,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          count == 1 ? '1 file' : '$count files',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
+    return AttachmentThumbnail(
+      attachment: thumbnail,
+      key: ValueKey('thumbnail-${thumbnail.storagePath}'),
     );
   }
 }
