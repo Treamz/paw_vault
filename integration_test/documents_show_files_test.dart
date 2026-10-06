@@ -162,6 +162,21 @@ void main() {
       find.descendant(of: imageTile, matching: find.byType(CircleAvatar)),
       findsOneWidget,
     );
+    // Reported twice: opening a document showed a blank box for a couple of
+    // seconds with no hint that anything was attached. The row now says so
+    // without waiting on the network, and carries a thumbnail that warms the
+    // cache the sheet reads from.
+    expect(
+      find.descendant(of: imageTile, matching: find.byIcon(Icons.attach_file)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: imageTile,
+        matching: find.byType(CachedNetworkImage),
+      ),
+      findsOneWidget,
+    );
     await _settleImages(tester);
     await shoot('01_documents_list');
 
@@ -172,7 +187,14 @@ void main() {
     await tester.pumpAndSettle();
     await _settleImages(tester);
     expect(find.text('Issued'), findsOneWidget);
-    expect(find.byType(CachedNetworkImage), findsOneWidget);
+    expect(_sheetImages(), findsOneWidget);
+    // The preview declares a placeholder, so the sheet shows a loading box
+    // the moment it opens instead of empty space. That ambiguity is what QA
+    // reported as "you cannot even tell something is attached".
+    expect(
+      tester.widget<CachedNetworkImage>(_sheetImages()).placeholder,
+      isNotNull,
+    );
     await shoot('02_document_image_preview');
 
     // A non-image attachment gets an open action labelled with its type
@@ -182,7 +204,7 @@ void main() {
     await tester.tap(find.text('Insurance policy'));
     await tester.pumpAndSettle();
     expect(find.text('Open PDF'), findsOneWidget);
-    expect(find.byType(CachedNetworkImage), findsNothing);
+    expect(_sheetImages(), findsNothing);
     await shoot('03_document_pdf_tile');
 
     // The scanned two-page document must show BOTH files. Showing one is the
@@ -192,10 +214,20 @@ void main() {
     await tester.pumpAndSettle();
     await _settleImages(tester);
 
-    expect(find.byType(CachedNetworkImage), findsNWidgets(2));
+    expect(_sheetImages(), findsNWidgets(2));
     await shoot('04_document_two_attachments');
   });
 }
+
+/// The previews inside the open details sheet.
+///
+/// Scoped to the sheet because the list rows behind it now carry thumbnails
+/// of their own, so an unscoped `find.byType(CachedNetworkImage)` counts
+/// those too.
+Finder _sheetImages() => find.descendant(
+      of: find.byType(DraggableScrollableSheet),
+      matching: find.byType(CachedNetworkImage),
+    );
 
 /// Closes the open details bottom sheet.
 ///

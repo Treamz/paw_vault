@@ -543,6 +543,26 @@
   attempt. The pickers now re-validate instead. Type and Title also had the
   issue date's original problem — required, but failing with only a generic
   snackbar — so both now show their own `errorText`.
+- [x] **Documents: attachments are announced instantly, and the row says a
+  file is there.** Re-reported by QA after the first attempt — the earlier fix
+  added `CachedNetworkImage` plus a best-effort `precacheImage`, which only
+  helped the *second* open. Root cause of what remained: the sheet's image had
+  **no `placeholder`**, so it rendered an empty 220px box for the whole
+  download and the document looked as though it had nothing attached. It now
+  shows a loading box immediately, and the default 500ms fade is cut to 120ms.
+  Each row also carries a paperclip with the file count — no network involved,
+  so it is correct the instant the list paints, including for PDFs — plus a
+  40px thumbnail of the first photo on the trailing edge. The thumbnail is
+  what actually shortens the wait: a mounted image widget really does drive
+  the download and fill the shared disk cache, where `precacheImage` only
+  tried, and only when the list changed.
+  **Not claimed: a cold first open is not instant.** The bytes have to come
+  from Storage once. What changed is that it is never ambiguous, and by the
+  time a row has painted its thumbnail the sheet reads from disk. Genuinely
+  removing the download would need server-side thumbnails (the Firebase
+  Resize Images extension), which is infrastructure, not app code.
+  The leading circle still shows the type icon — a deliberate earlier choice
+  for scannability — so the thumbnail went to the trailing edge instead.
 - [ ] The document **form** still attaches one file at a time — the picker
   replaces rather than appends. Not a data-loss bug, but inconsistent with the
   scanner now that documents hold several files.

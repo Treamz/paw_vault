@@ -236,8 +236,8 @@ class _DocumentsContent extends StatelessWidget {
         return Card(
           child: ListTile(
             key: ValueKey('document-${document.id.value}'),
-            // Standard type icons keep the list scannable; the photo itself
-            // is visible inside the document.
+            // Standard type icons keep the list scannable; the attached
+            // photo gets its own thumbnail on the trailing edge.
             leading: CircleAvatar(
               child: Icon(_documentIcon(document.type)),
             ),
@@ -254,13 +254,18 @@ class _DocumentsContent extends StatelessWidget {
                           '${DateFormat.yMMMd().format(document.issueDate!.toUtcDateTime())}'
                       : '${_formatDocumentType(document.type)} · No date',
                 ),
+                if (document.hasFile) ...[
+                  const SizedBox(height: 4),
+                  _AttachmentLabel(count: document.files.length),
+                ],
                 if (expiry != null) ...[
                   const SizedBox(height: 4),
                   _ExpiryLabel(expiry: expiry),
                 ],
               ],
             ),
-            isThreeLine: expiry != null,
+            isThreeLine: expiry != null || document.hasFile,
+            trailing: _DocumentThumbnail(document: document),
             onTap: () => _showDocumentDetails(context, document),
           ),
         );
@@ -338,9 +343,26 @@ class _DocumentsContent extends StatelessWidget {
                         height: 220,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorWidget: (context, _, __) => Container(
-                          height: 120,
+                        // Without a placeholder this was an empty box while
+                        // the photo downloaded, so the sheet looked as though
+                        // the document had nothing attached at all.
+                        placeholder: (context, _) => Container(
+                          height: 220,
                           color: theme.colorScheme.surfaceContainerHighest,
+                          alignment: Alignment.center,
+                          child: const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        // The default half-second fade is dead time on top of
+                        // the download.
+                        fadeInDuration: const Duration(milliseconds: 120),
+                        errorWidget: (context, _, __) => Container(
+                          height: 220,
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          alignment: Alignment.center,
                           child: const Icon(Icons.broken_image_outlined),
                         ),
                       ),
@@ -397,19 +419,19 @@ class _DocumentsContent extends StatelessWidget {
       ),
     );
   }
+}
 
-  IconData _documentIcon(PetDocumentType type) {
-    return switch (type) {
-      PetDocumentType.passport => Icons.menu_book,
-      PetDocumentType.vaccinationCertificate => Icons.vaccines,
-      PetDocumentType.insurance => Icons.shield,
-      PetDocumentType.labResult => Icons.science,
-      PetDocumentType.prescription => Icons.medication,
-      PetDocumentType.receipt => Icons.receipt_long,
-      PetDocumentType.vetReport => Icons.medical_information,
-      PetDocumentType.other => Icons.description,
-    };
-  }
+IconData _documentIcon(PetDocumentType type) {
+  return switch (type) {
+    PetDocumentType.passport => Icons.menu_book,
+    PetDocumentType.vaccinationCertificate => Icons.vaccines,
+    PetDocumentType.insurance => Icons.shield,
+    PetDocumentType.labResult => Icons.science,
+    PetDocumentType.prescription => Icons.medication,
+    PetDocumentType.receipt => Icons.receipt_long,
+    PetDocumentType.vetReport => Icons.medical_information,
+    PetDocumentType.other => Icons.description,
+  };
 }
 
 String _formatDocumentType(PetDocumentType type) {
@@ -423,6 +445,97 @@ String _formatDocumentType(PetDocumentType type) {
     PetDocumentType.vetReport => 'Vet Report',
     PetDocumentType.other => 'Other',
   };
+}
+
+/// A thumbnail of the document's first photo, on the row's trailing edge.
+///
+/// Two jobs. It shows at a glance what is inside the document, and — because
+/// a mounted image widget really does drive the download and fill the shared
+/// disk cache — the details sheet usually opens with the photo already there
+/// instead of waiting on the network. `precacheImage` alone is best effort
+/// and ran only when the list changed.
+class _DocumentThumbnail extends StatefulWidget {
+  const _DocumentThumbnail({required this.document});
+
+  final PetDocument document;
+
+  @override
+  State<_DocumentThumbnail> createState() => _DocumentThumbnailState();
+}
+
+class _DocumentThumbnailState extends State<_DocumentThumbnail> {
+  bool _failed = false;
+
+  @override
+  void didUpdateWidget(_DocumentThumbnail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.document.id != widget.document.id) {
+      _failed = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final thumbnail = widget.document.imageFiles.firstOrNull;
+    if (thumbnail == null || _failed) {
+      return const SizedBox.shrink();
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: CachedNetworkImage(
+        imageUrl: thumbnail.fileUrl.toString(),
+        width: 40,
+        height: 40,
+        fit: BoxFit.cover,
+        // Decoded small: the row needs 40 logical pixels, not a full photo.
+        memCacheWidth: 160,
+        placeholder: (context, _) => ColoredBox(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: const SizedBox(width: 40, height: 40),
+        ),
+        errorWidget: (context, _, __) {
+          // Drop the thumbnail rather than leaving a broken-image box in
+          // every row; the paperclip still says a file is attached.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !_failed) {
+              setState(() => _failed = true);
+            }
+          });
+          return const SizedBox(width: 40, height: 40);
+        },
+      ),
+    );
+  }
+}
+
+/// Says that a document carries files, without waiting for any of them to
+/// download.
+class _AttachmentLabel extends StatelessWidget {
+  const _AttachmentLabel({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Icon(
+          Icons.attach_file,
+          size: 14,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          count == 1 ? '1 file' : '$count files',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _ExpiryLabel extends StatelessWidget {
