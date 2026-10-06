@@ -57,11 +57,17 @@ abstract final class PawScanCopy {
   static const gallery = 'Gallery';
 
   static const takeAnotherPhoto = 'Take another photo';
+  static const chooseAnotherFromGallery = 'Choose another from the gallery';
 
   static const describing = 'Describing\u2026';
 
-  static String describePhotos(int count) =>
-      'Describe $count photo${count == 1 ? '' : 's'}';
+  /// Heading above the model's observations, on the result and on a saved
+  /// check. Deliberately about what the photo shows, not about the pet.
+  static const whatPawScanCanSee = 'What Paw Scan can see';
+
+  /// The photo strip right above the button already shows how many there
+  /// are, so the count on the label only made it longer.
+  static const describe = 'Describe';
 }
 
 /// The label for an attention level.

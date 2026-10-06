@@ -393,6 +393,58 @@ void main() {
       expect(find.text('Which paw?'), findsNothing);
     });
 
+    testWidgets('deleting a check asks first', (tester) async {
+      // QA: the delete icon removed the check on the spot. A check cannot be
+      // recovered — its photos go from storage with it — so a mis-tap on a
+      // small icon must not be enough.
+      _useTallSurface(tester);
+      final repository = _FakePawCheckRepository([_check()]);
+      await tester.pumpWidget(
+        _app(ai: _FakePawScanAiRepository(), repository: repository),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('History'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Delete this check'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete this paw check?'), findsOneWidget);
+
+      // Backing out leaves it alone.
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(repository.checks, hasLength(1));
+
+      await tester.tap(find.byTooltip('Delete this check'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+      expect(repository.checks, isEmpty);
+    });
+
+    testWidgets('a rejected gallery photo can be replaced from the gallery',
+        (tester) async {
+      // QA: a poor photo picked from the gallery can only be "retaken" with
+      // the camera, which is no use — the owner needs to choose a different
+      // one. The gallery option used to disappear on a rejection.
+      _useTallSurface(tester);
+      final ai = _FakePawScanAiRepository()
+        ..next = const PawScanDraft.unusable(
+          photoQuality: PawScanPhotoQuality.blurry,
+        );
+      final picker = _FakePawPhotoPicker()..next = _picked();
+      await tester.pumpWidget(_app(ai: ai, picker: picker));
+      await tester.pumpAndSettle();
+      await _analyze(tester, picker);
+
+      expect(find.text(PawScanCopy.takeAnotherPhoto), findsOneWidget);
+      expect(
+        find.text(PawScanCopy.chooseAnotherFromGallery),
+        findsOneWidget,
+        reason: 'a gallery photo cannot be retaken, only replaced',
+      );
+    });
+
     testWidgets('warns when the safety filter rewrote something',
         (tester) async {
       _useTallSurface(tester);
@@ -539,7 +591,7 @@ void main() {
       await _capture(tester, picker);
 
       expect(
-        find.widgetWithText(FilledButton, 'Describe 1 photo'),
+        find.widgetWithText(FilledButton, PawScanCopy.describe),
         findsOneWidget,
       );
       // The camera stays available, demoted.
@@ -590,7 +642,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.widgetWithText(OutlinedButton, 'Describe 1 photo'),
+        find.widgetWithText(OutlinedButton, PawScanCopy.describe),
         findsOneWidget,
       );
     });

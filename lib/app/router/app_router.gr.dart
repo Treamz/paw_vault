@@ -264,6 +264,53 @@ class PawCheckComparisonRouteArgs {
 }
 
 /// generated route for
+/// [PawCheckDetailScreen]
+class PawCheckDetailRoute extends PageRouteInfo<PawCheckDetailRouteArgs> {
+  PawCheckDetailRoute({
+    required PawCheck check,
+    Key? key,
+    List<PageRouteInfo>? children,
+  }) : super(
+          PawCheckDetailRoute.name,
+          args: PawCheckDetailRouteArgs(check: check, key: key),
+          initialChildren: children,
+        );
+
+  static const String name = 'PawCheckDetailRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<PawCheckDetailRouteArgs>();
+      return PawCheckDetailScreen(check: args.check, key: args.key);
+    },
+  );
+}
+
+class PawCheckDetailRouteArgs {
+  const PawCheckDetailRouteArgs({required this.check, this.key});
+
+  final PawCheck check;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'PawCheckDetailRouteArgs{check: $check, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! PawCheckDetailRouteArgs) return false;
+    return check == other.check && key == other.key;
+  }
+
+  @override
+  int get hashCode => check.hashCode ^ key.hashCode;
+}
+
+/// generated route for
 /// [PawScanScreen]
 class PawScanRoute extends PageRouteInfo<PawScanRouteArgs> {
   PawScanRoute({required String petId, Key? key, List<PageRouteInfo>? children})

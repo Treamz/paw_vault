@@ -294,6 +294,16 @@ class _CaptureActions extends StatelessWidget {
             label: const Text(PawScanCopy.takeAnotherPhoto),
           ),
           const SizedBox(height: 12),
+          // The gallery stays on offer after a rejection. A photo picked from
+          // the gallery cannot be retaken — the owner needs to choose a
+          // different one — and this used to drop to camera-only, which left
+          // them with no way forward but the camera.
+          OutlinedButton.icon(
+            onPressed: canCapture ? onGallery : null,
+            icon: const Icon(Icons.photo_library_outlined),
+            label: const Text(PawScanCopy.chooseAnotherFromGallery),
+          ),
+          const SizedBox(height: 12),
           analyze,
         ] else ...[
           analyze,
@@ -342,9 +352,7 @@ class _AnalyzeButton extends StatelessWidget {
           )
         : const Icon(Icons.search);
     final label = Text(
-      isAnalyzing
-          ? PawScanCopy.describing
-          : PawScanCopy.describePhotos(state.photos.length),
+      isAnalyzing ? PawScanCopy.describing : PawScanCopy.describe,
     );
 
     if (isPrimary) {
@@ -455,7 +463,10 @@ class _ResultSection extends StatelessWidget {
           const _Notice(message: PawScanCopy.lowConfidenceNotice),
         if (draft.safetyFilterApplied)
           const _Notice(message: PawScanCopy.safetyFilteredNotice),
-        Text('What Paw Scan can see', style: theme.textTheme.titleMedium),
+        Text(
+          PawScanCopy.whatPawScanCanSee,
+          style: theme.textTheme.titleMedium,
+        ),
         const SizedBox(height: 8),
         if (!draft.hasObservations)
           Text(
@@ -779,6 +790,36 @@ class _PawCheckTile extends StatelessWidget {
   /// The most recent earlier check of the same paw, when there is one.
   final PawCheck? previousForSamePaw;
 
+  /// Asks before deleting. A check cannot be recovered — the photos go from
+  /// storage with it — so a mis-tap on a small icon must not be enough.
+  Future<void> _confirmDelete(BuildContext context) async {
+    final cubit = context.read<PawScanCubit>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete this paw check?'),
+        content: const Text(
+          'The photos and descriptions saved with it are deleted too. '
+          'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed ?? false) {
+      await cubit.deleteCheck(check);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -800,92 +841,98 @@ class _PawCheckTile extends StatelessWidget {
               side: BorderSide(color: theme.colorScheme.primary),
             )
           : null,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Stacked, not side by side: "Sep 19, 2026 · Not sure" and
-            // "Worth showing a vet soon" both run long, and on a narrow phone
-            // they overflowed a Row by 34px. Giving each its own line costs a
-            // little height and cannot break.
-            Text(
-              '$date · ${formatPawLocation(check.location)}',
-              style: theme.textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: PawAttentionBadge(level: check.attentionLevel),
-            ),
-            // Every observation, not just the first: this card is the whole
-            // record of the check — there is no detail screen behind it — so
-            // truncating here hid part of what the owner approved.
-            for (final observation in check.observations) ...[
-              const SizedBox(height: 8),
-              Text(observation, style: theme.textTheme.bodyMedium),
-            ],
-            if (check.ownerNote != null) ...[
-              const SizedBox(height: 8),
+      // Tapping opens the whole record, photos included. The row is a
+      // summary — it never showed the photos at all, so a saved check could
+      // not be looked at again.
+      child: InkWell(
+        onTap: () => context.router.push(PawCheckDetailRoute(check: check)),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Stacked, not side by side: "Sep 19, 2026 · Not sure" and
+              // "Worth showing a vet soon" both run long, and on a narrow phone
+              // they overflowed a Row by 34px. Giving each its own line costs a
+              // little height and cannot break.
               Text(
-                'Your note: ${check.ownerNote}',
-                style: theme.textTheme.bodySmall,
+                '$date · ${formatPawLocation(check.location)}',
+                style: theme.textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: PawAttentionBadge(level: check.attentionLevel),
+              ),
+              // Every observation, not just the first: this card is the whole
+              // record of the check — there is no detail screen behind it — so
+              // truncating here hid part of what the owner approved.
+              for (final observation in check.observations) ...[
+                const SizedBox(height: 8),
+                Text(observation, style: theme.textTheme.bodyMedium),
+              ],
+              if (check.ownerNote != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Your note: ${check.ownerNote}',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+              // A Wrap, not a Row: the chip plus up to three actions do not fit
+              // on one line on a narrow phone (it overflowed by 13px with only
+              // two of them), and they fit even less at a larger font scale.
+              // Wrapping to a second line degrades gracefully; a Row clips.
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    FilterChip(
+                      label: const Text('In vet summary'),
+                      selected: check.includeInVetSummary,
+                      visualDensity: VisualDensity.compact,
+                      onSelected: (value) => context
+                          .read<PawScanCubit>()
+                          .setIncludeInVetSummary(check, include: value),
+                    ),
+                    if (previousForSamePaw != null)
+                      IconButton(
+                        tooltip: 'Compare with the previous check of this paw',
+                        icon: const Icon(Icons.compare_arrows),
+                        onPressed: () => context.router.push(
+                          PawCheckComparisonRoute(
+                            earlier: previousForSamePaw!,
+                            later: check,
+                          ),
+                        ),
+                      ),
+                    if (suggestion != null)
+                      TextButton.icon(
+                        onPressed: () => context.router.push(
+                          ReminderFormRoute(
+                            petId: check.petId.value,
+                            initialTitle: suggestion.title,
+                            initialDescription: suggestion.description,
+                            initialDateTimeIso:
+                                suggestion.dateTime.toIso8601String(),
+                          ),
+                        ),
+                        icon: const Icon(Icons.alarm_add_outlined),
+                        label: const Text('Follow up'),
+                      ),
+                    IconButton(
+                      tooltip: 'Delete this check',
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () => _confirmDelete(context),
+                    ),
+                  ],
+                ),
               ),
             ],
-            // A Wrap, not a Row: the chip plus up to three actions do not fit
-            // on one line on a narrow phone (it overflowed by 13px with only
-            // two of them), and they fit even less at a larger font scale.
-            // Wrapping to a second line degrades gracefully; a Row clips.
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  FilterChip(
-                    label: const Text('In vet summary'),
-                    selected: check.includeInVetSummary,
-                    visualDensity: VisualDensity.compact,
-                    onSelected: (value) => context
-                        .read<PawScanCubit>()
-                        .setIncludeInVetSummary(check, include: value),
-                  ),
-                  if (previousForSamePaw != null)
-                    IconButton(
-                      tooltip: 'Compare with the previous check of this paw',
-                      icon: const Icon(Icons.compare_arrows),
-                      onPressed: () => context.router.push(
-                        PawCheckComparisonRoute(
-                          earlier: previousForSamePaw!,
-                          later: check,
-                        ),
-                      ),
-                    ),
-                  if (suggestion != null)
-                    TextButton.icon(
-                      onPressed: () => context.router.push(
-                        ReminderFormRoute(
-                          petId: check.petId.value,
-                          initialTitle: suggestion.title,
-                          initialDescription: suggestion.description,
-                          initialDateTimeIso:
-                              suggestion.dateTime.toIso8601String(),
-                        ),
-                      ),
-                      icon: const Icon(Icons.alarm_add_outlined),
-                      label: const Text('Follow up'),
-                    ),
-                  IconButton(
-                    tooltip: 'Delete this check',
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () =>
-                        context.read<PawScanCubit>().deleteCheck(check),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

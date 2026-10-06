@@ -716,6 +716,36 @@
   correct a mis-tagged paw the owner has to Discard and describe again —
   which is coherent now that Discard clears the photos and returns to the
   empty start state.
+- [x] **Paw Scan attention colours now mean something.** They were
+  `ColorScheme` roles, and the seeded scheme's secondary and tertiary are both
+  teal here, so `vetSoon` came out blue — reading as positive — and
+  `nothingNotable` shared grey with `undetermined`, so "nothing stood out" and
+  "could not assess" were indistinguishable. Replaced with fixed muted hues
+  per brightness: green for `nothingNotable`, amber for `monitor`, muted red
+  for `vetSoon`, the existing stronger `errorContainer` red for `vetPromptly`,
+  grey kept for `undetermined` alone.
+  On the safety note the old code carried — that a green tick would claim the
+  pet is fine, which the app cannot do from a photograph — the green is muted
+  and the label still reads "Nothing stood out", with the guidance sentence
+  underneath unchanged. The claim is carried by the words, not withheld by
+  making a successful scan look like a failure.
+- [x] **Paw Scan: "Log this check" → "Save"** (earlier round) and the describe
+  button drops its photo count — the strip right above it already shows how
+  many there are.
+- [x] **Paw Scan: a rejected gallery photo can be replaced from the gallery.**
+  On a rejection the controls collapsed to "Take another photo" only, so a
+  poor photo picked from the gallery left the owner no way forward but the
+  camera — it cannot be retaken, only replaced. The gallery option now stays.
+- [x] **Paw Scan: a saved check can be opened.** History listed its checks but
+  never showed their photos, so the thing an owner would actually show a vet
+  could not be looked at again. New `PawCheckDetailScreen` (route
+  `/pets/:petId/paw-scan-check`) opened by tapping a row: photos at full
+  width and tappable to full screen, the date, paw, attention card, every
+  observation, the summary, the owner's note, and whether it is in the vet
+  summary. The disclaimer rides along as on every other Paw Scan surface.
+- [x] **Paw Scan: deleting a check asks first.** The icon deleted on the spot;
+  a check cannot be recovered — its photos go from storage with it — so a
+  mis-tap on a small icon was enough to lose one.
 - [ ] **An event's reminder does not notify.** Found while adding the time
   above, and worth deciding on: `nextReminderDate` is only ever rendered on
   the timeline tile and in the event detail. Nothing schedules a local
