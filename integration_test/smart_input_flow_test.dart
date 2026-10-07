@@ -21,6 +21,8 @@ import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 
+import 'support/fakes.dart';
+
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -51,7 +53,7 @@ void main() {
       documentSourcePicker: base.documentSourcePicker,
       petPhotoPicker: base.petPhotoPicker,
       eventPhotoPicker: base.eventPhotoPicker,
-      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      reminderNotificationScheduler: FakeReminderNotificationScheduler(),
       analyticsService: base.analyticsService,
       subscriptionService: base.subscriptionService,
       paywallPresenter: base.paywallPresenter,

@@ -771,14 +771,37 @@
 - [x] **Paw Scan: deleting a check asks first.** The icon deleted on the spot;
   a check cannot be recovered — its photos go from storage with it — so a
   mis-tap on a small icon was enough to lose one.
-- [ ] **An event's reminder does not notify.** Found while adding the time
-  above, and worth deciding on: `nextReminderDate` is only ever rendered on
-  the timeline tile and in the event detail. Nothing schedules a local
-  notification from it — `ReminderNotificationScheduler` is wired to the
-  Reminders feature alone. So an event reminder is a note to self that the app
-  shows, not something that will alert the owner, and a time makes it read
-  more like a promise than it was before. Either wire event reminders through
-  the scheduler (and cancel/reschedule them when the event is edited or
-  deleted), or relabel the field so it does not promise a notification.
+- [x] **An event's reminder now actually reminds.** `nextReminderDate` was
+  rendered on the timeline and nowhere else — nothing scheduled anything, so
+  a field called "Reminder" never reminded, and adding a time to it made it
+  read like a promise it did not keep.
+  An event now owns a real `Reminder` linked by `relatedEventId` — a field
+  that already existed on the entity and had never been set by anything. That
+  reuses the whole reminders pipeline: scheduling, the notification tap, the
+  Reminders list the owner can see and manage, and completion.
+  Details worth keeping:
+  * The reminder's id is derived from the event id
+    (`TimelineEventCubit.reminderIdForEvent`), so saving the same event again
+    updates its reminder instead of leaving a second one behind, and clearing
+    the date or deleting the event can find it without the event storing a
+    back reference. A test pins that two events get two reminders — the first
+    version of this interpolated the id wrongly and gave every event the
+    same one.
+  * Moving the date re-opens a reminder that had been ticked off: an owner
+    who changes the date wants reminding again.
+  * Clearing the date, or deleting the event, cancels and deletes it — but
+    **only if one exists**. Cancelling unconditionally reached the
+    notification plugin on every ordinary event save, which initialises it
+    and asks for notification permission for no reason (and in a test blocks
+    the save behind the system alert).
+  * All of it is best effort: the event is saved first, and a scheduling
+    problem must not report the save as failed.
+  **New user-visible side effect:** saving an event *with* a reminder now asks
+  for notification permission the first time, because that is the moment a
+  notification is genuinely being scheduled. The Reminders feature already
+  behaves this way.
+  Every integration test that boots the app now uses a silent notification
+  scheduler, so the suite never raises that alert — it was blocking runs and
+  blanking screenshots.
 - [x] The document **form** attached one file at a time, replacing rather than
   appending. Fixed with the gallery multi-select work above.

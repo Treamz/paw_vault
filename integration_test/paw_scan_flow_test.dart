@@ -68,7 +68,7 @@ AppDependencies _dependencies({
     pawPhotoPicker: FakePawPhotoPicker(_pawPhoto()),
     petPhotoPicker: base.petPhotoPicker,
     eventPhotoPicker: base.eventPhotoPicker,
-    reminderNotificationScheduler: base.reminderNotificationScheduler,
+    reminderNotificationScheduler: FakeReminderNotificationScheduler(),
     analyticsService: base.analyticsService,
     subscriptionService: base.subscriptionService,
     paywallPresenter: base.paywallPresenter,

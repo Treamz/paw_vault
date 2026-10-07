@@ -4,6 +4,10 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_events.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
+import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
+import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/timeline/application/event_attachment_upload_service.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
@@ -14,17 +18,114 @@ class TimelineEventCubit extends Cubit<TimelineEventState> {
     required TimelineRepository timelineRepository,
     required AuthRepository authRepository,
     required EventAttachmentUploadService attachmentUploadService,
+    required ReminderRepository reminderRepository,
+    required ReminderNotificationScheduler notificationScheduler,
     AnalyticsService? analytics,
   })  : _timelineRepository = timelineRepository,
         _authRepository = authRepository,
         _attachmentUploadService = attachmentUploadService,
+        _reminderRepository = reminderRepository,
+        _notificationScheduler = notificationScheduler,
         _analytics = analytics ?? const NoopAnalyticsService(),
         super(const TimelineEventState());
 
   final TimelineRepository _timelineRepository;
   final AuthRepository _authRepository;
   final EventAttachmentUploadService _attachmentUploadService;
+  final ReminderRepository _reminderRepository;
+  final ReminderNotificationScheduler _notificationScheduler;
   final AnalyticsService _analytics;
+
+  /// The reminder that belongs to an event, derived from the event's own id.
+  ///
+  /// Deterministic so that saving the same event again updates its reminder
+  /// instead of leaving a second one behind, and so clearing the date or
+  /// deleting the event can find it without the event storing a back
+  /// reference.
+  static EntityId reminderIdForEvent(EntityId eventId) =>
+      EntityId('event-${eventId.value}');
+
+  /// Keeps an event's reminder in step with its reminder date.
+  ///
+  /// An event's `nextReminderDate` used to be rendered on the timeline and
+  /// nowhere else: nothing scheduled a notification, so a field called
+  /// "Reminder" never reminded anyone. It now owns a real [Reminder] linked
+  /// by `relatedEventId`, which means it also shows up in the Reminders list
+  /// and goes through the same scheduling the rest of the app uses.
+  ///
+  /// Best effort throughout: the event is already saved by this point, and a
+  /// notification problem must not report the save as failed.
+  Future<void> _syncReminder(PetEvent event) async {
+    final remindAt = event.nextReminderDate;
+    final reminderId = reminderIdForEvent(event.id);
+
+    try {
+      await _reminderRepository.initialize();
+
+      final existing = await _reminderRepository.getReminder(
+        userId: event.userId,
+        petId: event.petId,
+        reminderId: reminderId,
+      );
+
+      if (remindAt == null) {
+        // Only if there is something to remove. Cancelling unconditionally
+        // would reach the notification plugin on every event saved without a
+        // reminder, which initialises it and asks the owner for notification
+        // permission for no reason.
+        if (existing != null) {
+          await _removeReminder(
+            userId: event.userId,
+            petId: event.petId,
+            reminderId: reminderId,
+          );
+        }
+        return;
+      }
+      final now = DateTime.now();
+
+      final reminder = Reminder(
+        id: reminderId,
+        userId: event.userId,
+        petId: event.petId,
+        title: event.title,
+        description: event.description,
+        dateTime: remindAt,
+        repeatType: ReminderRepeatType.none,
+        relatedEventId: event.id,
+        // Re-opened when the date moves: an owner who changes the date wants
+        // reminding again, even if they ticked the old one off.
+        isCompleted: existing != null && existing.dateTime == remindAt
+            ? existing.isCompleted
+            : false,
+        createdAt: existing?.createdAt ?? UtcDateTime(now),
+        updatedAt: UtcDateTime(now),
+      );
+
+      await _reminderRepository.saveReminder(reminder);
+      await _notificationScheduler.schedule(reminder);
+    } catch (_) {
+      // The event is saved; a reminder that could not be written or
+      // scheduled must not turn that into a failure.
+    }
+  }
+
+  Future<void> _removeReminder({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId reminderId,
+  }) async {
+    try {
+      await _notificationScheduler.cancel(reminderId);
+      await _reminderRepository.deleteReminder(
+        userId: userId,
+        petId: petId,
+        reminderId: reminderId,
+      );
+    } catch (_) {
+      // Best effort, as above.
+    }
+  }
 
   /// Uploads the form's freshly picked photos (if any) and returns the form
   /// state with their download URLs appended to the stored attachments.
@@ -130,6 +231,7 @@ class TimelineEventCubit extends Cubit<TimelineEventState> {
       );
 
       await _timelineRepository.saveEvent(event);
+      await _syncReminder(event);
       _analytics.logEvent(
         AnalyticsEvents.timelineEventAdded,
         parameters: {AnalyticsParams.type: event.type.name},
@@ -188,6 +290,7 @@ class TimelineEventCubit extends Cubit<TimelineEventState> {
       );
 
       await _timelineRepository.saveEvent(updatedEvent);
+      await _syncReminder(updatedEvent);
 
       emit(
         state.copyWith(
@@ -226,6 +329,17 @@ class TimelineEventCubit extends Cubit<TimelineEventState> {
         petId: currentEvent.petId,
         eventId: currentEvent.id,
       );
+      // The reminder goes with the event it belonged to, notification and
+      // all — otherwise it would fire for something that no longer exists.
+      // Only when the event had one, so deleting an ordinary event never
+      // reaches the notification plugin.
+      if (currentEvent.nextReminderDate != null) {
+        await _removeReminder(
+          userId: currentEvent.userId,
+          petId: currentEvent.petId,
+          reminderId: reminderIdForEvent(currentEvent.id),
+        );
+      }
 
       emit(
         TimelineEventState(

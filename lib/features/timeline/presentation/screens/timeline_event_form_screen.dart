@@ -6,6 +6,8 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart'
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/presentation/widgets/time_picker_keyboard_focus.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/timeline/application/event_attachment_upload_service.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
@@ -43,6 +45,8 @@ class TimelineEventFormScreen extends StatelessWidget {
           attachmentUploadService: EventAttachmentUploadService(
             storageRepository: context.read<StorageRepository>(),
           ),
+          reminderRepository: context.read<ReminderRepository>(),
+          notificationScheduler: context.read<ReminderNotificationScheduler>(),
           analytics: context.read<AnalyticsService>(),
         );
         if (eventId != null) {

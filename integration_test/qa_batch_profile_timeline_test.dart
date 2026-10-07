@@ -67,7 +67,7 @@ void main() {
       documentSourcePicker: base.documentSourcePicker,
       petPhotoPicker: base.petPhotoPicker,
       eventPhotoPicker: picker,
-      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      reminderNotificationScheduler: FakeReminderNotificationScheduler(),
       analyticsService: base.analyticsService,
       subscriptionService: base.subscriptionService,
       paywallPresenter: base.paywallPresenter,
@@ -182,6 +182,7 @@ void main() {
       ),
     ]);
     final timeline = _MemoryTimelineRepository();
+    final reminders = FakeReminderRepository();
     final base = AppDependencies.localFirst();
     final dependencies = AppDependencies(
       authRepository: FakeAuthRepository(),
@@ -189,7 +190,7 @@ void main() {
       petRepository: pets,
       timelineRepository: timeline,
       documentRepository: base.documentRepository,
-      reminderRepository: base.reminderRepository,
+      reminderRepository: reminders,
       aiRepository: base.aiRepository,
       smartInputRepository: base.smartInputRepository,
       vetSummaryExportRepository: base.vetSummaryExportRepository,
@@ -199,7 +200,7 @@ void main() {
       documentSourcePicker: base.documentSourcePicker,
       petPhotoPicker: base.petPhotoPicker,
       eventPhotoPicker: _FakeEventPhotoPicker(await _makePng()),
-      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      reminderNotificationScheduler: FakeReminderNotificationScheduler(),
       analyticsService: base.analyticsService,
       subscriptionService: base.subscriptionService,
       paywallPresenter: base.paywallPresenter,
@@ -294,6 +295,23 @@ void main() {
     // A date picked on its own lands on a sensible hour, not midnight, which
     // would read as "no time was set".
     expect(remindAt.minute, 0);
+
+    // And the reminder is real: it is saved, linked to the event, and shows
+    // up in the Reminders list. The date used to be rendered on the timeline
+    // and nowhere else, so nothing ever reminded the owner.
+    final reminder = reminders.reminders.single;
+    expect(reminder.title, 'Booster due');
+    expect(reminder.relatedEventId, saved.id);
+    expect(reminder.dateTime.value, saved.nextReminderDate!.value);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    final remindersTile = find.text('Reminders');
+    await tester.ensureVisible(remindersTile);
+    await tester.pumpAndSettle();
+    await tester.tap(remindersTile);
+    await tester.pumpAndSettle();
+    expect(find.text('Booster due'), findsOneWidget);
   });
 
   testWidgets('saving an event with the title focused dismisses the keyboard',
@@ -328,7 +346,7 @@ void main() {
       documentSourcePicker: base.documentSourcePicker,
       petPhotoPicker: base.petPhotoPicker,
       eventPhotoPicker: picker,
-      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      reminderNotificationScheduler: FakeReminderNotificationScheduler(),
       analyticsService: base.analyticsService,
       subscriptionService: base.subscriptionService,
       paywallPresenter: base.paywallPresenter,

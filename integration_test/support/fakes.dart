@@ -189,9 +189,13 @@ class FakeDocumentRepository implements DocumentRepository {
 }
 
 class FakeReminderRepository implements ReminderRepository {
-  FakeReminderRepository(this.reminders);
+  FakeReminderRepository([List<Reminder>? seed])
+      : reminders = List.of(seed ?? const []);
 
+  /// Behaves like a store: a save has to reach the watched stream and be
+  /// readable back, or a test cannot see the Reminders an owner would see.
   final List<Reminder> reminders;
+  final _controller = StreamController<List<Reminder>>.broadcast();
 
   @override
   Future<void> initialize() async {}
@@ -200,19 +204,31 @@ class FakeReminderRepository implements ReminderRepository {
   Stream<List<Reminder>> watchReminders({
     required EntityId userId,
     required EntityId petId,
-  }) =>
-      Stream<List<Reminder>>.value(reminders);
+  }) async* {
+    yield List.of(reminders);
+    yield* _controller.stream;
+  }
 
   @override
   Future<Reminder?> getReminder({
     required EntityId userId,
     required EntityId petId,
     required EntityId reminderId,
-  }) async =>
-      null;
+  }) async {
+    for (final reminder in reminders) {
+      if (reminder.id == reminderId) {
+        return reminder;
+      }
+    }
+    return null;
+  }
 
   @override
-  Future<void> saveReminder(Reminder reminder) async {}
+  Future<void> saveReminder(Reminder reminder) async {
+    reminders.removeWhere((existing) => existing.id == reminder.id);
+    reminders.add(reminder);
+    _controller.add(List.of(reminders));
+  }
 
   @override
   Future<void> completeReminder({
@@ -226,7 +242,10 @@ class FakeReminderRepository implements ReminderRepository {
     required EntityId userId,
     required EntityId petId,
     required EntityId reminderId,
-  }) async {}
+  }) async {
+    reminders.removeWhere((existing) => existing.id == reminderId);
+    _controller.add(List.of(reminders));
+  }
 }
 
 class FakeSmartInputRepository implements SmartInputRepository {
