@@ -18,6 +18,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DRIVER="test_driver/screenshots.dart"
+BUNDLE_ID="com.treamz.pawVault"
 TARGET="integration_test/screenshots_test.dart"
 
 # label|simulator name
@@ -44,6 +45,15 @@ for entry in "${DEVICES[@]}"; do
 
   echo "📱 $name ($label) — $udid"
   xcrun simctl boot "$udid" 2>/dev/null || true
+
+  # Clear the app before capturing. A system permission alert raised by an
+  # earlier run outlives it, sits over the app, and makes every capture the
+  # same blank grey frame — which is what produced blank App Store
+  # screenshots for a long time. Uninstalling takes any pending alert with
+  # it. The screenshot suite itself never asks for permission (it uses a
+  # silent notification scheduler), so nothing raises a new one.
+  xcrun simctl terminate "$udid" "$BUNDLE_ID" 2>/dev/null || true
+  xcrun simctl uninstall "$udid" "$BUNDLE_ID" 2>/dev/null || true
 
   out="build/screenshots/$label"
   rm -rf "$out"

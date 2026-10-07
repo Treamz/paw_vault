@@ -450,23 +450,36 @@
   editing a multi-attachment document dropped the extra files (`updateDocument`
   rebuilt from the legacy pair), and deleting one orphaned them in Storage
   (`deleteDocument` removed a single path).
-- [ ] **App Store screenshots are still blank**, though
-  `integration_test/screenshots_test.dart` itself now passes. Every PNG is
-  the same 58815 bytes.
-  Ruled out, each by trying it: `convertFlutterSurfaceToImage()` is not the
-  culprit — `smart_input_scan_history_test` calls it and produces correct,
-  distinct PNGs on the same simulator; the notification permission alert,
-  which does blank captures in suites that boot the app but cannot appear in
-  this one (it never builds `PawVaultApp`, and its scheduler is now a silent
-  fake); the suite's missing providers, now fixed; and re-running the
-  conversion for every shot instead of once, which changed nothing.
-  The live difference worth chasing next: the suites that *do* produce real
-  PNGs pump `PawVaultApp` once and never replace the root, while this one
-  calls `pumpWidget` with a brand-new root per shot. Try one shot from a
-  suite that keeps a single root and navigates between screens instead.
-  Note separately that the permission alert really does blank captures in
-  app-booting suites, so a screenshot run still wants it answered or a silent
-  scheduler wired in.
+- [x] **App Store screenshots work again (iPhone).** `tool/screenshots.sh
+  iphone` now produces seven real, distinct PNGs at 1320x2868 — Apple's 6.9"
+  requirement — verified by opening them.
+  **The single cause was the system notification permission alert.** It is
+  raised by `LocalReminderNotificationScheduler`, which initialises the
+  plugin with a default `DarwinInitializationSettings()` the moment anything
+  reads `scheduler.taps` — and `app.dart` reads it on startup. The alert then
+  **outlives the run that raised it**, sits over the app, and makes every
+  capture in the *next* run the same blank 58815-byte grey frame.
+  Proved by isolating it: a probe taking three shots (real app root, bare
+  `MaterialApp` root, and a shot after replacing the root) gave three blanks
+  with the alert up and three correct, distinct PNGs with it dismissed —
+  nothing else changed.
+  So the earlier hypotheses were all wrong and are now closed:
+  `convertFlutterSurfaceToImage()` is fine, a bare `MaterialApp` root is
+  fine, replacing the root between shots is fine, and converting once rather
+  than per shot is fine.
+  Two changes keep it working: `screenshots_test` supplies a silent
+  notification scheduler (so the suite can never raise the alert itself) and
+  its missing providers, and `tool/screenshots.sh` terminates and uninstalls
+  the app before each device, which takes any alert left by an earlier run
+  with it.
+- [ ] **`tool/screenshots.sh ipad` hangs**, found while verifying the above
+  and unrelated to the blank-capture bug. The Xcode build succeeds, the app
+  launches to a white screen with only a status bar, and `flutter drive`
+  never prints a single `VMServiceFlutterDriver` line — it never connects to
+  the VM service, so the run sits there until killed. The iPhone set from the
+  same script and suite is fine, so this is iPad-specific. Needs its own
+  look; until then the iPhone set can be generated on its own with
+  `tool/screenshots.sh iphone`.
 - [x] **Documents: make the issue date clearly required.** It already was —
   both `PetDocumentFormState.validate()` and the two creation paths reject a
   document without one, since 2026-08-08 — so no document created today can
