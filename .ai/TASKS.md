@@ -472,6 +472,23 @@
   its missing providers, and `tool/screenshots.sh` terminates and uninstalls
   the app before each device, which takes any alert left by an earlier run
   with it.
+- [ ] **Running integration tests back to back degrades the simulator.** After
+  roughly five consecutive `flutter drive` runs, the next one builds fine,
+  launches the app to a white screen with only a status bar, and never prints
+  a `VMServiceFlutterDriver` line — the driver never connects and the run
+  hangs until killed. It is not the tests: every one of the 14 passes when the
+  simulator is shut down and rebooted before it, and the same tests hang when
+  run in a long sequence. Suspect a leaked VM service port or CoreSimulator
+  state; `tool/screenshots.sh` already uninstalls the app per device, which is
+  not enough on its own.
+  Practical workaround until it is understood: run them in batches of three
+  with `xcrun simctl shutdown` / `boot` in between, which is how the full
+  green sweep was obtained. The same degradation is the likely cause of the
+  `tool/screenshots.sh ipad` hang below.
+  Worth noting the two false alarms this produced, so they are not
+  re-investigated as code bugs: a sweep wrapped in `timeout` (which macOS does
+  not have, so every run exited 127 and reported nothing), and results
+  invalidated by killing processes mid-sweep.
 - [ ] **`tool/screenshots.sh ipad` hangs**, found while verifying the above
   and unrelated to the blank-capture bug. The Xcode build succeeds, the app
   launches to a white screen with only a status bar, and `flutter drive`
