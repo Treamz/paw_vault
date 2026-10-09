@@ -472,6 +472,27 @@
   its missing providers, and `tool/screenshots.sh` terminates and uninstalls
   the app before each device, which takes any alert left by an earlier run
   with it.
+- [x] **Xcode 27 forced a Flutter upgrade to 3.47.7.** Updating Xcode broke
+  `flutter build ios --simulator`: Xcode 27's `lipo` takes a single
+  architecture for `-verify_arch` and reads any further arguments as input
+  files, so Flutter's `thinFramework`, which passed `arm64 x86_64` in one
+  call, failed with `Binary .../Flutter.framework/Flutter does not contain
+  architectures` printed directly above a `lipo -info` listing both of them.
+  Upstream flutter/flutter#188461, fixed in 3.47; this machine was on 3.44.1.
+  Device and release builds pass a single arch and were never affected, so
+  TestFlight and CI stayed green while every simulator run and all 14
+  integration tests were blocked.
+  `fvm global 3.47.7` (Dart 3.13.5) fixes it, and 3.44.1 stays installed as a
+  rollback. `flutter pub get` on the new SDK added the `analyzer: exclude:`
+  block to `analysis_options.yaml` on its own. Verified after the move:
+  format clean, analyze clean, 590 unit tests, device build, simulator build,
+  and `smart_input_flow_test` through `flutter drive`.
+  Found at the same time and unrelated: `/usr/local/bin/git` is an Intel-only
+  2022 git-scm build, and macOS 27 ships without Rosetta, so it cannot run at
+  all. zsh quietly falls through to `/usr/bin/git`, but `sh` scripts and
+  CocoaPods' Ruby `spawn` do not, so `pod` died with `Errno::EBADARCH` on
+  every invocation, which takes iOS builds with it. Remove it with
+  `/usr/local/git/uninstall.sh`; as a stopgap, drop `/usr/local/bin` from PATH.
 - [ ] **Running integration tests back to back degrades the simulator.** After
   roughly five consecutive `flutter drive` runs, the next one builds fine,
   launches the app to a white screen with only a status bar, and never prints
@@ -489,6 +510,8 @@
   re-investigated as code bugs: a sweep wrapped in `timeout` (which macOS does
   not have, so every run exited 127 and reported nothing), and results
   invalidated by killing processes mid-sweep.
+  Diagnosed on Xcode 26 / Flutter 3.44.1 and not yet re-checked on Xcode 27
+  / 3.47.7, where only a single drive run has been made so far.
 - [ ] **`tool/screenshots.sh ipad` hangs**, found while verifying the above
   and unrelated to the blank-capture bug. The Xcode build succeeds, the app
   launches to a white screen with only a status bar, and `flutter drive`
@@ -497,6 +520,8 @@
   same script and suite is fine, so this is iPad-specific. Needs its own
   look; until then the iPhone set can be generated on its own with
   `tool/screenshots.sh iphone`.
+  Also predates the Xcode 27 / Flutter 3.47.7 move and has not been retried
+  since.
 - [x] **Documents: make the issue date clearly required.** It already was —
   both `PetDocumentFormState.validate()` and the two creation paths reject a
   document without one, since 2026-08-08 — so no document created today can
