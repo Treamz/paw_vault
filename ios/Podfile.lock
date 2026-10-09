@@ -1701,7 +1701,7 @@ SPEC CHECKSUMS:
   FirebaseInstallations: 7cdc919e29dc54306edeffdbdc1eed1a40d7d1e7
   FirebaseSharedSwift: 7c659ebf23afdc1e60a05df72a07ad7349f5758f
   FirebaseStorage: 84d86cc0c0451e56e30f235fce26a264f1de13dc
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   flutter_local_notifications: 643a3eda1ce1c0599413ca31672536d423dee214
   google_sign_in_ios: 000870aa06da9b28d1d0bf7ef70ff0213059dd28
   GoogleAdsOnDeviceConversion: e3b71da24ff4cf01cf520756ac1c2b93c07b86ff
