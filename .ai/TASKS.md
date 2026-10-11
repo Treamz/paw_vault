@@ -520,6 +520,21 @@
   Until the simulator exists, the useful substitute is pumping the main
   screens at several canvas sizes, including a large squarish one, and failing
   on overflow — it does not need the Duo's real dimensions.
+- [ ] **`qa_batch_profile_timeline_test` depends on the simulator's locale.**
+  The reminder-time test types `'14'` into the hour field of the Material time
+  picker. That is only valid where the picker is in 24-hour mode. The iPhone 17
+  simulator used here has `AppleLocale = en_UA`, so it is, and the test has
+  always passed. A simulator created from defaults gets `en_US`, the picker
+  shows an AM/PM selector, `14` is rejected with "Enter a valid time", and the
+  dialog stays open — so the following tap lands on the barrier instead of
+  "Add Event", no reminder is written, and the test dies on
+  `saved.nextReminderDate!` with a null check error rather than on anything
+  that names the real cause.
+  Found while checking iPhone Duo, on a freshly created device; it is not a
+  Duo or a layout problem, and it will bite on CI or on any clean machine.
+  Worth making the test locale-independent rather than relying on the host:
+  either drive the dial instead of the text field, or branch on whether the
+  AM/PM selector is present.
 - [ ] **Running integration tests back to back degrades the simulator.** After
   roughly five consecutive `flutter drive` runs, the next one builds fine,
   launches the app to a white screen with only a status bar, and never prints

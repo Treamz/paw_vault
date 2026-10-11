@@ -247,7 +247,14 @@ void main() {
     // screen's own unfocus call still leaves this passing. Verified by
     // removing it and re-running. It would still catch code that actively
     // put focus back.
-    await tester.tap(find.widgetWithText(TextFormField, 'Title *'));
+    // Scrolled back into view first: the tap above moves the form, and on a
+    // short screen -- an unfolded iPhone Duo is 669pt tall against an iPhone
+    // 17's 852 -- that leaves this field off screen, so the tap misses and
+    // nothing takes focus. The assertion below is unchanged.
+    final titleField = find.widgetWithText(TextFormField, 'Title *');
+    await tester.ensureVisible(titleField);
+    await tester.pumpAndSettle();
+    await tester.tap(titleField);
     await tester.pumpAndSettle();
     expect(_focusedEditable(), isNotNull);
 
