@@ -36,7 +36,7 @@ void main() {
       'EU Pet Passport',
     );
     // Issue date is required: pick today from the calendar dialog.
-    final issueField = find.text('Issue date');
+    final issueField = find.text('Issue date (required)');
     await tester.ensureVisible(issueField);
     await tester.tap(issueField);
     await tester.pumpAndSettle();
@@ -77,7 +77,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The file attachment is optional and the save button is plain "Save".
-    expect(find.text('Attach photo or file (optional)'), findsOneWidget);
+    expect(find.text('Attach photos or files (optional)'), findsOneWidget);
     expect(find.text('Pick file & save'), findsNothing);
 
     // Fill the required fields and save without attaching anything.
@@ -90,7 +90,7 @@ void main() {
       'Liability insurance',
     );
     // Issue date is required: pick today from the calendar dialog.
-    final issueField = find.text('Issue date');
+    final issueField = find.text('Issue date (required)');
     await tester.ensureVisible(issueField);
     await tester.tap(issueField);
     await tester.pumpAndSettle();

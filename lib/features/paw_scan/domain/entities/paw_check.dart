@@ -11,7 +11,7 @@ import 'package:paw_vault/features/paw_scan/domain/entities/paw_location.dart';
 /// rejected rather than silently saved.
 enum PawCheckStatus { draft, confirmed }
 
-/// A confirmed, dated paw check in a pet's journal.
+/// A confirmed, dated paw check in a pet's history.
 class PawCheck {
   const PawCheck({
     required this.id,
@@ -46,7 +46,7 @@ class PawCheck {
   final List<String> photoStoragePaths;
 
   /// Observations flattened to display strings at confirmation time, so the
-  /// journal shows exactly what the owner saw and approved.
+  /// history shows exactly what the owner saw and approved.
   final List<String> observations;
 
   final String? summary;

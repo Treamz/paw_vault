@@ -8,6 +8,7 @@ import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart'
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/core/storage/domain/entities/storage_file.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
@@ -38,10 +39,148 @@ void main() {
       expect(find.text('Generate summary'), findsOneWidget);
       expect(find.text('No saved exports yet.'), findsOneWidget);
     });
+
+    testWidgets('suggests a file name once and then leaves it alone',
+        (tester) async {
+      // The field used to assign controller.text on every build, so the
+      // suggestion reappeared over anything the owner had cleared.
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Generate summary'));
+      await tester.pumpAndSettle();
+
+      final field = find.widgetWithText(TextField, 'B_vet_summary.pdf');
+      expect(field, findsOneWidget);
+
+      await tester.enterText(field, 'Jotaro checkup');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Regenerate'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'Jotaro checkup',
+      );
+
+      // Clearing it has to stick too, or the owner cannot replace the name.
+      await tester.enterText(find.byType(TextField), '');
+      await tester.tap(find.text('Regenerate'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        isEmpty,
+      );
+    });
+
+    testWidgets('saves the copy under the name in the field', (tester) async {
+      // The reported bug: 'Save copy' ignored the field entirely.
+      final exportRepository = _FakeExportRepository();
+      await tester.pumpWidget(_app(exportRepository: exportRepository));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Generate summary'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'Jotaro checkup');
+      await tester.tap(find.text('Save copy'));
+      await tester.pumpAndSettle();
+
+      expect(exportRepository.savedExport!.fileName, 'Jotaro checkup.pdf');
+    });
+
+    testWidgets('lists a saved export by its name, not its timestamp',
+        (tester) async {
+      await tester.pumpWidget(
+        _app(
+          exportRepository: _FakeExportRepository(
+            exports: [
+              VetSummaryExport(
+                id: const EntityId('export-1'),
+                userId: const EntityId('user-1'),
+                petId: const EntityId('pet-1'),
+                createdAt: UtcDateTime(DateTime.utc(2026, 10, 5, 17)),
+                fileUrl: Uri.parse('https://example.com/e.pdf'),
+                fileName: 'Jotaro_vet_summary.pdf',
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tile = find.byKey(const ValueKey('export-export-1'));
+      expect(
+        find.descendant(
+          of: tile,
+          matching: find.text('Jotaro_vet_summary.pdf'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows a summary whose save has not been confirmed yet',
+        (tester) async {
+      // Its server timestamp has not landed, so it has no date. The row must
+      // still appear, named, instead of the list failing with red text.
+      await tester.pumpWidget(
+        _app(
+          exportRepository: _FakeExportRepository(
+            exports: const [
+              VetSummaryExport(
+                id: EntityId('export-1'),
+                userId: EntityId('user-1'),
+                petId: EntityId('pet-1'),
+                fileName: 'Jotaro_vet_summary.pdf',
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tile = find.byKey(const ValueKey('export-export-1'));
+      expect(
+        find.descendant(
+          of: tile,
+          matching: find.text('Jotaro_vet_summary.pdf'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: tile, matching: find.text('Saving…')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('FirestoreMappingException'), findsNothing);
+    });
+
+    testWidgets('still lists a nameless legacy export by its date',
+        (tester) async {
+      await tester.pumpWidget(
+        _app(
+          exportRepository: _FakeExportRepository(
+            exports: [
+              VetSummaryExport(
+                id: const EntityId('export-1'),
+                userId: const EntityId('user-1'),
+                petId: const EntityId('pet-1'),
+                createdAt: UtcDateTime(DateTime.utc(2026, 10, 5, 17)),
+                fileUrl: Uri.parse('https://example.com/e.pdf'),
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tile = find.byKey(const ValueKey('export-export-1'));
+      expect(
+        find.descendant(of: tile, matching: find.byType(Text)),
+        findsWidgets,
+      );
+      expect(find.textContaining('2026'), findsWidgets);
+    });
   });
 }
 
-Widget _app() {
+Widget _app({_FakeExportRepository? exportRepository}) {
   return MultiRepositoryProvider(
     providers: [
       RepositoryProvider<AuthRepository>.value(value: _FakeAuthRepository()),
@@ -52,7 +191,7 @@ Widget _app() {
         value: _FakeStorageRepository(),
       ),
       RepositoryProvider<VetSummaryExportRepository>.value(
-        value: _FakeExportRepository(),
+        value: exportRepository ?? _FakeExportRepository(),
       ),
       RepositoryProvider<VetSummaryPdfGenerator>.value(
         value: _FakePdfGenerator(),
@@ -91,6 +230,11 @@ class _FakeAuthRepository implements AuthRepository {
 }
 
 class _FakeExportRepository implements VetSummaryExportRepository {
+  _FakeExportRepository({this.exports = const []});
+
+  final List<VetSummaryExport> exports;
+  VetSummaryExport? savedExport;
+
   @override
   Future<void> initialize() async {}
 
@@ -99,7 +243,7 @@ class _FakeExportRepository implements VetSummaryExportRepository {
     required EntityId userId,
     required EntityId petId,
   }) =>
-      Stream<List<VetSummaryExport>>.value(const []);
+      Stream<List<VetSummaryExport>>.value(exports);
 
   @override
   Future<VetSummaryExport?> getExport({
@@ -110,7 +254,9 @@ class _FakeExportRepository implements VetSummaryExportRepository {
       null;
 
   @override
-  Future<void> saveExport(VetSummaryExport summaryExport) async {}
+  Future<void> saveExport(VetSummaryExport summaryExport) async {
+    savedExport = summaryExport;
+  }
 
   @override
   Future<void> deleteExport({

@@ -1,9 +1,11 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/document_extraction/domain/services/document_source_picker.dart';
 import 'package:paw_vault/features/documents/application/document_upload_service.dart';
@@ -73,7 +75,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
   PetDocumentType? _selectedType;
   DateTime? _issueDate;
   DateTime? _expiryDate;
-  PickedFile? _pickedFile;
+  final List<PickedFile> _pickedFiles = [];
   PetDocumentFormValidation? _validation;
   bool _populated = false;
   bool _submitted = false;
@@ -112,11 +114,23 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
     }
 
     try {
-      final picked = await context.read<DocumentSourcePicker>().pick(source);
-      if (picked == null || !mounted) {
+      final picker = context.read<DocumentSourcePicker>();
+      // The gallery can hand over several files at once; the camera and the
+      // file browser return one.
+      final List<PickedFile> picked;
+      if (source == DocumentSource.gallery) {
+        picked = await picker.pickMultipleFromGallery();
+      } else {
+        final single = await picker.pick(source);
+        picked = single == null ? const [] : [single];
+      }
+
+      if (picked.isEmpty || !mounted) {
         return;
       }
-      setState(() => _pickedFile = picked);
+      // Appended, not replaced: picking again used to throw away what was
+      // already attached.
+      setState(() => _pickedFiles.addAll(picked));
     } catch (_) {
       if (!mounted) {
         return;
@@ -211,7 +225,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
     if (widget.isEditMode) {
       cubit.updateDocument(formState);
     } else {
-      cubit.createDocument(widget.petId, formState, file: _pickedFile);
+      cubit.createDocument(widget.petId, formState, files: _pickedFiles);
     }
   }
 
@@ -265,7 +279,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
             ),
         ],
       ),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocConsumer<DocumentFormCubit, DocumentFormState>(
           listener: (context, state) {
             if (state.status == DocumentFormStatus.ready &&
@@ -338,7 +352,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
                                 Text(
                                   state.status == DocumentFormStatus.deleting
                                       ? 'Deleting…'
-                                      : _pickedFile != null
+                                      : _pickedFiles.isNotEmpty
                                           ? 'Uploading document…'
                                           : 'Saving…',
                                 ),
@@ -402,14 +416,15 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
             ),
             const SizedBox(height: 16),
             _DateField(
-              label: 'Issue date',
+              label: 'Issue date (required)',
               value: _issueDate,
               format: dateFormat,
               errorText: _validation?.errorFor('issueDate'),
               onTap: _pickIssueDate,
-              onClear: _issueDate == null
-                  ? null
-                  : () => setState(() => _issueDate = null),
+              // No clear action: the date is required, so clearing it only
+              // produces a document that cannot be saved. Tapping the field
+              // picks a different date.
+              onClear: null,
             ),
             const SizedBox(height: 16),
             _DateField(
@@ -432,30 +447,39 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
             ),
             if (!widget.isEditMode) ...[
               const SizedBox(height: 16),
-              _pickedFile == null
-                  ? OutlinedButton.icon(
-                      onPressed: isSaving ? null : _pickAttachment,
-                      icon: const Icon(Icons.attach_file),
-                      label: const Text('Attach photo or file (optional)'),
-                    )
-                  : Card(
-                      margin: EdgeInsets.zero,
-                      child: ListTile(
-                        leading: const Icon(Icons.attach_file),
-                        title: Text(
-                          _pickedFile!.fileName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.clear),
-                          tooltip: 'Remove attachment',
-                          onPressed: isSaving
-                              ? null
-                              : () => setState(() => _pickedFile = null),
-                        ),
+              if (_pickedFiles.isEmpty)
+                OutlinedButton.icon(
+                  onPressed: isSaving ? null : _pickAttachment,
+                  icon: const Icon(Icons.attach_file),
+                  label: const Text('Attach photos or files (optional)'),
+                )
+              else ...[
+                for (final (index, file) in _pickedFiles.indexed)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: const Icon(Icons.attach_file),
+                      title: Text(
+                        file.fileName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Remove ${file.fileName}',
+                        onPressed: isSaving
+                            ? null
+                            : () =>
+                                setState(() => _pickedFiles.removeAt(index)),
                       ),
                     ),
+                  ),
+                OutlinedButton.icon(
+                  onPressed: isSaving ? null : _pickAttachment,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add more'),
+                ),
+              ],
             ],
             const SizedBox(height: 24),
             FilledButton.icon(
@@ -517,24 +541,30 @@ class _AttachedFileCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (document.hasImageFile)
-            Image.network(
-              document.fileUrl!.toString(),
-              height: 180,
-              fit: BoxFit.cover,
-              errorBuilder: (context, _, __) => Container(
+          for (final file in document.files)
+            if (file.isImage)
+              CachedNetworkImage(
+                imageUrl: file.fileUrl.toString(),
                 height: 180,
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Icon(Icons.broken_image_outlined, size: 48),
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorWidget: (context, _, __) => Container(
+                  height: 180,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: const Icon(Icons.broken_image_outlined, size: 48),
+                ),
               ),
-            ),
           ListTile(
             leading: Icon(
               document.hasImageFile
                   ? Icons.image_outlined
                   : Icons.picture_as_pdf_outlined,
             ),
-            title: const Text('Attached file'),
+            title: Text(
+              document.files.length <= 1
+                  ? 'Attached file'
+                  : '${document.files.length} attached files',
+            ),
             subtitle: Text(
               extension.isEmpty ? 'File' : extension.toUpperCase(),
             ),

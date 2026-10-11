@@ -4,27 +4,37 @@ import 'package:paw_vault/features/paw_scan/domain/paw_scan_copy.dart';
 
 /// The colour and icon for an attention level.
 ///
-/// [PawAttentionLevel.nothingNotable] is deliberately neutral rather than a
-/// green tick: a green tick reads as "your pet is fine", which is a claim the
-/// app cannot make from one photograph.
+/// These are fixed hues rather than `ColorScheme` roles. An attention level
+/// means something — like `error` does — and the seeded scheme's secondary and
+/// tertiary roles are both teal here, so `vetSoon` came out blue, which reads
+/// as positive and draws no attention, and `nothingNotable` shared grey with
+/// `undetermined`, which reads as "could not assess".
+///
+/// They are muted on purpose. `nothingNotable` is a green that says this scan
+/// found nothing notable — not a green tick claiming the pet is fine, which is
+/// a claim the app cannot make from a photograph; the guidance sentence under
+/// the label still says so in words. `vetSoon` is a red that asks to be read,
+/// kept below `vetPromptly` so the ladder still rises.
 ({Color background, Color foreground, IconData icon}) _style(
   ColorScheme scheme,
   PawAttentionLevel level,
 ) {
+  final isDark = scheme.brightness == Brightness.dark;
+
   return switch (level) {
     PawAttentionLevel.nothingNotable => (
-        background: scheme.surfaceContainerHighest,
-        foreground: scheme.onSurfaceVariant,
-        icon: Icons.remove_circle_outline,
+        background: isDark ? const Color(0xFF1E3A2B) : const Color(0xFFDCEFE1),
+        foreground: isDark ? const Color(0xFFA8D5B5) : const Color(0xFF1B5E3F),
+        icon: Icons.check_circle_outline,
       ),
     PawAttentionLevel.monitor => (
-        background: scheme.secondaryContainer,
-        foreground: scheme.onSecondaryContainer,
+        background: isDark ? const Color(0xFF3D3321) : const Color(0xFFFBF0D5),
+        foreground: isDark ? const Color(0xFFE8CE8A) : const Color(0xFF6B5000),
         icon: Icons.visibility_outlined,
       ),
     PawAttentionLevel.vetSoon => (
-        background: scheme.tertiaryContainer,
-        foreground: scheme.onTertiaryContainer,
+        background: isDark ? const Color(0xFF4A2420) : const Color(0xFFFBE3E0),
+        foreground: isDark ? const Color(0xFFF0B4AE) : const Color(0xFF8C2F26),
         icon: Icons.medical_services_outlined,
       ),
     PawAttentionLevel.vetPromptly => (
@@ -40,7 +50,7 @@ import 'package:paw_vault/features/paw_scan/domain/paw_scan_copy.dart';
   };
 }
 
-/// Compact attention chip, for journal rows and comparison columns.
+/// Compact attention chip, for history rows and comparison columns.
 class PawAttentionBadge extends StatelessWidget {
   const PawAttentionBadge({required this.level, super.key});
 

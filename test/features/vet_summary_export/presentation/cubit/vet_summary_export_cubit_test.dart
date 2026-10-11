@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -97,6 +98,85 @@ void main() {
       expect(saved.storagePath, storage.uploadedPath);
       expect(cubit.state.status, VetSummaryExportStatus.saved);
 
+      await cubit.close();
+    });
+
+    test('saveCopy records the name the owner typed', () async {
+      // The reported bug: the saved copy had no name at all, so the app
+      // listed it by its timestamp instead of 'Jotaro_vet_summary.pdf'.
+      final exportRepo = _FakeExportRepository();
+      final cubit = _cubit(exportRepository: exportRepo, pet: _pet());
+
+      await cubit.generate('pet-1');
+      await cubit.saveCopy(fileName: 'Jotaro checkup');
+
+      expect(exportRepo.savedExport!.fileName, 'Jotaro checkup.pdf');
+      expect(exportRepo.savedExport!.displayName, 'Jotaro checkup.pdf');
+
+      await cubit.close();
+    });
+
+    test('saveCopy falls back to the suggested name', () async {
+      final exportRepo = _FakeExportRepository();
+      final cubit = _cubit(exportRepository: exportRepo, pet: _pet());
+
+      await cubit.generate('pet-1');
+      await cubit.saveCopy(fileName: '   ');
+
+      expect(exportRepo.savedExport!.fileName, cubit.defaultFileName());
+
+      await cubit.close();
+    });
+
+    test('a summary still being saved sorts above the saved ones', () async {
+      // Its server timestamp has not landed, so it has no date yet — but it
+      // is the newest thing in the list and must not sort to the bottom.
+      const pending = VetSummaryExport(
+        id: EntityId('export-2'),
+        userId: EntityId('user-1'),
+        petId: EntityId('pet-1'),
+        fileName: 'Jotaro_vet_summary.pdf',
+      );
+      final cubit = _cubit(
+        exportRepository: _FakeExportRepository(
+          watchedExports: [_export(), pending],
+        ),
+        pet: _pet(),
+      );
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        cubit.state.exports.map((e) => e.id.value),
+        ['export-2', 'export-1'],
+      );
+      expect(cubit.state.historyStatus, VetSummaryHistoryStatus.ready);
+
+      await cubit.close();
+    });
+
+    test('a failed refresh keeps the history already on screen', () async {
+      // The reported bug: an error replaced the list with red text and the
+      // only way back was to leave the screen and return.
+      final controller = StreamController<List<VetSummaryExport>>();
+      final cubit = _cubit(
+        exportRepository: _FakeExportRepository(controller: controller),
+        pet: _pet(),
+      );
+
+      await cubit.load('pet-1');
+      controller.add([_export()]);
+      await Future<void>.delayed(Duration.zero);
+      expect(cubit.state.exports, hasLength(1));
+
+      controller.addError(StateError('snapshot failed'));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.historyStatus, VetSummaryHistoryStatus.ready);
+      expect(cubit.state.exports, hasLength(1));
+
+      await controller.close();
       await cubit.close();
     });
 
@@ -239,10 +319,15 @@ class _FakeExportRepository implements VetSummaryExportRepository {
   _FakeExportRepository({
     this.watchedExports = const [],
     this.throwsOnWatch = false,
+    this.controller,
   });
 
   final List<VetSummaryExport> watchedExports;
   final bool throwsOnWatch;
+
+  /// Lets a test drive the watch stream event by event, so a snapshot
+  /// failure arriving after a good list can be exercised.
+  final StreamController<List<VetSummaryExport>>? controller;
 
   VetSummaryExport? savedExport;
 
@@ -261,6 +346,10 @@ class _FakeExportRepository implements VetSummaryExportRepository {
   }) {
     if (throwsOnWatch) {
       return Stream<List<VetSummaryExport>>.error(StateError('watch failed'));
+    }
+    final controller = this.controller;
+    if (controller != null) {
+      return controller.stream;
     }
     return Stream<List<VetSummaryExport>>.value(watchedExports);
   }

@@ -57,7 +57,7 @@ void main() {
       documentSourcePicker: base.documentSourcePicker,
       petPhotoPicker: picker,
       eventPhotoPicker: base.eventPhotoPicker,
-      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      reminderNotificationScheduler: FakeReminderNotificationScheduler(),
       analyticsService: base.analyticsService,
       subscriptionService: base.subscriptionService,
       paywallPresenter: base.paywallPresenter,

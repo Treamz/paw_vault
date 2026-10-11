@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
@@ -131,174 +132,176 @@ class _PetProfileView extends StatelessWidget {
             ),
           ],
         ),
-        body: BlocBuilder<PetProfileCubit, PetProfileState>(
-          builder: (context, state) {
-            if (state.status == PetProfileStatus.loading) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            }
+        body: AdaptiveBody(
+          child: BlocBuilder<PetProfileCubit, PetProfileState>(
+            builder: (context, state) {
+              if (state.status == PetProfileStatus.loading) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
 
-            if (state.status == PetProfileStatus.notFound) {
-              return const Center(
-                child: Text('Pet not found'),
-              );
-            }
+              if (state.status == PetProfileStatus.notFound) {
+                return const Center(
+                  child: Text('Pet not found'),
+                );
+              }
 
-            if (state.status == PetProfileStatus.failure) {
-              return Center(
+              if (state.status == PetProfileStatus.failure) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: Colors.red,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error loading pet',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      if (state.errorMessage != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          state.errorMessage!,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }
+
+              final pet = state.pet;
+              if (pet == null) {
+                return const Center(
+                  child: Text('No pet data available'),
+                );
+              }
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: Colors.red,
+                    if (pet.photoUrl != null) ...[
+                      Center(
+                        child: GestureDetector(
+                          onTap: () => showFullScreenImage(
+                            context,
+                            CachedNetworkImageProvider(
+                              pet.photoUrl.toString(),
+                            ),
+                          ),
+                          child: ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: pet.photoUrl.toString(),
+                              width: 128,
+                              height: 128,
+                              fit: BoxFit.cover,
+                              fadeInDuration: const Duration(milliseconds: 150),
+                              placeholder: (context, url) =>
+                                  _photoPlaceholder(context),
+                              errorWidget: (context, url, error) =>
+                                  _photoPlaceholder(context),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                    _buildRecordsCard(context, pet.id.value),
+                    const SizedBox(height: 16),
+                    _buildInfoCard(
+                      context,
+                      'Basic Information',
+                      [
+                        _InfoRow('Name', pet.name),
+                        if (pet.species != null)
+                          _InfoRow('Species', pet.species!),
+                        if (pet.breed != null) _InfoRow('Breed', pet.breed!),
+                        if (pet.gender != null)
+                          _InfoRow(
+                            'Gender',
+                            pet.gender!.name[0].toUpperCase() +
+                                pet.gender!.name.substring(1),
+                          ),
+                        _InfoRow(
+                          'Birth Date',
+                          pet.birthDate != null
+                              ? DateFormat.yMMMd()
+                                  .format(pet.birthDate!.toUtcDateTime())
+                              : 'Not set',
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      'Error loading pet',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    if (state.errorMessage != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        state.errorMessage!,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        textAlign: TextAlign.center,
+                    _buildOwnerCard(context, state),
+                    const SizedBox(height: 16),
+                    if (pet.weight != null || pet.measurements.isNotEmpty) ...[
+                      _buildInfoCard(
+                        context,
+                        'Physical Details',
+                        [
+                          if (pet.weight != null)
+                            _InfoRow(
+                              'Weight',
+                              '${formatDecimal(pet.weight!.value)} '
+                                  '${pet.weight!.unit.name}',
+                            ),
+                          for (final measurement in pet.measurements)
+                            _InfoRow(
+                              measurement.type.label,
+                              '${_formatCm(measurement.valueCm)} cm',
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    if (pet.microchipNumber != null) ...[
+                      _buildInfoCard(
+                        context,
+                        'Identification',
+                        [
+                          _InfoRow('Microchip Number', pet.microchipNumber!),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    if (pet.allergies.isNotEmpty ||
+                        pet.chronicConditions.isNotEmpty) ...[
+                      _buildInfoCard(
+                        context,
+                        'Health Information',
+                        [
+                          if (pet.allergies.isNotEmpty)
+                            _InfoRow('Allergies', pet.allergies.join(', ')),
+                          if (pet.chronicConditions.isNotEmpty)
+                            _InfoRow(
+                              'Chronic Conditions',
+                              pet.chronicConditions.join(', '),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    if (pet.notes != null) ...[
+                      _buildInfoCard(
+                        context,
+                        'Notes',
+                        [
+                          _InfoRow('', pet.notes!),
+                        ],
                       ),
                     ],
                   ],
                 ),
               );
-            }
-
-            final pet = state.pet;
-            if (pet == null) {
-              return const Center(
-                child: Text('No pet data available'),
-              );
-            }
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (pet.photoUrl != null) ...[
-                    Center(
-                      child: GestureDetector(
-                        onTap: () => showFullScreenImage(
-                          context,
-                          CachedNetworkImageProvider(
-                            pet.photoUrl.toString(),
-                          ),
-                        ),
-                        child: ClipOval(
-                          child: CachedNetworkImage(
-                            imageUrl: pet.photoUrl.toString(),
-                            width: 128,
-                            height: 128,
-                            fit: BoxFit.cover,
-                            fadeInDuration: const Duration(milliseconds: 150),
-                            placeholder: (context, url) =>
-                                _photoPlaceholder(context),
-                            errorWidget: (context, url, error) =>
-                                _photoPlaceholder(context),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  _buildRecordsCard(context, pet.id.value),
-                  const SizedBox(height: 16),
-                  _buildInfoCard(
-                    context,
-                    'Basic Information',
-                    [
-                      _InfoRow('Name', pet.name),
-                      if (pet.species != null)
-                        _InfoRow('Species', pet.species!),
-                      if (pet.breed != null) _InfoRow('Breed', pet.breed!),
-                      if (pet.gender != null)
-                        _InfoRow(
-                          'Gender',
-                          pet.gender!.name[0].toUpperCase() +
-                              pet.gender!.name.substring(1),
-                        ),
-                      _InfoRow(
-                        'Birth Date',
-                        pet.birthDate != null
-                            ? DateFormat.yMMMd()
-                                .format(pet.birthDate!.toUtcDateTime())
-                            : 'Not set',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildOwnerCard(context, state),
-                  const SizedBox(height: 16),
-                  if (pet.weight != null || pet.measurements.isNotEmpty) ...[
-                    _buildInfoCard(
-                      context,
-                      'Physical Details',
-                      [
-                        if (pet.weight != null)
-                          _InfoRow(
-                            'Weight',
-                            '${formatDecimal(pet.weight!.value)} '
-                                '${pet.weight!.unit.name}',
-                          ),
-                        for (final measurement in pet.measurements)
-                          _InfoRow(
-                            measurement.type.label,
-                            '${_formatCm(measurement.valueCm)} cm',
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  if (pet.microchipNumber != null) ...[
-                    _buildInfoCard(
-                      context,
-                      'Identification',
-                      [
-                        _InfoRow('Microchip Number', pet.microchipNumber!),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  if (pet.allergies.isNotEmpty ||
-                      pet.chronicConditions.isNotEmpty) ...[
-                    _buildInfoCard(
-                      context,
-                      'Health Information',
-                      [
-                        if (pet.allergies.isNotEmpty)
-                          _InfoRow('Allergies', pet.allergies.join(', ')),
-                        if (pet.chronicConditions.isNotEmpty)
-                          _InfoRow(
-                            'Chronic Conditions',
-                            pet.chronicConditions.join(', '),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  if (pet.notes != null) ...[
-                    _buildInfoCard(
-                      context,
-                      'Notes',
-                      [
-                        _InfoRow('', pet.notes!),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            );
-          },
+            },
+          ),
         ),
       ),
     );
@@ -320,7 +323,7 @@ class _PetProfileView extends StatelessWidget {
       (Icons.pets, 'Paw Scan', PawScanRoute(petId: petId), true),
       (
         Icons.summarize,
-        'Vet Summary Export',
+        'Vet Summary',
         VetSummaryExportRoute(petId: petId),
         false,
       ),

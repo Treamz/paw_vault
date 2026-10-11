@@ -13,6 +13,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -20,10 +21,13 @@ import 'package:paw_vault/app/app.dart';
 import 'package:paw_vault/core/di/app_dependencies.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/features/documents/domain/entities/document_attachment.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
+
+import 'support/fakes.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -52,6 +56,27 @@ void main() {
         storagePath:
             'users/local-anonymous-user/pets/pet-1/documents/doc-1/original.jpg',
         issueDate: DateOnly.fromDateTime(DateTime(2026, 1, 5)),
+      ),
+      // Scanned from two pages: the reported bug showed only the first.
+      PetDocument(
+        id: const EntityId('doc-3'),
+        userId: const EntityId('local-anonymous-user'),
+        petId: const EntityId('pet-1'),
+        title: 'Two-page lab result',
+        type: PetDocumentType.labResult,
+        attachments: [
+          DocumentAttachment(
+            fileUrl: Uri.parse('$imageUrl?page=1'),
+            storagePath: 'users/local-anonymous-user/pets/pet-1/documents/'
+                'doc-3/attachment_0.jpg',
+          ),
+          DocumentAttachment(
+            fileUrl: Uri.parse('$imageUrl?page=2'),
+            storagePath: 'users/local-anonymous-user/pets/pet-1/documents/'
+                'doc-3/attachment_1.jpg',
+          ),
+        ],
+        issueDate: DateOnly.fromDateTime(DateTime(2026, 2, 9)),
       ),
       PetDocument(
         id: const EntityId('doc-2'),
@@ -89,7 +114,7 @@ void main() {
       documentSourcePicker: base.documentSourcePicker,
       petPhotoPicker: base.petPhotoPicker,
       eventPhotoPicker: base.eventPhotoPicker,
-      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      reminderNotificationScheduler: FakeReminderNotificationScheduler(),
       analyticsService: base.analyticsService,
       subscriptionService: base.subscriptionService,
       paywallPresenter: base.paywallPresenter,
@@ -101,6 +126,16 @@ void main() {
     await binding.convertFlutterSurfaceToImage();
     await tester.pumpAndSettle();
 
+    // `takeScreenshot` right after `pumpAndSettle` kept returning the same
+    // frame for every call — all four PNGs came out byte-identical. The extra
+    // `pump` forces the surface to update first, matching what the working
+    // store-screenshot run in screenshots_test.dart does.
+    Future<void> shoot(String name) async {
+      await tester.pumpAndSettle(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 200));
+      await binding.takeScreenshot(name);
+    }
+
     // Navigate: pet list -> profile -> Documents.
     await tester.tap(find.text('Rex'));
     await tester.pumpAndSettle();
@@ -111,8 +146,14 @@ void main() {
     // issue date on the title row.
     expect(find.text('Scanned vaccination card'), findsOneWidget);
     expect(find.text('Insurance policy'), findsOneWidget);
+    // Both of these assertions were stale and had been failing on `main`
+    // before this change: the subtitle lost its "Issued" prefix, and the list
+    // row shows a type icon rather than a thumbnail (`_DocumentsContent`
+    // renders a CircleAvatar — "the photo itself is visible inside the
+    // document"). Integration tests do not run under `flutter test`, so
+    // nobody noticed.
     expect(
-      find.text('Vaccination Certificate · Issued Jan 5, 2026'),
+      find.text('Vaccination Certificate · Jan 5, 2026'),
       findsOneWidget,
     );
     final imageTile = find.ancestor(
@@ -120,30 +161,85 @@ void main() {
       matching: find.byType(ListTile),
     );
     expect(
-      find.descendant(of: imageTile, matching: find.byType(Image)),
+      find.descendant(of: imageTile, matching: find.byType(CircleAvatar)),
+      findsOneWidget,
+    );
+    // Reported twice: opening a document showed a blank box for a couple of
+    // seconds with no hint that anything was attached. The row now says so
+    // without waiting on the network, and carries a thumbnail that warms the
+    // cache the sheet reads from.
+    expect(
+      find.descendant(of: imageTile, matching: find.byIcon(Icons.attach_file)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: imageTile,
+        matching: find.byType(CachedNetworkImage),
+      ),
       findsOneWidget,
     );
     await _settleImages(tester);
-    await binding.takeScreenshot('01_documents_list_thumbnail');
+    await shoot('01_documents_list');
 
-    // Open the image document: inline preview + attached-file action.
+    // Tapping a row opens the details sheet. Its attachment block is what
+    // this fix changed, so assert against that rather than the form screen's
+    // "Attached file" tile, which the old assertions were aimed at.
     await tester.tap(find.text('Scanned vaccination card'));
     await tester.pumpAndSettle();
-    expect(find.text('Attached file'), findsOneWidget);
-    expect(find.text('JPG'), findsOneWidget);
-    expect(find.byType(Image), findsOneWidget);
     await _settleImages(tester);
-    await binding.takeScreenshot('02_document_image_preview');
+    expect(find.text('Issued'), findsOneWidget);
+    expect(_sheetImages(), findsOneWidget);
+    // The preview declares a placeholder, so the sheet shows a loading box
+    // the moment it opens instead of empty space. That ambiguity is what QA
+    // reported as "you cannot even tell something is attached".
+    expect(
+      tester.widget<CachedNetworkImage>(_sheetImages()).placeholder,
+      isNotNull,
+    );
+    await shoot('02_document_image_preview');
 
-    // Back to the list, open the PDF document: labeled file tile, no preview.
-    await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
+    // A non-image attachment gets an open action labelled with its type
+    // instead of a preview. The sheet has to be dismissed first, or the tap
+    // lands on its scrim.
+    await _dismissSheet(tester);
     await tester.tap(find.text('Insurance policy'));
     await tester.pumpAndSettle();
-    expect(find.text('Attached file'), findsOneWidget);
-    expect(find.text('PDF'), findsOneWidget);
-    await binding.takeScreenshot('03_document_pdf_tile');
+    expect(find.text('Open PDF'), findsOneWidget);
+    expect(_sheetImages(), findsNothing);
+    await shoot('03_document_pdf_tile');
+
+    // The scanned two-page document must show BOTH files. Showing one is the
+    // bug QA reported: the second attachment looked lost.
+    await _dismissSheet(tester);
+    await tester.tap(find.text('Two-page lab result'));
+    await tester.pumpAndSettle();
+    await _settleImages(tester);
+
+    expect(_sheetImages(), findsNWidgets(2));
+    await shoot('04_document_two_attachments');
   });
+}
+
+/// The previews inside the open details sheet.
+///
+/// Scoped to the sheet because the list rows behind it now carry thumbnails
+/// of their own, so an unscoped `find.byType(CachedNetworkImage)` counts
+/// those too.
+Finder _sheetImages() => find.descendant(
+      of: find.byType(DraggableScrollableSheet),
+      matching: find.byType(CachedNetworkImage),
+    );
+
+/// Closes the open details bottom sheet.
+///
+/// The sheet is a `DraggableScrollableSheet` at 0.65 of the height, so the
+/// scrim is the top third of the screen. `find.byType(ModalBarrier)` matches
+/// more than one barrier here and tapping it does not reliably dismiss, so
+/// tap a coordinate inside the scrim instead.
+Future<void> _dismissSheet(WidgetTester tester) async {
+  await tester.tapAt(const Offset(200, 60));
+  await tester.pumpAndSettle();
 }
 
 /// Gives in-flight network images a moment to arrive and paints the result.

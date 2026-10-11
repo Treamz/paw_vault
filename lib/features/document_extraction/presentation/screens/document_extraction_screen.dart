@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
+import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/document_extraction/domain/entities/document_extraction_draft.dart';
 import 'package:paw_vault/features/document_extraction/domain/repositories/document_extraction_ai_repository.dart';
@@ -14,6 +16,7 @@ import 'package:paw_vault/features/documents/domain/repositories/document_reposi
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 import 'package:paw_vault/features/documents/presentation/models/pet_document_form_state.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
+import 'package:printing/printing.dart';
 
 @RoutePage()
 class DocumentExtractionScreen extends StatelessWidget {
@@ -61,6 +64,12 @@ class _ExtractionViewState extends State<_ExtractionView> {
   DateTime? _expiryDate;
   bool _seeded = false;
 
+  /// Field errors from the last attempt to confirm.
+  ///
+  /// The scan rarely finds an issue date, and the date is required, so a bare
+  /// "Please fix validation errors" left no clue which field was at fault.
+  PetDocumentFormValidation? _validation;
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -91,12 +100,15 @@ class _ExtractionViewState extends State<_ExtractionView> {
 
   void _confirm(BuildContext context) {
     final formState = _buildFormState();
-    if (!formState.validate().isValid) {
+    final validation = formState.validate();
+    if (!validation.isValid) {
+      setState(() => _validation = validation);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fix validation errors')),
       );
       return;
     }
+    setState(() => _validation = null);
     context.read<DocumentExtractionCubit>().confirmExtraction(
           widget.petId,
           formState,
@@ -107,7 +119,7 @@ class _ExtractionViewState extends State<_ExtractionView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Scan Document')),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocConsumer<DocumentExtractionCubit, DocumentExtractionState>(
           listener: (context, state) {
             if (state.status == DocumentExtractionStatus.review &&
@@ -143,13 +155,17 @@ class _ExtractionViewState extends State<_ExtractionView> {
               DocumentExtractionStatus.saving =>
                 _ReviewForm(
                   draft: state.draft,
-                  pageCount: state.pickedFiles.length,
+                  pickedFiles: state.pickedFiles,
                   onAddPage: () => _addPage(context),
                   titleController: _titleController,
                   notesController: _notesController,
                   selectedType: _selectedType,
                   issueDate: _issueDate,
+                  issueDateError: _validation?.errorFor('issueDate'),
+                  typeError: _validation?.errorFor('type'),
+                  titleError: _validation?.errorFor('title'),
                   expiryDate: _expiryDate,
+                  onClearExpiryDate: _clearExpiryDate,
                   isSaving: state.status == DocumentExtractionStatus.saving,
                   onTypeChanged: (value) =>
                       setState(() => _selectedType = value),
@@ -214,7 +230,14 @@ class _ExtractionViewState extends State<_ExtractionView> {
       lastDate: now,
     );
     if (picked != null) {
-      setState(() => _issueDate = picked);
+      setState(() {
+        _issueDate = picked;
+        // Re-validate rather than clearing: another field may still be at
+        // fault, and its error should stay on screen.
+        if (_validation != null) {
+          _validation = _buildFormState().validate();
+        }
+      });
     }
   }
 
@@ -228,8 +251,24 @@ class _ExtractionViewState extends State<_ExtractionView> {
       lastDate: DateTime(now.year + 100),
     );
     if (picked != null) {
-      setState(() => _expiryDate = picked);
+      setState(() {
+        _expiryDate = picked;
+        // An expiry before the issue date is a validation error, so refresh
+        // it the same way picking an issue date does.
+        if (_validation != null) {
+          _validation = _buildFormState().validate();
+        }
+      });
     }
+  }
+
+  void _clearExpiryDate() {
+    setState(() {
+      _expiryDate = null;
+      if (_validation != null) {
+        _validation = _buildFormState().validate();
+      }
+    });
   }
 }
 
@@ -296,16 +335,178 @@ class _Busy extends StatelessWidget {
   }
 }
 
+/// Thumbnails of the files attached to this analysis, before anything is
+/// saved.
+///
+/// The review form used to state only how many pages were attached, which is
+/// no help when you have forgotten which photo you picked. These read from
+/// the picked bytes, so nothing has to be uploaded first.
+class _AttachedPages extends StatelessWidget {
+  const _AttachedPages({required this.files});
+
+  static const _imageExtensions = {'jpg', 'jpeg', 'png', 'heic', 'webp'};
+
+  final List<PickedFile> files;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 96,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: files.length,
+        separatorBuilder: (context, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) => _AttachedPageThumbnail(
+          file: files[index],
+          pageNumber: index + 1,
+          isImage:
+              _imageExtensions.contains(files[index].extension.toLowerCase()),
+        ),
+      ),
+    );
+  }
+}
+
+class _AttachedPageThumbnail extends StatelessWidget {
+  const _AttachedPageThumbnail({
+    required this.file,
+    required this.pageNumber,
+    required this.isImage,
+  });
+
+  final PickedFile file;
+  final int pageNumber;
+  final bool isImage;
+
+  void _open(BuildContext context) {
+    if (isImage) {
+      showFullScreenImage(context, MemoryImage(file.bytes));
+      return;
+    }
+
+    if (file.extension.toLowerCase() == 'pdf') {
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute<void>(
+          builder: (_) => _PickedPdfPreviewScreen(file: file),
+        ),
+      );
+      return;
+    }
+
+    // Anything else has no in-app viewer; say so rather than doing nothing.
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'No preview for ${file.extension.isEmpty ? 'this file' : '.${file.extension}'} files',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Page $pageNumber, ${file.fileName}',
+      child: Tooltip(
+        message: file.fileName,
+        child: InkWell(
+          onTap: () => _open(context),
+          borderRadius: BorderRadius.circular(12),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 96,
+              height: 96,
+              child: isImage
+                  ? Image.memory(
+                      file.bytes,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, _, __) => _FileTile(
+                        extension: file.extension,
+                        broken: true,
+                      ),
+                    )
+                  : _FileTile(extension: file.extension),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Stands in for a file that cannot be shown as an image.
+class _FileTile extends StatelessWidget {
+  const _FileTile({required this.extension, this.broken = false});
+
+  final String extension;
+  final bool broken;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ColoredBox(
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            broken
+                ? Icons.broken_image_outlined
+                : Icons.insert_drive_file_outlined,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          if (extension.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              extension.toUpperCase(),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// In-app viewer for a PDF that has been picked but not uploaded yet.
+class _PickedPdfPreviewScreen extends StatelessWidget {
+  const _PickedPdfPreviewScreen({required this.file});
+
+  final PickedFile file;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(file.fileName)),
+      body: PdfPreview(
+        build: (format) async => file.bytes,
+        pdfFileName: file.fileName,
+        canChangeOrientation: false,
+        canChangePageFormat: false,
+        canDebug: false,
+      ),
+    );
+  }
+}
+
 class _ReviewForm extends StatelessWidget {
   const _ReviewForm({
     required this.draft,
-    required this.pageCount,
+    required this.pickedFiles,
     required this.onAddPage,
     required this.titleController,
     required this.notesController,
     required this.selectedType,
     required this.issueDate,
+    required this.issueDateError,
+    required this.typeError,
+    required this.titleError,
     required this.expiryDate,
+    required this.onClearExpiryDate,
     required this.isSaving,
     required this.onTypeChanged,
     required this.onPickIssueDate,
@@ -314,13 +515,17 @@ class _ReviewForm extends StatelessWidget {
   });
 
   final DocumentExtractionDraft? draft;
-  final int pageCount;
+  final List<PickedFile> pickedFiles;
   final VoidCallback onAddPage;
   final TextEditingController titleController;
   final TextEditingController notesController;
   final PetDocumentType? selectedType;
   final DateTime? issueDate;
+  final String? issueDateError;
+  final String? typeError;
+  final String? titleError;
   final DateTime? expiryDate;
+  final VoidCallback onClearExpiryDate;
   final bool isSaving;
   final ValueChanged<PetDocumentType?> onTypeChanged;
   final VoidCallback onPickIssueDate;
@@ -330,6 +535,8 @@ class _ReviewForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat.yMMMMd();
+    final issueDateErrorColor =
+        issueDateError == null ? null : Theme.of(context).colorScheme.error;
 
     return AbsorbPointer(
       absorbing: isSaving,
@@ -356,9 +563,9 @@ class _ReviewForm extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    pageCount == 1
+                    pickedFiles.length == 1
                         ? '1 page attached'
-                        : '$pageCount pages attached',
+                        : '${pickedFiles.length} pages attached',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
@@ -369,6 +576,10 @@ class _ReviewForm extends StatelessWidget {
                 ),
               ],
             ),
+            if (pickedFiles.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _AttachedPages(files: pickedFiles),
+            ],
             if (draft?.isLowConfidence ?? false) ...[
               const SizedBox(height: 8),
               Row(
@@ -393,7 +604,10 @@ class _ReviewForm extends StatelessWidget {
             DropdownButtonFormField<PetDocumentType>(
               initialValue: selectedType,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Type'),
+              decoration: InputDecoration(
+                labelText: 'Type',
+                errorText: typeError,
+              ),
               items: [
                 for (final type in PetDocumentType.values)
                   DropdownMenuItem(value: type, child: Text(_formatType(type))),
@@ -403,16 +617,37 @@ class _ReviewForm extends StatelessWidget {
             const SizedBox(height: 16),
             TextFormField(
               controller: titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
+              decoration: InputDecoration(
+                labelText: 'Title',
+                errorText: titleError,
+              ),
             ),
             const SizedBox(height: 16),
+            // The whole row turns red once saving has been attempted without
+            // a date, rather than only its subtitle: the scan often cannot
+            // read a date off the page, and this is the one field the owner
+            // then has to fill in themselves.
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Issue date'),
-              subtitle: Text(
-                issueDate != null ? dateFormat.format(issueDate!) : 'Not set',
+              title: Text(
+                'Issue date (required)',
+                style: issueDateErrorColor == null
+                    ? null
+                    : TextStyle(color: issueDateErrorColor),
               ),
-              trailing: const Icon(Icons.calendar_today),
+              subtitle: Text(
+                issueDateError ??
+                    (issueDate != null
+                        ? dateFormat.format(issueDate!)
+                        : 'Not set'),
+                style: issueDateErrorColor == null
+                    ? null
+                    : TextStyle(color: issueDateErrorColor),
+              ),
+              trailing: Icon(
+                Icons.calendar_today,
+                color: issueDateErrorColor,
+              ),
               onTap: onPickIssueDate,
             ),
             ListTile(
@@ -421,7 +656,16 @@ class _ReviewForm extends StatelessWidget {
               subtitle: Text(
                 expiryDate != null ? dateFormat.format(expiryDate!) : 'Not set',
               ),
-              trailing: const Icon(Icons.calendar_today),
+              // Clearable because the scan fills this in when the document
+              // shows one, and a misread date has to be removable — the
+              // field is optional, so there is no date to fall back to.
+              trailing: expiryDate == null
+                  ? const Icon(Icons.calendar_today)
+                  : IconButton(
+                      icon: const Icon(Icons.clear),
+                      tooltip: 'Clear expiry date',
+                      onPressed: onClearExpiryDate,
+                    ),
               onTap: onPickExpiryDate,
             ),
             const SizedBox(height: 16),

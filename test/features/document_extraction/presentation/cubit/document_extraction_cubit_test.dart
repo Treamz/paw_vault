@@ -113,6 +113,30 @@ void main() {
       await cubit.close();
     });
 
+    test('one gallery pick can bring several pages at once', () async {
+      // Asked for by QA: selecting four photos should not mean four trips
+      // through the picker.
+      final picker = _FakePicker(
+        multiple: [
+          _pickedFile(name: 'page_1.jpg'),
+          _pickedFile(name: 'page_2.jpg'),
+          _pickedFile(name: 'page_3.jpg'),
+        ],
+      );
+      final aiRepository = _FakeAiRepository(draft: _draft());
+      final cubit = _cubit(picker: picker, aiRepository: aiRepository);
+
+      await cubit.pickAndExtract(DocumentSource.gallery);
+
+      expect(cubit.state.pickedFiles, hasLength(3));
+      // All of them analysed together, in one AI request.
+      expect(aiRepository.callCount, 1);
+      expect(aiRepository.lastPages, hasLength(3));
+      expect(cubit.state.status, DocumentExtractionStatus.review);
+
+      await cubit.close();
+    });
+
     test('appends pages and re-extracts all of them together', () async {
       final picker = _FakePicker(file: _pickedFile());
       final aiRepository = _FakeAiRepository(draft: _draft());
@@ -145,6 +169,50 @@ void main() {
       await cubit.close();
     });
 
+    test('confirmExtraction uploads every scanned page', () async {
+      // The reported bug: scanning two pages analysed both and saved only the
+      // first, so the owner silently lost the second file.
+      final documentRepository = _FakeDocumentRepository();
+      final storageRepository = _FakeStorageRepository();
+      final picker = _FakePicker(file: _pickedFile());
+      final cubit = _cubit(
+        picker: picker,
+        aiRepository: _FakeAiRepository(draft: _draft()),
+        documentRepository: documentRepository,
+        storageRepository: storageRepository,
+      );
+
+      await cubit.pickAndExtract(DocumentSource.gallery);
+      await cubit.pickAndExtract(DocumentSource.camera);
+      expect(cubit.state.pickedFiles, hasLength(2));
+
+      await cubit.confirmExtraction(
+        'pet-1',
+        PetDocumentFormState(
+          type: PetDocumentType.vaccinationCertificate,
+          title: 'Rabies vaccination',
+          issueDate: DateTime(2024, 1, 15),
+        ),
+      );
+
+      expect(storageRepository.uploadCallCount, 2);
+      expect(storageRepository.uploadedPaths, hasLength(2));
+      // Separate objects — a shared path would overwrite one with the other.
+      expect(
+        storageRepository.uploadedPaths.toSet(),
+        hasLength(2),
+      );
+
+      final saved = documentRepository.savedDocument!;
+      expect(saved.attachments, hasLength(2));
+      expect(saved.files, hasLength(2));
+      // The legacy pair stays populated so an older build still shows a file.
+      expect(saved.fileUrl, isNotNull);
+      expect(saved.storagePath, isNotNull);
+
+      await cubit.close();
+    });
+
     test('confirmExtraction saves the analysis to Smart Input history',
         () async {
       final smartInputRepository = _FakeSmartInputRepository();
@@ -169,6 +237,37 @@ void main() {
       expect(message.originalText, contains('Rabies vaccination'));
       expect(message.status, SmartMessageStatus.confirmed);
       expect(message.petId.value, 'pet-1');
+
+      await cubit.close();
+    });
+
+    test('the Smart Input entry carries every scanned file', () async {
+      // The reported bug: files attached in Smart Input were nowhere to be
+      // seen in History, which showed text only.
+      final smartInputRepository = _FakeSmartInputRepository();
+      final documentRepository = _FakeDocumentRepository();
+      final cubit = _cubit(
+        picker: _FakePicker(file: _pickedFile()),
+        aiRepository: _FakeAiRepository(draft: _draft()),
+        documentRepository: documentRepository,
+        smartInputRepository: smartInputRepository,
+      );
+
+      await cubit.pickAndExtract(DocumentSource.gallery);
+      await cubit.pickAndExtract(DocumentSource.camera);
+      await cubit.confirmExtraction(
+        'pet-1',
+        PetDocumentFormState(
+          type: PetDocumentType.vaccinationCertificate,
+          title: 'Rabies vaccination',
+          issueDate: DateTime(2024, 1, 15),
+        ),
+      );
+
+      final message = smartInputRepository.savedMessages.single;
+      expect(message.attachments, hasLength(2));
+      // The same files the document itself got, not a second upload.
+      expect(message.attachments, documentRepository.savedDocument!.files);
 
       await cubit.close();
     });
@@ -244,12 +343,13 @@ DocumentExtractionCubit _cubit({
   );
 }
 
-PickedFile _pickedFile() {
+PickedFile _pickedFile({String name = 'vax.pdf'}) {
+  final extension = name.split('.').last;
   return PickedFile(
     bytes: Uint8List.fromList([1, 2, 3]),
-    fileName: 'vax.pdf',
-    extension: 'pdf',
-    contentType: 'application/pdf',
+    fileName: name,
+    extension: extension,
+    contentType: extension == 'pdf' ? 'application/pdf' : 'image/\$extension',
   );
 }
 
@@ -263,15 +363,29 @@ DocumentExtractionDraft _draft() {
 }
 
 class _FakePicker implements DocumentSourcePicker {
-  _FakePicker({PickedFile? file}) : fileOverride = file;
+  _FakePicker({PickedFile? file, this.multiple}) : fileOverride = file;
 
   PickedFile? fileOverride;
+
+  /// What the gallery hands back; defaults to [fileOverride] on its own.
+  final List<PickedFile>? multiple;
   DocumentSource? requestedSource;
 
   @override
   Future<PickedFile?> pick(DocumentSource source) async {
     requestedSource = source;
     return fileOverride;
+  }
+
+  @override
+  Future<List<PickedFile>> pickMultipleFromGallery() async {
+    requestedSource = DocumentSource.gallery;
+    final picked = multiple;
+    if (picked != null) {
+      return picked;
+    }
+    final single = fileOverride;
+    return single == null ? const [] : [single];
   }
 }
 
@@ -394,6 +508,7 @@ class _FakeDocumentRepository implements DocumentRepository {
 class _FakeStorageRepository implements StorageRepository {
   int uploadCallCount = 0;
   String? uploadedPath;
+  final uploadedPaths = <String>[];
 
   @override
   Future<StorageFile> uploadBytes({
@@ -403,6 +518,7 @@ class _FakeStorageRepository implements StorageRepository {
   }) async {
     uploadCallCount++;
     uploadedPath = path;
+    uploadedPaths.add(path);
     return StorageFile(
       path: path,
       downloadUrl: Uri.parse('https://storage.example.com/$path'),
@@ -416,4 +532,8 @@ class _FakeStorageRepository implements StorageRepository {
 class _UnusedFilePicker implements FilePicker {
   @override
   Future<PickedFile?> pickDocument() async => null;
+
+  @override
+  Future<List<PickedFile>> pickDocuments() async =>
+      pickDocument().then((file) => file == null ? <PickedFile>[] : [file]);
 }

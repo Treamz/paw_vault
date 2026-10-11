@@ -3,10 +3,73 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/core/firebase/firestore/firestore_mapping.dart';
+import 'package:paw_vault/features/documents/domain/entities/document_attachment.dart';
 import 'package:paw_vault/features/smart_input/data/mappers/smart_message_firestore_mapper.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 
 void main() {
+  group('SmartMessageFirestoreMapper attachments', () {
+    test('round-trips every attachment of a scanned entry', () {
+      // The reported bug: a scan attached two files and History showed none.
+      final message = _message(
+        attachments: [
+          DocumentAttachment(
+            fileUrl: Uri.parse('https://example.com/attachment_0.png'),
+            storagePath: 'users/user-1/pets/pet-1/documents/doc-1/'
+                'attachment_0.png',
+          ),
+          DocumentAttachment(
+            fileUrl: Uri.parse('https://example.com/attachment_1.pdf'),
+            storagePath: 'users/user-1/pets/pet-1/documents/doc-1/'
+                'attachment_1.pdf',
+          ),
+        ],
+      );
+
+      final data = SmartMessageFirestoreMapper.toFirestore(message);
+      expect(data['attachments'], hasLength(2));
+
+      final restored = SmartMessageFirestoreMapper.fromFirestore(
+        id: const EntityId('message-1'),
+        data: data,
+      );
+
+      expect(restored.attachments, message.attachments);
+      expect(restored.imageAttachments, hasLength(1));
+      expect(restored.imageAttachments.single.fileExtension, 'png');
+    });
+
+    test('a typed entry writes no attachments field and reads back empty', () {
+      // Entries saved before attachment support, and every typed note, have
+      // no such field at all — that must not be a mapping error.
+      final data = SmartMessageFirestoreMapper.toFirestore(_message());
+
+      expect(data.containsKey('attachments'), isFalse);
+      expect(
+        SmartMessageFirestoreMapper.fromFirestore(
+          id: const EntityId('message-1'),
+          data: data,
+        ).attachments,
+        isEmpty,
+      );
+    });
+
+    test('rejects a malformed attachment rather than dropping it', () {
+      expect(
+        () => SmartMessageFirestoreMapper.fromFirestore(
+          id: const EntityId('message-1'),
+          data: {
+            ...SmartMessageFirestoreMapper.toFirestore(_message()),
+            'attachments': [
+              {'storagePath': 'a.png'},
+            ],
+          },
+        ),
+        throwsA(isA<FirestoreMappingException>()),
+      );
+    });
+  });
+
   group('SmartMessageFirestoreMapper', () {
     test('maps a complete SmartMessage to Firestore data', () {
       final message = _message();
@@ -181,9 +244,10 @@ void main() {
   });
 }
 
-SmartMessage _message() {
+SmartMessage _message({List<DocumentAttachment> attachments = const []}) {
   return SmartMessage(
     id: const EntityId('message-1'),
+    attachments: attachments,
     userId: const EntityId('user-1'),
     petId: const EntityId('pet-1'),
     originalText: 'Add rabies vaccine from today.',

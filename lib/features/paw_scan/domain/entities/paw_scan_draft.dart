@@ -111,10 +111,10 @@ class PawScanDraft {
       status != PawScanDraftStatus.blocked &&
       attentionLevel != PawAttentionLevel.undetermined;
 
-  /// Whether this draft may be written to the journal.
+  /// Whether this draft may be written to History.
   ///
   /// Only a result with an established attention level qualifies: logging a
-  /// "no result" check would put a meaningless row in the pet's journal and,
+  /// "no result" check would put a meaningless row in the pet's history and,
   /// worse, a row a vet might read as "checked, nothing found".
   bool get canBeLogged =>
       isUsable &&

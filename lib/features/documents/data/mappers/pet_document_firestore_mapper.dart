@@ -1,5 +1,6 @@
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/firebase/firestore/firestore_mapping.dart';
+import 'package:paw_vault/features/documents/data/mappers/document_attachment_firestore_mapper.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 
 abstract final class PetDocumentFirestoreMapper {
@@ -12,6 +13,10 @@ abstract final class PetDocumentFirestoreMapper {
       if (document.fileUrl != null)
         'fileUrl': FirestoreMapping.uriToJson(document.fileUrl!),
       if (document.storagePath != null) 'storagePath': document.storagePath,
+      if (document.attachments.isNotEmpty)
+        'attachments': DocumentAttachmentFirestoreMapper.listToFirestore(
+          document.attachments,
+        ),
       if (document.extractedText != null)
         'extractedText': document.extractedText,
       'extractedData': document.extractedData,
@@ -48,6 +53,9 @@ abstract final class PetDocumentFirestoreMapper {
       fileUrl: data['fileUrl'] == null
           ? null
           : FirestoreMapping.uriFromJson(data['fileUrl'], 'fileUrl'),
+      attachments: DocumentAttachmentFirestoreMapper.listFromFirestore(
+        data['attachments'],
+      ),
       storagePath: _optionalStringFromFirestore(
         data['storagePath'],
         'storagePath',

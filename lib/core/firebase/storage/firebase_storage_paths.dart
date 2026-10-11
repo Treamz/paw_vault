@@ -8,6 +8,20 @@ abstract final class FirebaseStoragePaths {
     return 'users/$userId/pets/$petId/documents/$documentId/original.$extension';
   }
 
+  /// One object per attachment. [documentOriginal] writes a single
+  /// `original.<ext>` per document, so a second file had physically nowhere to
+  /// go — attaching two to one document silently kept one.
+  static String documentAttachment({
+    required String userId,
+    required String petId,
+    required String documentId,
+    required int index,
+    required String extension,
+  }) {
+    return 'users/$userId/pets/$petId/documents/$documentId/'
+        'attachment_$index.$extension';
+  }
+
   static String documentScan({
     required String userId,
     required String petId,

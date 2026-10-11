@@ -1,6 +1,4 @@
-// In-memory repository fakes used only to render screens for App Store
-// screenshots. They return seeded data from streams so every screen looks
-// populated. No Firebase, no network.
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:paw_vault/core/auth/domain/entities/app_user.dart';
@@ -22,6 +20,7 @@ import 'package:paw_vault/features/pets/domain/entities/pet.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
+import 'package:paw_vault/features/reminders/domain/services/reminder_notification_scheduler.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
@@ -32,6 +31,10 @@ import 'package:paw_vault/features/vet_summary_export/domain/entities/vet_summar
 import 'package:paw_vault/features/vet_summary_export/domain/repositories/vet_summary_export_repository.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/services/pdf_share_service.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/services/vet_summary_pdf_generator.dart';
+
+// In-memory repository fakes used only to render screens for App Store
+// screenshots. They return seeded data from streams so every screen looks
+// populated. No Firebase, no network.
 
 const _user = AppUser(
   id: 'user-1',
@@ -186,9 +189,13 @@ class FakeDocumentRepository implements DocumentRepository {
 }
 
 class FakeReminderRepository implements ReminderRepository {
-  FakeReminderRepository(this.reminders);
+  FakeReminderRepository([List<Reminder>? seed])
+      : reminders = List.of(seed ?? const []);
 
+  /// Behaves like a store: a save has to reach the watched stream and be
+  /// readable back, or a test cannot see the Reminders an owner would see.
   final List<Reminder> reminders;
+  final _controller = StreamController<List<Reminder>>.broadcast();
 
   @override
   Future<void> initialize() async {}
@@ -197,19 +204,31 @@ class FakeReminderRepository implements ReminderRepository {
   Stream<List<Reminder>> watchReminders({
     required EntityId userId,
     required EntityId petId,
-  }) =>
-      Stream<List<Reminder>>.value(reminders);
+  }) async* {
+    yield List.of(reminders);
+    yield* _controller.stream;
+  }
 
   @override
   Future<Reminder?> getReminder({
     required EntityId userId,
     required EntityId petId,
     required EntityId reminderId,
-  }) async =>
-      null;
+  }) async {
+    for (final reminder in reminders) {
+      if (reminder.id == reminderId) {
+        return reminder;
+      }
+    }
+    return null;
+  }
 
   @override
-  Future<void> saveReminder(Reminder reminder) async {}
+  Future<void> saveReminder(Reminder reminder) async {
+    reminders.removeWhere((existing) => existing.id == reminder.id);
+    reminders.add(reminder);
+    _controller.add(List.of(reminders));
+  }
 
   @override
   Future<void> completeReminder({
@@ -223,7 +242,10 @@ class FakeReminderRepository implements ReminderRepository {
     required EntityId userId,
     required EntityId petId,
     required EntityId reminderId,
-  }) async {}
+  }) async {
+    reminders.removeWhere((existing) => existing.id == reminderId);
+    _controller.add(List.of(reminders));
+  }
 }
 
 class FakeSmartInputRepository implements SmartInputRepository {
@@ -328,7 +350,12 @@ class FakePdfShareService implements PdfShareService {
 class FakePawCheckRepository implements PawCheckRepository {
   FakePawCheckRepository([List<PawCheck>? checks]) : checks = [...?checks];
 
+  /// Behaves like a store: a save has to reach the watched stream, or a test
+  /// cannot see the History an owner would see after saving. This used to
+  /// hand out a one-shot `Stream.value`, so a saved check never appeared and
+  /// the assertion that it does was failing against a fake, not the app.
   final List<PawCheck> checks;
+  final _controller = StreamController<List<PawCheck>>.broadcast();
 
   @override
   Future<void> initialize() async {}
@@ -337,8 +364,10 @@ class FakePawCheckRepository implements PawCheckRepository {
   Stream<List<PawCheck>> watchChecks({
     required EntityId userId,
     required EntityId petId,
-  }) =>
-      Stream<List<PawCheck>>.value(checks);
+  }) async* {
+    yield List.of(checks);
+    yield* _controller.stream;
+  }
 
   @override
   Future<PawCheck?> getCheck({
@@ -350,7 +379,9 @@ class FakePawCheckRepository implements PawCheckRepository {
 
   @override
   Future<void> saveCheck(PawCheck check) async {
-    checks.add(check);
+    checks.removeWhere((existing) => existing.id == check.id);
+    checks.insert(0, check);
+    _controller.add(List.of(checks));
   }
 
   @override
@@ -360,6 +391,7 @@ class FakePawCheckRepository implements PawCheckRepository {
     required EntityId checkId,
   }) async {
     checks.removeWhere((check) => check.id == checkId);
+    _controller.add(List.of(checks));
   }
 }
 
@@ -396,4 +428,27 @@ class FakePawPhotoPicker implements PawPhotoPicker {
     lastSource = source;
     return file;
   }
+
+  @override
+  Future<List<PickedFile>> pickMultipleFromGallery() async =>
+      pick(PawPhotoSource.gallery)
+          .then((file) => file == null ? <PickedFile>[] : [file]);
+}
+
+/// A scheduler that does nothing and never asks for notification permission.
+///
+/// The real one requests permission at startup, and the system alert then
+/// covers the app — which is the other reason every App Store screenshot
+/// came out as the same blank grey frame.
+class FakeReminderNotificationScheduler
+    implements ReminderNotificationScheduler {
+  @override
+  Stream<ReminderNotificationTap> get taps =>
+      const Stream<ReminderNotificationTap>.empty();
+
+  @override
+  Future<void> schedule(Reminder reminder) async {}
+
+  @override
+  Future<void> cancel(EntityId reminderId) async {}
 }

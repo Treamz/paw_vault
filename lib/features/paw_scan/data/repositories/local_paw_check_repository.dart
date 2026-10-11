@@ -2,7 +2,7 @@ import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/features/paw_scan/domain/entities/paw_check.dart';
 import 'package:paw_vault/features/paw_scan/domain/repositories/paw_check_repository.dart';
 
-/// Local-first stand-in: the journal is always empty and nothing is stored.
+/// Local-first stand-in: the history is always empty and nothing is stored.
 class LocalPawCheckRepository implements PawCheckRepository {
   const LocalPawCheckRepository();
 

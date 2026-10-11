@@ -41,13 +41,26 @@ class DocumentsCubit extends Cubit<DocumentsState> {
               petId: petId,
               // Newest first by the document's own date, so scanned files
               // slot in by their issue date rather than when they synced.
+              //
+              // A document with no issue date goes last, grouped with the
+              // others that have none. It used to be slotted in by its
+              // createdAt, which the list does not show, so its position in
+              // among the dated ones could not be explained. Only documents
+              // saved before the issue date was required can land here.
               documents: [...documents]..sort((a, b) {
-                  final aTime = a.issueDate?.toUtcDateTime() ??
-                      a.createdAt?.value ??
-                      DateTime.fromMillisecondsSinceEpoch(0);
-                  final bTime = b.issueDate?.toUtcDateTime() ??
-                      b.createdAt?.value ??
-                      DateTime.fromMillisecondsSinceEpoch(0);
+                  final aTime = a.issueDate?.toUtcDateTime();
+                  final bTime = b.issueDate?.toUtcDateTime();
+                  if (aTime == null || bTime == null) {
+                    if (aTime != null) {
+                      return -1;
+                    }
+                    if (bTime != null) {
+                      return 1;
+                    }
+                    final epoch = DateTime.fromMillisecondsSinceEpoch(0);
+                    return (b.createdAt?.value ?? epoch)
+                        .compareTo(a.createdAt?.value ?? epoch);
+                  }
                   return bTime.compareTo(aTime);
                 }),
             ),

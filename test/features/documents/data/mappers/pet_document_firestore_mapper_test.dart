@@ -5,6 +5,7 @@ import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/domain/value_objects/utc_date_time.dart';
 import 'package:paw_vault/core/firebase/firestore/firestore_mapping.dart';
 import 'package:paw_vault/features/documents/data/mappers/pet_document_firestore_mapper.dart';
+import 'package:paw_vault/features/documents/domain/entities/document_attachment.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 
 void main() {
@@ -161,6 +162,81 @@ void main() {
             'fileUrl': 'https://example.com/receipt.pdf',
             'storagePath': 'path',
             'extractedData': ['not', 'a', 'map'],
+          },
+        ),
+        throwsA(isA<FirestoreMappingException>()),
+      );
+    });
+  });
+
+  group('attachments', () {
+    test('round-trips several attachments', () {
+      final original = PetDocument(
+        id: const EntityId('doc-1'),
+        userId: const EntityId('user-1'),
+        petId: const EntityId('pet-1'),
+        title: 'Rabies certificate',
+        type: PetDocumentType.vaccinationCertificate,
+        attachments: [
+          DocumentAttachment(
+            fileUrl: Uri.parse('https://example.com/a0.png'),
+            storagePath: 'users/u/pets/p/documents/doc-1/attachment_0.png',
+          ),
+          DocumentAttachment(
+            fileUrl: Uri.parse('https://example.com/a1.jpg'),
+            storagePath: 'users/u/pets/p/documents/doc-1/attachment_1.jpg',
+          ),
+        ],
+        issueDate: const DateOnly(year: 2026, month: 1, day: 2),
+      );
+
+      final restored = PetDocumentFirestoreMapper.fromFirestore(
+        id: original.id,
+        data: PetDocumentFirestoreMapper.toFirestore(original),
+      );
+
+      expect(restored.attachments, original.attachments);
+      expect(restored.files, hasLength(2));
+    });
+
+    test('reads a legacy document that has only the single-file fields', () {
+      // Documents written before multi-attachment support have no
+      // `attachments` key at all. They must still show their file.
+      final document = PetDocumentFirestoreMapper.fromFirestore(
+        id: const EntityId('doc-1'),
+        data: {
+          'userId': 'user-1',
+          'petId': 'pet-1',
+          'title': 'Old passport',
+          'type': 'passport',
+          'fileUrl': 'https://example.com/original.pdf',
+          'storagePath': 'users/u/pets/p/documents/doc-1/original.pdf',
+          'issueDate': '2026-01-02',
+        },
+      );
+
+      expect(document.attachments, isEmpty);
+      expect(document.files, hasLength(1));
+      expect(document.files.single.fileExtension, 'pdf');
+    });
+
+    test('omits the attachments key when there are none', () {
+      final data = PetDocumentFirestoreMapper.toFirestore(_document());
+
+      expect(data.containsKey('attachments'), isFalse);
+    });
+
+    test('throws when attachments is not a list', () {
+      expect(
+        () => PetDocumentFirestoreMapper.fromFirestore(
+          id: const EntityId('doc-1'),
+          data: {
+            'userId': 'user-1',
+            'petId': 'pet-1',
+            'title': 'Broken',
+            'type': 'passport',
+            'issueDate': '2026-01-02',
+            'attachments': 'nope',
           },
         ),
         throwsA(isA<FirestoreMappingException>()),

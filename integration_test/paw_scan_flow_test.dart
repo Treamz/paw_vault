@@ -1,5 +1,5 @@
 // Drives the real app through the Paw Scan flow: capture, describe, the
-// non-diagnostic notice, confirming a check into the journal, and the
+// non-diagnostic notice, confirming a check into History, and the
 // rejection path where a non-paw photo yields no verdict at all. The AI and
 // camera boundaries are faked. Run with the screenshot driver:
 //
@@ -26,9 +26,13 @@ import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart'
 
 import 'support/fakes.dart';
 
+/// A real 1x1 PNG. The bytes here used to be a PNG with a corrupt IDAT — bad
+/// CRC, and zlib refused to inflate it — so every test in this file failed on
+/// "Could not decompress image" from the photo strip, whatever its
+/// assertions did.
 final _pngBytes = base64Decode(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8AAAwAB/AF+0B0a'
-  'AAAAAElFTkSuQmCC',
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMB'
+  'AQDJ/pLvAAAAAElFTkSuQmCC',
 );
 
 PickedFile _pawPhoto() => PickedFile(
@@ -64,7 +68,7 @@ AppDependencies _dependencies({
     pawPhotoPicker: FakePawPhotoPicker(_pawPhoto()),
     petPhotoPicker: base.petPhotoPicker,
     eventPhotoPicker: base.eventPhotoPicker,
-    reminderNotificationScheduler: base.reminderNotificationScheduler,
+    reminderNotificationScheduler: FakeReminderNotificationScheduler(),
     analyticsService: base.analyticsService,
     subscriptionService: base.subscriptionService,
     paywallPresenter: base.paywallPresenter,
@@ -159,7 +163,7 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
-    final log = find.widgetWithText(FilledButton, 'Log this check');
+    final log = find.widgetWithText(FilledButton, 'Save');
     await tester.ensureVisible(log);
     await tester.tap(log);
     await tester.pumpAndSettle();
@@ -171,17 +175,17 @@ void main() {
     expect(saved.observations, hasLength(1));
     // Opt-in: the owner did not switch it on.
     expect(saved.includeInVetSummary, isFalse);
-    expect(find.text('Paw check saved to the journal'), findsOneWidget);
+    expect(find.text('Paw check saved to History'), findsOneWidget);
 
-    // The check appears in the journal.
-    await tester.tap(find.text('Journal'));
+    // The check appears in History.
+    await tester.tap(find.text('History'));
     await tester.pumpAndSettle();
     expect(find.text('Worth showing a vet soon'), findsOneWidget);
     expect(
       find.textContaining('A dark area near the centre of the main pad.'),
       findsOneWidget,
     );
-    await binding.takeScreenshot('02_paw_scan_journal');
+    await binding.takeScreenshot('02_paw_scan_history');
   });
 
   testWidgets('a discarded result writes nothing', (tester) async {
@@ -211,6 +215,11 @@ void main() {
 
     final discard = find.widgetWithText(OutlinedButton, 'Discard');
     await tester.ensureVisible(discard);
+    // Pump before tapping: `ensureVisible` schedules the scroll but does not
+    // pump, so without this the tap is computed from the old layout and
+    // lands off-screen — it was missing the button by 55px and silently
+    // doing nothing, which read as "discard did not work".
+    await tester.pumpAndSettle();
     await tester.tap(discard);
     await tester.pumpAndSettle();
 
@@ -238,7 +247,7 @@ void main() {
     await _captureAndDescribe(tester);
 
     expect(find.text('That does not look like a paw'), findsOneWidget);
-    expect(find.text('Log this check'), findsNothing);
+    expect(find.text('Save'), findsNothing);
     for (final level in PawAttentionLevel.values) {
       expect(
         find.text(formatPawAttentionLevel(level)),

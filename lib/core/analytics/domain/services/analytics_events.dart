@@ -24,7 +24,7 @@ abstract final class AnalyticsEvents {
   /// statistic.
   static const pawScanFiltered = 'paw_scan_filtered';
 
-  /// The owner confirmed a paw check into the journal; pair with
+  /// The owner confirmed a paw check into the history; pair with
   /// [AnalyticsParams.level].
   static const pawCheckLogged = 'paw_check_logged';
 

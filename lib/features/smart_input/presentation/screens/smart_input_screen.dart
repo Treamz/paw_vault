@@ -5,6 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
+import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
+import 'package:paw_vault/features/documents/presentation/widgets/attachment_views.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
@@ -71,7 +74,7 @@ class _SmartInputViewState extends State<_SmartInputView>
           ],
         ),
       ),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocConsumer<SmartInputCubit, SmartInputState>(
           listenWhen: (previous, current) => previous.status != current.status,
           listener: (context, state) {
@@ -270,9 +273,12 @@ class _SmartInputViewState extends State<_SmartInputView>
           FilledButton.icon(
             onPressed: isProcessing || isSaving
                 ? null
-                : () => context.read<SmartInputCubit>().submit(
-                      _controller.text,
-                    ),
+                : () {
+                    // The input is disabled while analysing, and disabling a
+                    // focused field can strand the platform keyboard.
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    context.read<SmartInputCubit>().submit(_controller.text);
+                  },
             icon: isProcessing
                 ? const SizedBox(
                     width: 18,
@@ -697,19 +703,34 @@ class _HistoryTab extends StatelessWidget {
                   Card(
                     child: ListTile(
                       key: ValueKey('smart-message-${message.id.value}'),
-                      leading: const Icon(Icons.auto_awesome),
+                      leading: _HistoryLeading(message: message),
                       title: Text(
                         message.originalText,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      subtitle: Text(
-                        message.createdAt != null
-                            ? DateFormat.yMMMd().add_jm().format(
-                                  message.createdAt!.value.toLocal(),
-                                )
-                            : formatSmartIntent(message.detectedIntent),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            message.createdAt != null
+                                ? DateFormat.yMMMd().add_jm().format(
+                                      message.createdAt!.value.toLocal(),
+                                    )
+                                : formatSmartIntent(message.detectedIntent),
+                          ),
+                          // Same indicator as the Documents list, so an entry
+                          // with files reads the same way in both places —
+                          // and it needs no network, unlike the thumbnail.
+                          if (message.attachments.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            AttachmentLabel(
+                              count: message.attachments.length,
+                            ),
+                          ],
+                        ],
                       ),
+                      isThreeLine: message.attachments.isNotEmpty,
                       trailing: IconButton(
                         icon: const Icon(Icons.delete_outline),
                         tooltip: 'Delete analysis',
@@ -717,7 +738,11 @@ class _HistoryTab extends StatelessWidget {
                             .read<SmartInputCubit>()
                             .deleteMessage(message),
                       ),
-                      onTap: () => _showDetails(context, message),
+                      onTap: () => _showDetails(
+                        context,
+                        message,
+                        context.read<DocumentFileOpener>(),
+                      ),
                     ),
                   ),
               ],
@@ -725,7 +750,11 @@ class _HistoryTab extends StatelessWidget {
     };
   }
 
-  void _showDetails(BuildContext context, SmartMessage message) {
+  void _showDetails(
+    BuildContext context,
+    SmartMessage message,
+    DocumentFileOpener fileOpener,
+  ) {
     final theme = Theme.of(context);
     showModalBottomSheet<void>(
       context: context,
@@ -748,6 +777,24 @@ class _HistoryTab extends StatelessWidget {
             Text('Your note', style: theme.textTheme.labelLarge),
             const SizedBox(height: 4),
             Text(message.originalText),
+            if (message.attachments.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                message.attachments.length == 1
+                    ? 'Attached file'
+                    : '${message.attachments.length} attached files',
+                style: theme.textTheme.labelLarge,
+              ),
+              // Every attached file, not just the first: the analysis keeps
+              // the same files the document got.
+              for (final attachment in message.attachments) ...[
+                const SizedBox(height: 8),
+                AttachmentPreview(
+                  attachment: attachment,
+                  fileOpener: fileOpener,
+                ),
+              ],
+            ],
             const SizedBox(height: 12),
             Text('Detected intent', style: theme.textTheme.labelLarge),
             const SizedBox(height: 4),
@@ -814,6 +861,37 @@ class _HistoryTab extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The History row's leading slot.
+///
+/// A scanned entry shows its own photo; everything else keeps the AI glyph,
+/// which says what kind of entry this is. Whether files are attached is said
+/// by the paperclip in the subtitle, so it is not repeated here.
+///
+/// Using the shared thumbnail also warms the disk cache, so the full previews
+/// in the details sheet are already there when it opens.
+class _HistoryLeading extends StatelessWidget {
+  const _HistoryLeading({required this.message});
+
+  final SmartMessage message;
+
+  @override
+  Widget build(BuildContext context) {
+    final thumbnail = message.imageAttachments.firstOrNull;
+    if (thumbnail == null) {
+      return const Icon(Icons.auto_awesome);
+    }
+
+    return AttachmentThumbnail(
+      attachment: thumbnail,
+      // Never an empty leading slot: if the photo cannot be loaded the row
+      // falls back to the glyph, and the paperclip still says a file is
+      // attached.
+      fallback: const Icon(Icons.auto_awesome),
+      key: ValueKey('thumbnail-${thumbnail.storagePath}'),
     );
   }
 }

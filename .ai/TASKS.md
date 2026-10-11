@@ -430,3 +430,473 @@
   independently of the ads work.
 - [ ] Update the App Store listing to mention Paw Scan once 1.0.9 is released —
   the live description still lists only Smart Input and document scanning.
+
+## QA fixes
+
+- [x] Documents: a document scanned from several pages saved only the first
+  file. `DocumentExtractionCubit.confirmExtraction` uploaded
+  `pickedFiles.firstOrNull`, and `PetDocument` could hold one file anyway, so
+  the rest were silently discarded — the owner lost data with no warning.
+  Added `DocumentAttachment` + `PetDocument.attachments` (legacy `fileUrl`/
+  `storagePath` kept and still populated, so an older build shows one file
+  rather than none), a per-attachment Storage path, multi-file upload, and
+  rendering of every attachment.
+- [x] Documents: attachments took 2–3s to appear on first open. The previews
+  live inside the details sheet and used `Image.network`, which has no disk
+  cache, so nothing loaded until the sheet opened. Switched to
+  `CachedNetworkImage` and warm the cache when the list arrives, so the first
+  open is instant too.
+- [x] Found while fixing the above, same root cause, not reported by QA:
+  editing a multi-attachment document dropped the extra files (`updateDocument`
+  rebuilt from the legacy pair), and deleting one orphaned them in Storage
+  (`deleteDocument` removed a single path).
+- [x] **App Store screenshots work again (iPhone).** `tool/screenshots.sh
+  iphone` now produces seven real, distinct PNGs at 1320x2868 — Apple's 6.9"
+  requirement — verified by opening them.
+  **The single cause was the system notification permission alert.** It is
+  raised by `LocalReminderNotificationScheduler`, which initialises the
+  plugin with a default `DarwinInitializationSettings()` the moment anything
+  reads `scheduler.taps` — and `app.dart` reads it on startup. The alert then
+  **outlives the run that raised it**, sits over the app, and makes every
+  capture in the *next* run the same blank 58815-byte grey frame.
+  Proved by isolating it: a probe taking three shots (real app root, bare
+  `MaterialApp` root, and a shot after replacing the root) gave three blanks
+  with the alert up and three correct, distinct PNGs with it dismissed —
+  nothing else changed.
+  So the earlier hypotheses were all wrong and are now closed:
+  `convertFlutterSurfaceToImage()` is fine, a bare `MaterialApp` root is
+  fine, replacing the root between shots is fine, and converting once rather
+  than per shot is fine.
+  Two changes keep it working: `screenshots_test` supplies a silent
+  notification scheduler (so the suite can never raise the alert itself) and
+  its missing providers, and `tool/screenshots.sh` terminates and uninstalls
+  the app before each device, which takes any alert left by an earlier run
+  with it.
+- [x] **Xcode 27 forced a Flutter upgrade to 3.47.7.** Updating Xcode broke
+  `flutter build ios --simulator`: Xcode 27's `lipo` takes a single
+  architecture for `-verify_arch` and reads any further arguments as input
+  files, so Flutter's `thinFramework`, which passed `arm64 x86_64` in one
+  call, failed with `Binary .../Flutter.framework/Flutter does not contain
+  architectures` printed directly above a `lipo -info` listing both of them.
+  Upstream flutter/flutter#188461, fixed in 3.47; this machine was on 3.44.1.
+  Device and release builds pass a single arch and were never affected, so
+  TestFlight and CI stayed green while every simulator run and all 14
+  integration tests were blocked.
+  `fvm global 3.47.7` (Dart 3.13.5) fixes it, and 3.44.1 stays installed as a
+  rollback. `flutter pub get` on the new SDK added the `analyzer: exclude:`
+  block to `analysis_options.yaml` on its own. Verified after the move:
+  format clean, analyze clean, 590 unit tests, device build, simulator build,
+  and `smart_input_flow_test` through `flutter drive`.
+  Found at the same time and unrelated: `/usr/local/bin/git` is an Intel-only
+  2022 git-scm build, and macOS 27 ships without Rosetta, so it cannot run at
+  all. zsh quietly falls through to `/usr/bin/git`, but `sh` scripts and
+  CocoaPods' Ruby `spawn` do not, so `pod` died with `Errno::EBADARCH` on
+  every invocation, which takes iOS builds with it. Remove it with
+  `/usr/local/git/uninstall.sh`; as a stopgap, drop `/usr/local/bin` from PATH.
+- [ ] **Verify the app on iPhone Duo.** Apple's prepare page says apps built
+  with the iOS 27 SDK resize dynamically between the foldable's outer and
+  inner displays, and that hardcoded screen sizes, fixed orientations and
+  device-idiom assumptions are what produce stretched, clipped or misplaced
+  content.
+  Not checkable on this machine yet. The `iPhone Duo` device type is listed by
+  `simctl`, but creating one fails with `code=403: Incompatible device`, and
+  its profile gives `minRuntimeVersion 27.1` (`modelIdentifier iPhone19,4`)
+  while the newest installed runtime is iOS 27.0. Apple states the Duo
+  simulator ships with Xcode 27.1, and 27.0 has no resizable device type
+  either, so this needs an Xcode update before it can be verified at all.
+  What the code audit already establishes, against Apple's own list of
+  breaking patterns: `lib/` contains no `MediaQuery...size`, no `orientation`,
+  no `SystemChrome` and no idiom checks, so no layout anywhere is derived from
+  screen size or orientation. `Info.plist` allows portrait and both landscapes
+  on iPhone, and the app is already scene-based (`UIApplicationSceneManifest`
+  with `FlutterSceneDelegate`), which is what replaces the `UIScreen.main`
+  pattern Apple asks people to drop. The fixed numbers in the widget tree are
+  component sizes — avatars, row thumbnails, a chart height, image previews —
+  not screen assumptions, and they survive a resize.
+  One nuance worth not re-deriving later: Apple's note that toolbars and tab
+  bars turn vertical under the 27.1 SDK concerns UIKit bars. The two `TabBar`s
+  here are Flutter widgets drawn inside the Flutter view, so that
+  repositioning does not apply to them.
+  Until the simulator exists, the useful substitute is pumping the main
+  screens at several canvas sizes, including a large squarish one, and failing
+  on overflow — it does not need the Duo's real dimensions.
+- [ ] **`qa_batch_profile_timeline_test` depends on the simulator's locale.**
+  The reminder-time test types `'14'` into the hour field of the Material time
+  picker. That is only valid where the picker is in 24-hour mode. The iPhone 17
+  simulator used here has `AppleLocale = en_UA`, so it is, and the test has
+  always passed. A simulator created from defaults gets `en_US`, the picker
+  shows an AM/PM selector, `14` is rejected with "Enter a valid time", and the
+  dialog stays open — so the following tap lands on the barrier instead of
+  "Add Event", no reminder is written, and the test dies on
+  `saved.nextReminderDate!` with a null check error rather than on anything
+  that names the real cause.
+  Found while checking iPhone Duo, on a freshly created device; it is not a
+  Duo or a layout problem, and it will bite on CI or on any clean machine.
+  Worth making the test locale-independent rather than relying on the host:
+  either drive the dial instead of the text field, or branch on whether the
+  AM/PM selector is present.
+- [ ] **Running integration tests back to back degrades the simulator.** After
+  roughly five consecutive `flutter drive` runs, the next one builds fine,
+  launches the app to a white screen with only a status bar, and never prints
+  a `VMServiceFlutterDriver` line — the driver never connects and the run
+  hangs until killed. It is not the tests: every one of the 14 passes when the
+  simulator is shut down and rebooted before it, and the same tests hang when
+  run in a long sequence. Suspect a leaked VM service port or CoreSimulator
+  state; `tool/screenshots.sh` already uninstalls the app per device, which is
+  not enough on its own.
+  Practical workaround until it is understood: run them in batches of three
+  with `xcrun simctl shutdown` / `boot` in between, which is how the full
+  green sweep was obtained. The same degradation is the likely cause of the
+  `tool/screenshots.sh ipad` hang below.
+  Worth noting the two false alarms this produced, so they are not
+  re-investigated as code bugs: a sweep wrapped in `timeout` (which macOS does
+  not have, so every run exited 127 and reported nothing), and results
+  invalidated by killing processes mid-sweep.
+  Re-checked on Xcode 27 / Flutter 3.47.7, and the symptom has changed. 13
+  consecutive runs completed with no hang at all, where before it set in
+  around the fifth — but the batches-of-three reboots were still in place, so
+  this does not isolate the upgrade as the cause. The 14th run was the first
+  without a reboot before it, and it failed in a new way: the device had put
+  itself in `Shutdown`, so `simctl install` returned `Unable to lookup in
+  current state: Shutdown` and the app never started, which `flutter drive`
+  reports as three failed start attempts rather than as a hang. Running that
+  test alone on a freshly booted simulator passed. So something still takes
+  the device down over a long sequence; it is now a shutdown rather than a
+  white screen with no VM service line.
+  To settle whether the upgrade fixed the original symptom, run the full suite
+  once with the reboots removed.
+- [ ] **`tool/screenshots.sh ipad` hangs**, found while verifying the above
+  and unrelated to the blank-capture bug. The Xcode build succeeds, the app
+  launches to a white screen with only a status bar, and `flutter drive`
+  never prints a single `VMServiceFlutterDriver` line — it never connects to
+  the VM service, so the run sits there until killed. The iPhone set from the
+  same script and suite is fine, so this is iPad-specific. Needs its own
+  look; until then the iPhone set can be generated on its own with
+  `tool/screenshots.sh iphone`.
+  Also predates the Xcode 27 / Flutter 3.47.7 move and has not been retried
+  since.
+- [x] **Documents: make the issue date clearly required.** It already was —
+  both `PetDocumentFormState.validate()` and the two creation paths reject a
+  document without one, since 2026-08-08 — so no document created today can
+  lack a date. What was missing was (a) any sign that it is required, and
+  (b) a sensible treatment of the documents saved *before* that, which is
+  what QA's screenshot shows. Now: the field reads "Issue date (required)"
+  and no longer offers a clear action; the scan review form shows the
+  field-level error instead of only a generic "Please fix validation errors"
+  snackbar (a scan often cannot read a date off the page); a document with no
+  date says "No date" on its tile; and those documents sort last as a group
+  rather than being slotted in by their invisible `createdAt`, which is what
+  made their position unexplainable. Editing one forces a date, so they get
+  fixed as they are touched. Nothing backfills them — there is no honest
+  value to invent.
+- [x] **Time picker: the keyboard now opens on the first tap of its icon.**
+  Tapping the keyboard toggle built the hour and minute fields but focused
+  neither, so the keyboard stayed shut until the field was tapped as well.
+  This is Material's own behaviour, confirmed by probe: after the toggle no
+  text field holds focus, and `initialEntryMode: input` is no better — the
+  framework only autofocuses when the dial is *double*-tapped, which nobody
+  finds. Fixed from the caller with `onEntryModeChanged`, advancing focus once
+  into the dialog, which lands on the hour field.
+  Only the reminder form is affected: it holds the app's single
+  `showTimePicker`, and every date picker is deliberately
+  `DatePickerEntryMode.calendarOnly` (manual entry demands a strict
+  mm/dd/yyyy and produced "Invalid format" confusion), so none of them offers
+  a keyboard toggle at all.
+  The focus hop depends on the dialog's traversal order, so
+  `reminder_form_screen_test.dart` asserts the hour field really ends up
+  focused — a Flutter upgrade that reorders it fails the test instead of
+  quietly focusing a button.
+- [x] **Smart Input scan: the attached files are now visible before saving.**
+  The review form stated only "N pages attached", so there was no way to
+  check which photo had been picked without discarding and starting again.
+  It now shows a thumbnail per attached page, read straight from the picked
+  bytes (nothing is uploaded until Confirm & save). Tapping an image opens it
+  full screen with pinch-zoom, reusing `showFullScreenImage`; tapping a PDF
+  opens it in `PdfPreview`, the same in-app viewer the vet summary uses. A
+  file of any other kind shows an extension tile and says it has no preview
+  rather than ignoring the tap.
+- [x] **Scan: the issue date row goes red, and the prompt works harder to
+  find the date.** The field-level error already landed with the "issue date
+  required" work; it coloured only the subtitle, so now the title, the message
+  and the trailing calendar icon all turn red — the row reads as the required
+  field it is. The extraction prompt now tells the model where issue dates
+  hide on pet documents ("issued", "date of issue", "vaccination date",
+  "administered", "visit date", "prescribed on", stamps), to expand a
+  two-digit year, and to return null rather than guess — a health record must
+  never carry an invented date. An empty field is still a valid outcome, which
+  is exactly when the red row earns its keep.
+- [x] **Scan: the expiry date is filled in when the document says so, and can
+  be removed.** It stays optional. The prompt now looks for the wording that
+  marks one ("expires", "expiry", "valid until", "valid through", "next due",
+  "booster due") and is told to leave the field null when no such wording
+  appears and never to derive one from the issue date. Because the scan can
+  now fill it in — and can misread it — the row has a clear (✕) action, which
+  replaces the calendar icon only while a date is set. There is nothing to
+  fall back to on an optional field, so removing it had to be possible.
+- [x] Found while doing the above, not reported: picking a date cleared *every*
+  field error, so a missing title stopped being flagged until the next save
+  attempt. The pickers now re-validate instead. Type and Title also had the
+  issue date's original problem — required, but failing with only a generic
+  snackbar — so both now show their own `errorText`.
+- [x] **Documents: attachments are announced instantly, and the row says a
+  file is there.** Re-reported by QA after the first attempt — the earlier fix
+  added `CachedNetworkImage` plus a best-effort `precacheImage`, which only
+  helped the *second* open. Root cause of what remained: the sheet's image had
+  **no `placeholder`**, so it rendered an empty 220px box for the whole
+  download and the document looked as though it had nothing attached. It now
+  shows a loading box immediately, and the default 500ms fade is cut to 120ms.
+  Each row also carries a paperclip with the file count — no network involved,
+  so it is correct the instant the list paints, including for PDFs — plus a
+  40px thumbnail of the first photo on the trailing edge. The thumbnail is
+  what actually shortens the wait: a mounted image widget really does drive
+  the download and fill the shared disk cache, where `precacheImage` only
+  tried, and only when the list changed.
+  **Not claimed: a cold first open is not instant.** The bytes have to come
+  from Storage once. What changed is that it is never ambiguous, and by the
+  time a row has painted its thumbnail the sheet reads from disk. Genuinely
+  removing the download would need server-side thumbnails (the Firebase
+  Resize Images extension), which is infrastructure, not app code.
+  The leading circle still shows the type icon — a deliberate earlier choice
+  for scannability — so the thumbnail went to the trailing edge instead.
+- [x] **Smart Input History matches Documents for attachments.** The sheet
+  already showed every attached file; what was missing was the row indicator
+  and, less visibly, the same empty-box bug — History's preview had no
+  `placeholder` either, so it looked like nothing was attached while a photo
+  downloaded. Both screens now share
+  `documents/presentation/widgets/attachment_views.dart`
+  (`AttachmentLabel`, `AttachmentPreview`, `AttachmentThumbnail`), which is
+  why they can no longer drift: the duplicated previews had already drifted
+  once, only one of them gaining the placeholder.
+  A History row now carries the same paperclip and file count as a document
+  row, and a scanned entry shows its photo as a thumbnail in the leading slot.
+  The AI glyph stands in there while the photo loads or if it cannot be
+  loaded, so the slot is never empty — the paperclip carries the "has files"
+  signal regardless, which is why the glyph no longer doubles as an
+  attachment marker.
+  Smart Input depending on the documents feature is deliberate and
+  pre-existing: a scanned analysis keeps the same `DocumentAttachment`s the
+  document got.
+- [x] **Gallery multi-select everywhere it means something.** Nothing in the
+  app used `pickMultiImage` — not even Paw Scan, which QA cited as already
+  having it; what Paw Scan has is the ability to *hold* four photos, added one
+  at a time. All four pickers gained a `pickMultipleFromGallery()` (or
+  `pickDocuments()`) alongside the single-pick method the camera still needs,
+  and four screens now use it: Paw Scan, the document scan, the timeline event
+  form and the document form.
+  Paw Scan keeps the first four of an over-selection and says how many were
+  left out, rather than refusing the lot. The document scan analyses every
+  page picked in one AI request. The document form's picker now **appends**
+  instead of replacing, with a per-file remove and an "Add more" button —
+  which closes the separate task below about it attaching one file at a time.
+  A single file there now goes through the same `attachment_N` storage path
+  the scanner uses, so a hand-made and a scanned document are stored alike;
+  the legacy `fileUrl`/`storagePath` pair stays populated for older builds.
+  **Deliberately excluded:** the pet profile photo. It is one avatar, so
+  multi-select has nothing to mean there. The file browser's single-pick path
+  is also unchanged — the request was about the gallery.
+- [x] **Every integration test is green again.** Four were failing, all of
+  them stale tests or wrong fakes rather than broken app behaviour:
+  * `smart_input_flow_test` — written for a two-field Add Detail dialog. It
+    takes one field now (the value; the name comes from the draft's intent),
+    so the test typed the name over the value and asserted a key that never
+    existed. It also tapped a `chevron_right` on a History row, which is the
+    delete action's slot now — the row itself opens the sheet. Retargeted,
+    including the de-duplicated key: the intent is `addVaccination`, so the
+    suggested name `vaccine` is taken and the screen numbers it `vaccine 2`
+    rather than overwriting the correction.
+  * `paw_scan_flow_test` — three separate causes. The file's 1x1 PNG had a
+    **corrupt IDAT** (bad CRC, zlib refused to inflate), so every test in it
+    died on "Could not decompress image" from the photo strip whatever its
+    assertions did. `FakePawCheckRepository.watchChecks` handed out a one-shot
+    `Stream.value`, so a saved check never reached History and the assertion
+    that it does was failing against the fake rather than the app. And the
+    Discard tap was computed before the scroll had been pumped, landing 55px
+    below the button and silently doing nothing.
+  * `document_create_no_file_test` — expected the attach label from before
+    `52666b2` renamed it, and never picked an issue date, which the form has
+    required since `fdeb415`. Both predate this branch.
+  * `screenshots_test` — threw `ProviderNotFoundException` for
+    `OwnerProfileRepository`, `WeightEntryRepository`, `SubscriptionService`,
+    `AccountDeletionService` and `ReminderNotificationScheduler`, so those
+    screens rendered an error box instead. Now supplied from one shared list,
+    with a silent notification scheduler so the suite cannot raise the
+    permission alert either.
+  Worth remembering: none of these were caught by `flutter test`, and the
+  fakes were wrong in two of the four. A fake that cannot show what the app
+  shows makes its test prove nothing.
+- [x] **Timeline keyboard that would not go away.** Reported as intermittent,
+  surviving the way out to the main menu, and only cured by killing the app.
+  Mechanism found in the code: the form's fields are `enabled: !isSaving`, so
+  the moment saving starts a field that still holds focus is *disabled*, which
+  tears its input connection down abruptly — and the same cubit transition
+  pops the route from a `BlocListener`. The platform is told to close a
+  connection belonging to a field and a route that are both already going, and
+  iOS can be left showing a keyboard with nothing focused anywhere, which no
+  later screen can dismiss. That also explains "sometimes": it needs a field
+  to still be focused when Save is tapped, and on iOS tapping a button does
+  not take focus off a text field.
+  Fix: give up focus *first*, while the field is still mounted and enabled, so
+  the keyboard closes the ordinary way — on save, on cancel, on the two
+  programmatic pops, and before the date and photo pickers take over.
+  The same `enabled: !isSaving` pattern exists in the pet form, Paw Scan's
+  note field and Smart Input's input, so each of those now unfocuses on submit
+  too. QA only hit Timeline, but the defect is identical.
+  **Not verified end to end.** The discriminating condition cannot be
+  reproduced in a test: `tester.tap` releases focus from a text field where
+  iOS does not, so by the time the form disables its fields the test has
+  already unfocused. The new integration test pins the weaker invariant that
+  no field keeps focus after the form closes. Confirming the fix needs a
+  device with the simulator's hardware keyboard disconnected, and an
+  intermittent bug makes a single manual pass inconclusive either way.
+- [x] **Timeline event reminders take a time, not just a date.** `PetEvent`
+  already stored `nextReminderDate` as a full `UtcDateTime`, so nothing in the
+  entity, mapper or validation had to change — the form simply had no way to
+  set the time of day. Added a "Reminder Time" row beside the date, with the
+  keyboard-entry focus fix applied (that helper moved to
+  `core/presentation/widgets/time_picker_keyboard_focus.dart` now that the
+  reminder form and this one both use it).
+  Choosing a date keeps a time already picked, and choosing a time before a
+  date takes the event's day. A date picked on its own lands on 09:00 rather
+  than midnight, which reads as "no time was set". The time is now shown
+  wherever the reminder is — the tile and the detail sheet — otherwise setting
+  it would be invisible.
+- [x] **Event date picker opened with the keyboard over it, and the selected
+  day's circle looked off-centre.** Both are the same thing, and both were
+  already fixed by the unfocus work above — QA's screenshot came from a build
+  that predates it. Verified on current code: the calendar opens with no
+  keyboard (`Add Event`/`Cancel` visible where the keyboard had been), and the
+  selected day sits dead centre in a full-size circle. The cramped circle was
+  a consequence, not a separate bug: the keyboard shrank the dialog's height,
+  the grid compressed, and the day cell ended up tight around the digit —
+  which is exactly what QA guessed would resolve itself.
+  Ruled out as causes while checking: no custom `fontFamily`, no `TextTheme`
+  override and no `datePickerTheme` in `AppTheme`, so nothing of ours was
+  distorting the cell metrics.
+- [x] **One name for the saved list: History, not Journal.** Paw Scan called
+  it Journal; Smart Input already called it History. The analysis behind
+  choosing History:
+  1. Smart Input is already on History, so unifying there changes one screen
+     instead of two.
+  2. Nothing external is committed to "Journal" — it appears in no store copy
+     (`docs/ASO.md`, `docs/ASA.md`), only in two internal doc lines.
+  3. `docs/PAW_SCAN.md` already glossed it as "journal → per-pet *history*",
+     so the design doc was reaching for "history" to explain the word.
+  4. "Journal" suggests something the owner writes in; these are saved scan
+     results they approved, so it slightly overpromises.
+  5. Vet Summary's list is "Saved exports", a neutral record phrasing that
+     sits better beside History than beside Journal.
+  Renamed the tab and copy, plus the internal names so one word means one
+  thing: `PawJournalStatus` → `PawHistoryStatus`, `journalStatus` →
+  `historyStatus`, `journalError` → `historyError`, `_JournalTab` →
+  `_HistoryTab` — which also matches what Smart Input and Vet Summary already
+  call those fields. Checked that the blanket pass touched only comments in
+  `analytics_events.dart`, the AI prompt file and `sample_data.dart`: no event
+  key, prompt text or stored value changed.
+- [x] **Paw Scan: "Log this check" is now "Save".**
+- [x] **Paw Scan: the "saved" message would not go away.** It rode along to
+  the main menu and stayed until the app was killed. It had no `duration` and
+  nothing ever took it down, while Smart Input's equivalent — fixed in an
+  earlier QA round for the same symptom — sets three seconds and hides itself
+  when its action is tapped. Paw Scan was missed.
+  Now: an explicit three seconds, `hideCurrentSnackBar()` when "View" is
+  tapped, the previous message closed rather than queued when saving twice,
+  and — the part that answers the complaint directly — the message is closed
+  in `dispose()`. It names this screen's History and its action moves this
+  screen's tabs, so it has no business outliving the screen.
+- [x] **Paw Scan: "View" now lands on something identifiable.** It only
+  switched to the History tab, so with other checks already there the list
+  looked unchanged and nothing said which row was new — QA read that as "it
+  does not open this document". There is no detail screen behind a check; the
+  History card *is* the record, so rather than invent one:
+  the just-saved check is outlined and tinted (cleared as soon as the next
+  scan starts, which the cubit already did via `clearLoggedCheckId`), the list
+  scrolls back to the top when a check is saved because it keeps its scroll
+  position across tab switches, and the card now shows **every** observation
+  instead of truncating to the first — that truncation was hiding part of what
+  the owner had approved, which is the "вся информация" half of the report.
+  The second half of the report — the grey message disappearing and moving to
+  History on the next try — is the snackbar fix from the previous commit
+  behaving consistently.
+- [x] Found in my own previous commit while testing the above: closing the
+  saved message in `dispose()` threw `Bad state: No element` whenever it had
+  already gone (timed out, or hidden by "View"), because
+  `ScaffoldFeatureController.close()` reads the head of an empty queue. The
+  controller is now forgotten via its `closed` future, so `dispose` only ever
+  closes one that is still showing.
+- [x] **Paw Scan: a result is now the end of the flow.** The capture controls
+  sat *below* Discard/Save — photo strip, "Which paw?", "Describe", Camera,
+  Gallery — so the first step looked like it repeated itself after the last
+  one. The result section now ends the list, with the photo strip moved above
+  it and made read-only: it is context for what the result describes, and
+  removing a photo would invalidate the result anyway.
+  Worth recording as more than tidiness: the paw selector there was
+  **actively misleading**. `logCheck` builds the saved check from
+  `draft.location`, not `state.location`, so changing "Which paw?" after a
+  result visibly moved the selection and changed nothing that was saved. To
+  correct a mis-tagged paw the owner has to Discard and describe again —
+  which is coherent now that Discard clears the photos and returns to the
+  empty start state.
+- [x] **Paw Scan attention colours now mean something.** They were
+  `ColorScheme` roles, and the seeded scheme's secondary and tertiary are both
+  teal here, so `vetSoon` came out blue — reading as positive — and
+  `nothingNotable` shared grey with `undetermined`, so "nothing stood out" and
+  "could not assess" were indistinguishable. Replaced with fixed muted hues
+  per brightness: green for `nothingNotable`, amber for `monitor`, muted red
+  for `vetSoon`, the existing stronger `errorContainer` red for `vetPromptly`,
+  grey kept for `undetermined` alone.
+  On the safety note the old code carried — that a green tick would claim the
+  pet is fine, which the app cannot do from a photograph — the green is muted
+  and the label still reads "Nothing stood out", with the guidance sentence
+  underneath unchanged. The claim is carried by the words, not withheld by
+  making a successful scan look like a failure.
+- [x] **Paw Scan: "Log this check" → "Save"** (earlier round) and the describe
+  button drops its photo count — the strip right above it already shows how
+  many there are.
+- [x] **Paw Scan: a rejected gallery photo can be replaced from the gallery.**
+  On a rejection the controls collapsed to "Take another photo" only, so a
+  poor photo picked from the gallery left the owner no way forward but the
+  camera — it cannot be retaken, only replaced. The gallery option now stays.
+- [x] **Paw Scan: a saved check can be opened.** History listed its checks but
+  never showed their photos, so the thing an owner would actually show a vet
+  could not be looked at again. New `PawCheckDetailScreen` (route
+  `/pets/:petId/paw-scan-check`) opened by tapping a row: photos at full
+  width and tappable to full screen, the date, paw, attention card, every
+  observation, the summary, the owner's note, and whether it is in the vet
+  summary. The disclaimer rides along as on every other Paw Scan surface.
+- [x] **Paw Scan: deleting a check asks first.** The icon deleted on the spot;
+  a check cannot be recovered — its photos go from storage with it — so a
+  mis-tap on a small icon was enough to lose one.
+- [x] **An event's reminder now actually reminds.** `nextReminderDate` was
+  rendered on the timeline and nowhere else — nothing scheduled anything, so
+  a field called "Reminder" never reminded, and adding a time to it made it
+  read like a promise it did not keep.
+  An event now owns a real `Reminder` linked by `relatedEventId` — a field
+  that already existed on the entity and had never been set by anything. That
+  reuses the whole reminders pipeline: scheduling, the notification tap, the
+  Reminders list the owner can see and manage, and completion.
+  Details worth keeping:
+  * The reminder's id is derived from the event id
+    (`TimelineEventCubit.reminderIdForEvent`), so saving the same event again
+    updates its reminder instead of leaving a second one behind, and clearing
+    the date or deleting the event can find it without the event storing a
+    back reference. A test pins that two events get two reminders — the first
+    version of this interpolated the id wrongly and gave every event the
+    same one.
+  * Moving the date re-opens a reminder that had been ticked off: an owner
+    who changes the date wants reminding again.
+  * Clearing the date, or deleting the event, cancels and deletes it — but
+    **only if one exists**. Cancelling unconditionally reached the
+    notification plugin on every ordinary event save, which initialises it
+    and asks for notification permission for no reason (and in a test blocks
+    the save behind the system alert).
+  * All of it is best effort: the event is saved first, and a scheduling
+    problem must not report the save as failed.
+  **New user-visible side effect:** saving an event *with* a reminder now asks
+  for notification permission the first time, because that is the moment a
+  notification is genuinely being scheduled. The Reminders feature already
+  behaves this way.
+  Every integration test that boots the app now uses a silent notification
+  scheduler, so the suite never raises that alert — it was blocking runs and
+  blanking screenshots.
+- [x] The document **form** attached one file at a time, replacing rather than
+  appending. Fixed with the gallery multi-select work above.

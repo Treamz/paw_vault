@@ -121,7 +121,7 @@ made.
 rather than a result section. This was a real bug caught on device: an
 undetermined draft rendered the "No result" card *and* "Nothing in these photos
 stood out." together — the exact false reassurance this feature exists to
-prevent. `canBeLogged` excludes it too, because a "no result" row in the journal
+prevent. `canBeLogged` excludes it too, because a "no result" row in History
 could be read by a vet as a check that found nothing. There is a widget test
 and a cubit test guarding both.
 
@@ -200,7 +200,7 @@ capture (in memory)
   → analyze            one request, all photos, nothing stored
   → review             owner reads the result; nothing saved
   → confirm            upload photos → write PawCheck(status: confirmed)
-  → journal            per-pet history, before/after comparison
+  → history            per-pet history, before/after comparison
 ```
 
 - Photos are uploaded **only after the owner confirms**. An uploaded object is

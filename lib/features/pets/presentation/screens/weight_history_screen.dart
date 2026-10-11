@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/core/utils/parse_decimal.dart';
 import 'package:paw_vault/features/pets/domain/entities/weight_entry.dart';
@@ -94,7 +95,7 @@ class _WeightHistoryViewState extends State<_WeightHistoryView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Weight History')),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocConsumer<WeightHistoryCubit, WeightHistoryState>(
           listener: (context, state) {
             if (state.errorMessage != null) {

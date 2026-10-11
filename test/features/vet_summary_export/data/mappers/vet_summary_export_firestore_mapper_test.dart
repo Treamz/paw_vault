@@ -66,6 +66,91 @@ void main() {
       expect(roundTripped.createdAt, original.createdAt);
     });
 
+    test('tolerates a server timestamp that has not landed yet', () {
+      // The reported crash: createdAt is written as a Firestore server
+      // timestamp, which reads back null in the local snapshot until the
+      // server acknowledges the write. Throwing here failed the whole
+      // snapshot and wiped the saved-exports list.
+      final summaryExport = VetSummaryExportFirestoreMapper.fromFirestore(
+        id: const EntityId('export-1'),
+        data: const {
+          'userId': 'user-1',
+          'petId': 'pet-1',
+          'fileName': 'Jotaro_vet_summary.pdf',
+          'createdAt': null,
+        },
+      );
+
+      expect(summaryExport.createdAt, isNull);
+      expect(summaryExport.fileName, 'Jotaro_vet_summary.pdf');
+    });
+
+    test('still rejects a createdAt of the wrong type', () {
+      // Tolerating null must not turn into tolerating anything.
+      expect(
+        () => VetSummaryExportFirestoreMapper.fromFirestore(
+          id: const EntityId('export-1'),
+          data: const {
+            'userId': 'user-1',
+            'petId': 'pet-1',
+            'createdAt': 'not a timestamp',
+          },
+        ),
+        throwsA(isA<FirestoreMappingException>()),
+      );
+    });
+
+    test('round-trips the saved file name', () {
+      final original = VetSummaryExport(
+        id: const EntityId('export-1'),
+        userId: const EntityId('user-1'),
+        petId: const EntityId('pet-1'),
+        createdAt: UtcDateTime(DateTime.utc(2026, 1, 2, 3, 4)),
+        fileName: 'Jotaro_vet_summary.pdf',
+      );
+
+      final data = VetSummaryExportFirestoreMapper.toFirestore(original);
+      expect(data['fileName'], 'Jotaro_vet_summary.pdf');
+
+      expect(
+        VetSummaryExportFirestoreMapper.fromFirestore(
+          id: const EntityId('export-1'),
+          data: data,
+        ).fileName,
+        'Jotaro_vet_summary.pdf',
+      );
+    });
+
+    test('an export saved before names existed has none', () {
+      // Those records must keep loading; the UI falls back to their date.
+      final summaryExport = VetSummaryExportFirestoreMapper.fromFirestore(
+        id: const EntityId('export-1'),
+        data: {
+          'userId': 'user-1',
+          'petId': 'pet-1',
+          'createdAt': Timestamp.fromDate(DateTime.utc(2026, 1, 2, 3, 4)),
+        },
+      );
+
+      expect(summaryExport.fileName, isNull);
+      expect(summaryExport.displayName, isNull);
+    });
+
+    test('a blank stored name counts as no name', () {
+      expect(
+        VetSummaryExportFirestoreMapper.fromFirestore(
+          id: const EntityId('export-1'),
+          data: {
+            'userId': 'user-1',
+            'petId': 'pet-1',
+            'createdAt': Timestamp.fromDate(DateTime.utc(2026, 1, 2, 3, 4)),
+            'fileName': '   ',
+          },
+        ).displayName,
+        isNull,
+      );
+    });
+
     test('uses defaults for missing optional fields', () {
       final summaryExport = VetSummaryExportFirestoreMapper.fromFirestore(
         id: const EntityId('export-1'),

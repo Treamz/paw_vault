@@ -2,6 +2,7 @@ import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
 import 'package:paw_vault/core/firebase/storage/firebase_storage_paths.dart';
 import 'package:paw_vault/core/storage/domain/entities/storage_file.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
+import 'package:paw_vault/features/documents/domain/entities/document_attachment.dart';
 import 'package:paw_vault/features/documents/domain/services/file_picker.dart';
 
 /// Picks a document file and uploads its bytes to storage, returning the
@@ -57,5 +58,53 @@ class DocumentUploadService {
       bytes: file.bytes,
       contentType: file.contentType,
     );
+  }
+
+  /// Uploads every picked [files] as a separate attachment of [documentId].
+  ///
+  /// Each file gets its own object, so attaching several to one document no
+  /// longer overwrites or discards any of them.
+  Future<List<DocumentAttachment>> uploadDocumentFiles({
+    required EntityId userId,
+    required EntityId petId,
+    required EntityId documentId,
+    required List<PickedFile> files,
+  }) async {
+    final uploaded = <DocumentAttachment>[];
+
+    for (var index = 0; index < files.length; index++) {
+      final file = files[index];
+      final stored = await _storageRepository.uploadBytes(
+        path: FirebaseStoragePaths.documentAttachment(
+          userId: userId.value,
+          petId: petId.value,
+          documentId: documentId.value,
+          index: index,
+          extension: file.extension,
+        ),
+        bytes: file.bytes,
+        contentType: file.contentType,
+      );
+      uploaded.add(
+        DocumentAttachment(
+          fileUrl: stored.downloadUrl,
+          storagePath: stored.path,
+        ),
+      );
+    }
+
+    return uploaded;
+  }
+
+  /// Removes stored attachment objects, so deleting a document does not leave
+  /// its extra files orphaned in Storage.
+  Future<void> deleteDocumentFiles(Iterable<String> storagePaths) async {
+    for (final path in storagePaths) {
+      try {
+        await _storageRepository.delete(path);
+      } catch (_) {
+        // Best effort: one failed delete must not abort the rest.
+      }
+    }
   }
 }

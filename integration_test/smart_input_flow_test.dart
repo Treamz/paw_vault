@@ -21,6 +21,8 @@ import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft
 import 'package:paw_vault/features/smart_input/domain/entities/smart_message.dart';
 import 'package:paw_vault/features/smart_input/domain/repositories/smart_input_repository.dart';
 
+import 'support/fakes.dart';
+
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -51,7 +53,7 @@ void main() {
       documentSourcePicker: base.documentSourcePicker,
       petPhotoPicker: base.petPhotoPicker,
       eventPhotoPicker: base.eventPhotoPicker,
-      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      reminderNotificationScheduler: FakeReminderNotificationScheduler(),
       analyticsService: base.analyticsService,
       subscriptionService: base.subscriptionService,
       paywallPresenter: base.paywallPresenter,
@@ -100,12 +102,16 @@ void main() {
     await tester.ensureVisible(addDetail);
     await tester.tap(addDetail);
     await tester.pumpAndSettle();
-    final dialogFields = find.descendant(
+    // One field, not two: the dialog takes only the value and names the
+    // detail after the draft's intent. This test was written for an older
+    // two-field version and typed the name into the same field, which left
+    // the value as the name and nothing under the key it then asserted.
+    final dialogField = find.descendant(
       of: find.byType(AlertDialog),
       matching: find.byType(TextField),
     );
-    await tester.enterText(dialogFields.first, 'none');
-    await tester.enterText(dialogFields.last, 'symptom');
+    expect(dialogField, findsOneWidget);
+    await tester.enterText(dialogField, 'sneezing since yesterday');
     await tester.tap(find.widgetWithText(FilledButton, 'Add'));
     await tester.pumpAndSettle();
     await binding.takeScreenshot('01_smart_input_editable_draft');
@@ -121,17 +127,25 @@ void main() {
 
     expect(smartInput.savedMessages, hasLength(1));
     final saved = smartInput.savedMessages.single;
+    // The correction survived...
     expect(saved.extractedData['vaccine'], 'rabies booster');
-    expect(saved.extractedData['symptom'], 'none');
+    // ...and the added detail landed beside it. The intent is
+    // addVaccination, so the dialog suggests "vaccine", which is taken — the
+    // screen numbers the duplicate rather than overwriting the correction.
+    expect(saved.extractedData['vaccine 2'], 'sneezing since yesterday');
     expect(find.text('Analysis saved to History'), findsOneWidget);
 
     // The History tab lists the analysis with full details on tap.
     await tester.tap(find.text('History'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.chevron_right).first);
+    // The row itself opens the details sheet. It used to carry a
+    // chevron_right, which this test tapped; the row's trailing slot is the
+    // delete action now.
+    await tester.tap(find.textContaining('Bella got her rabies shot'));
     await tester.pumpAndSettle();
     expect(find.text('rabies booster'), findsOneWidget);
-    expect(find.text('symptom'), findsOneWidget);
+    expect(find.text('vaccine 2'), findsOneWidget);
+    expect(find.text('sneezing since yesterday'), findsOneWidget);
     await binding.takeScreenshot('02_smart_input_history_details');
   });
 }

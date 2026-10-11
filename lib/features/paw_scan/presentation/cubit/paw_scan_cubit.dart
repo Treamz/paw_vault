@@ -38,7 +38,7 @@ enum PawScanStatus {
   failure,
 }
 
-enum PawJournalStatus { loading, ready, failure }
+enum PawHistoryStatus { loading, ready, failure }
 
 class PawScanState {
   const PawScanState({
@@ -47,9 +47,9 @@ class PawScanState {
     this.draft,
     this.location = PawLocation.unspecified,
     this.errorMessage,
-    this.journalStatus = PawJournalStatus.loading,
+    this.historyStatus = PawHistoryStatus.loading,
     this.checks = const [],
-    this.journalError,
+    this.historyError,
     this.loggedCheckId,
     this.pet,
   });
@@ -67,11 +67,11 @@ class PawScanState {
   /// Readable copy, never a stringified exception.
   final String? errorMessage;
 
-  final PawJournalStatus journalStatus;
+  final PawHistoryStatus historyStatus;
 
   /// Newest first.
   final List<PawCheck> checks;
-  final String? journalError;
+  final String? historyError;
 
   /// Set once the draft has been written, which unlocks the follow-up actions.
   final EntityId? loggedCheckId;
@@ -107,14 +107,14 @@ class PawScanState {
     PawScanDraft? draft,
     PawLocation? location,
     String? errorMessage,
-    PawJournalStatus? journalStatus,
+    PawHistoryStatus? historyStatus,
     List<PawCheck>? checks,
-    String? journalError,
+    String? historyError,
     EntityId? loggedCheckId,
     Pet? pet,
     bool clearDraft = false,
     bool clearErrorMessage = false,
-    bool clearJournalError = false,
+    bool clearHistoryError = false,
     bool clearLoggedCheckId = false,
   }) {
     return PawScanState(
@@ -124,10 +124,10 @@ class PawScanState {
       location: location ?? this.location,
       errorMessage:
           clearErrorMessage ? null : errorMessage ?? this.errorMessage,
-      journalStatus: journalStatus ?? this.journalStatus,
+      historyStatus: historyStatus ?? this.historyStatus,
       checks: checks ?? this.checks,
-      journalError:
-          clearJournalError ? null : journalError ?? this.journalError,
+      historyError:
+          clearHistoryError ? null : historyError ?? this.historyError,
       loggedCheckId:
           clearLoggedCheckId ? null : loggedCheckId ?? this.loggedCheckId,
       pet: pet ?? this.pet,
@@ -164,15 +164,15 @@ class PawScanCubit extends Cubit<PawScanState> {
   StreamSubscription<List<PawCheck>>? _checksSubscription;
   EntityId? _userId;
 
-  /// Subscribes to the pet's saved paw checks for the journal.
+  /// Subscribes to the pet's saved paw checks for History.
   Future<void> load(String petId) async {
-    emit(state.copyWith(journalStatus: PawJournalStatus.loading));
+    emit(state.copyWith(historyStatus: PawHistoryStatus.loading));
 
     try {
       await _pawCheckRepository.initialize();
       final user = await _currentUserId();
 
-      // Best effort: a missing pet must not stop the journal loading.
+      // Best effort: a missing pet must not stop History loading.
       try {
         final pet = await _petRepository.getPet(
           userId: user,
@@ -190,17 +190,17 @@ class PawScanCubit extends Cubit<PawScanState> {
             ..sort((a, b) => b.checkedAt.compareTo(a.checkedAt));
           emit(
             state.copyWith(
-              journalStatus: PawJournalStatus.ready,
+              historyStatus: PawHistoryStatus.ready,
               checks: sorted,
-              clearJournalError: true,
+              clearHistoryError: true,
             ),
           );
         },
         onError: (Object error) {
           emit(
             state.copyWith(
-              journalStatus: PawJournalStatus.failure,
-              journalError: _friendlyError(error),
+              historyStatus: PawHistoryStatus.failure,
+              historyError: _friendlyError(error),
             ),
           );
         },
@@ -208,8 +208,8 @@ class PawScanCubit extends Cubit<PawScanState> {
     } catch (error) {
       emit(
         state.copyWith(
-          journalStatus: PawJournalStatus.failure,
-          journalError: _friendlyError(error),
+          historyStatus: PawHistoryStatus.failure,
+          historyError: _friendlyError(error),
         ),
       );
     }
@@ -237,20 +237,39 @@ class PawScanCubit extends Cubit<PawScanState> {
     emit(state.copyWith(status: PawScanStatus.capturing));
 
     try {
-      final picked = await _picker.pick(source);
+      // The gallery can hand over several photos at once; the camera takes
+      // one at a time.
+      final List<PickedFile> picked;
+      if (source == PawPhotoSource.gallery) {
+        picked = await _picker.pickMultipleFromGallery();
+      } else {
+        final single = await _picker.pick(source);
+        picked = single == null ? const [] : [single];
+      }
 
-      if (picked == null) {
+      if (picked.isEmpty) {
         // Cancelled: leave the photos already taken alone.
         emit(state.copyWith(status: previousStatus));
         return;
       }
 
+      // More than the remaining slots is the owner over-selecting, not an
+      // error worth stopping on: keep what fits and say what happened.
+      final free = kMaxPawScanPhotos - state.photos.length;
+      final kept = picked.take(free).toList();
+      final dropped = picked.length - kept.length;
+
       emit(
         state.copyWith(
           status: PawScanStatus.idle,
-          photos: [...state.photos, picked],
+          photos: [...state.photos, ...kept],
+          errorMessage: dropped == 0
+              ? null
+              : 'A scan can hold up to $kMaxPawScanPhotos photos, so '
+                  '${dropped == 1 ? '1 photo was' : '$dropped photos were'} '
+                  'left out.',
           clearDraft: true,
-          clearErrorMessage: true,
+          clearErrorMessage: dropped == 0,
           clearLoggedCheckId: true,
         ),
       );
@@ -348,7 +367,7 @@ class PawScanCubit extends Cubit<PawScanState> {
     }
   }
 
-  /// Writes the reviewed result to the journal, uploading its photos first.
+  /// Writes the reviewed result to History, uploading its photos first.
   Future<void> logCheck(
     String petId, {
     String? ownerNote,

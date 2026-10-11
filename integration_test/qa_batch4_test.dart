@@ -76,7 +76,7 @@ void main() {
       documentSourcePicker: base.documentSourcePicker,
       petPhotoPicker: base.petPhotoPicker,
       eventPhotoPicker: base.eventPhotoPicker,
-      reminderNotificationScheduler: base.reminderNotificationScheduler,
+      reminderNotificationScheduler: FakeReminderNotificationScheduler(),
       analyticsService: base.analyticsService,
       subscriptionService: base.subscriptionService,
       paywallPresenter: base.paywallPresenter,
@@ -151,7 +151,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Add document'));
     await tester.pumpAndSettle();
-    final attach = find.text('Attach photo or file (optional)');
+    final attach = find.text('Attach photos or files (optional)');
     await tester.ensureVisible(attach);
     await tester.tap(attach);
     await tester.pumpAndSettle();

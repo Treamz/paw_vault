@@ -26,4 +26,8 @@ class PickedFile {
 abstract interface class FilePicker {
   /// Prompts the user to pick a document, or returns `null` if cancelled.
   Future<PickedFile?> pickDocument();
+
+  /// Prompts the user to pick one or more documents at once; empty if they
+  /// cancelled.
+  Future<List<PickedFile>> pickDocuments();
 }

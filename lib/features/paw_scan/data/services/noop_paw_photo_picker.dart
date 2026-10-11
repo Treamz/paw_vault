@@ -8,4 +8,7 @@ class NoopPawPhotoPicker implements PawPhotoPicker {
 
   @override
   Future<PickedFile?> pick(PawPhotoSource source) async => null;
+
+  @override
+  Future<List<PickedFile>> pickMultipleFromGallery() async => const [];
 }

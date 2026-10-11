@@ -1,11 +1,11 @@
 import 'dart:typed_data';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/vet_summary_export/application/load_vet_summary_data.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/entities/vet_summary_export.dart';
@@ -54,6 +54,13 @@ class _VetSummaryView extends StatefulWidget {
 class _VetSummaryViewState extends State<_VetSummaryView> {
   final _fileNameController = TextEditingController();
 
+  /// Whether the suggested name has been put in the field already.
+  ///
+  /// Seeding is one-shot so the suggestion never overwrites what the owner
+  /// typed — including clearing the field, which the previous build-time
+  /// assignment undid on the next rebuild.
+  bool _fileNameSeeded = false;
+
   String get petId => widget.petId;
 
   @override
@@ -70,8 +77,13 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
   ) async {
     final downloadService = context.read<PdfDownloadService>();
     final messenger = ScaffoldMessenger.of(context);
-    final fileName =
-        'vet_summary_${DateFormat('yyyy-MM-dd').format(export.createdAt.value.toLocal())}.pdf';
+    // The name the owner saved it under; only a legacy export with no name
+    // falls back to a date-derived one.
+    final savedAt = export.createdAt?.value.toLocal();
+    final fileName = export.displayName ??
+        (savedAt == null
+            ? 'vet_summary.pdf'
+            : 'vet_summary_${DateFormat('yyyy-MM-dd').format(savedAt)}.pdf');
 
     messenger.showSnackBar(
       const SnackBar(content: Text('Opening saved summary…')),
@@ -103,9 +115,17 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Vet Summary')),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocConsumer<VetSummaryExportCubit, VetSummaryExportState>(
           listener: (context, state) {
+            // Seeded here rather than in build(), once: the previous code
+            // assigned the controller's text on every rebuild, so the
+            // suggestion came back over anything the owner had cleared.
+            if (state.hasPdf && !_fileNameSeeded) {
+              _fileNameSeeded = true;
+              _fileNameController.text =
+                  context.read<VetSummaryExportCubit>().defaultFileName();
+            }
             if (state.status == VetSummaryExportStatus.saved) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Summary saved to records')),
@@ -154,10 +174,7 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
                 if (state.hasPdf) ...[
                   const SizedBox(height: 16),
                   TextField(
-                    controller: _fileNameController
-                      ..text = _fileNameController.text.isEmpty
-                          ? cubit.defaultFileName()
-                          : _fileNameController.text,
+                    controller: _fileNameController,
                     decoration: const InputDecoration(
                       labelText: 'File name',
                       border: OutlineInputBorder(),
@@ -200,8 +217,11 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: FilledButton.icon(
-                          onPressed:
-                              isSharing || isSaving ? null : cubit.saveCopy,
+                          onPressed: isSharing || isSaving
+                              ? null
+                              : () => cubit.saveCopy(
+                                    fileName: _fileNameController.text,
+                                  ),
                           icon: isSaving
                               ? const SizedBox(
                                   width: 18,
@@ -235,6 +255,12 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
   }
 }
 
+/// When the export was saved, or null while its server timestamp is pending.
+String? _savedAtLabel(DateFormat dateFormat, VetSummaryExport summaryExport) {
+  final savedAt = summaryExport.createdAt?.value.toLocal();
+  return savedAt == null ? null : dateFormat.format(savedAt);
+}
+
 class _History extends StatelessWidget {
   const _History({required this.state, required this.onOpenExport});
 
@@ -266,9 +292,15 @@ class _History extends StatelessWidget {
                       key: ValueKey('export-${export.id.value}'),
                       leading: const Icon(Icons.picture_as_pdf),
                       title: Text(
-                        dateFormat.format(export.createdAt.value.toLocal()),
+                        export.displayName ??
+                            _savedAtLabel(dateFormat, export) ??
+                            'Vet summary',
                       ),
-                      subtitle: const Text('Vet summary PDF'),
+                      // 'Saving…' rather than a blank or a guessed date: the
+                      // server timestamp lands a moment after the write.
+                      subtitle: Text(
+                        _savedAtLabel(dateFormat, export) ?? 'Saving…',
+                      ),
                       trailing: export.fileUrl == null
                           ? null
                           : const Icon(Icons.chevron_right),

@@ -46,8 +46,17 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
     );
 
     try {
-      final file = await _picker.pick(source);
-      if (file == null) {
+      // The gallery can hand over several pages at once; the camera and the
+      // file browser's single-pick path return one.
+      final List<PickedFile> newFiles;
+      if (source == DocumentSource.gallery) {
+        newFiles = await _picker.pickMultipleFromGallery();
+      } else {
+        final single = await _picker.pick(source);
+        newFiles = single == null ? const [] : [single];
+      }
+
+      if (newFiles.isEmpty) {
         // User cancelled the picker.
         emit(
           existingFiles.isEmpty
@@ -57,7 +66,7 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
         return;
       }
 
-      final files = [...existingFiles, file];
+      final files = [...existingFiles, ...newFiles];
       emit(
         DocumentExtractionState(
           status: DocumentExtractionStatus.extracting,
@@ -89,14 +98,19 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
     }
   }
 
-  /// Confirms the reviewed [formState], uploading the picked file and saving a
-  /// document. Only called after the user explicitly approves the extraction.
+  /// Confirms the reviewed [formState], uploading **every** picked page and
+  /// saving a document. Only called after the user explicitly approves the
+  /// extraction.
+  ///
+  /// This used to upload `pickedFiles.firstOrNull` only, so scanning two pages
+  /// analysed both and silently saved one — the owner lost the rest without
+  /// any warning.
   Future<void> confirmExtraction(
     String petId,
     PetDocumentFormState formState,
   ) async {
-    final file = state.pickedFiles.firstOrNull;
-    if (file == null) {
+    final files = state.pickedFiles;
+    if (files.isEmpty) {
       emit(
         state.copyWith(
           status: DocumentExtractionStatus.failure,
@@ -127,19 +141,18 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
       final now = DateTime.now();
       final documentId = EntityId('${now.microsecondsSinceEpoch}');
 
-      final uploaded = await _uploadService.uploadDocumentFile(
+      final uploaded = await _uploadService.uploadDocumentFiles(
         userId: userId,
         petId: entityPetId,
         documentId: documentId,
-        file: file,
+        files: files,
       );
 
       final document = formState.toDocument(
         id: documentId,
         userId: userId,
         petId: entityPetId,
-        fileUrl: uploaded.downloadUrl,
-        storagePath: uploaded.path,
+        attachments: uploaded,
         createdAt: now,
         updatedAt: now,
       );
@@ -157,6 +170,9 @@ class DocumentExtractionCubit extends Cubit<DocumentExtractionState> {
             petId: entityPetId,
             originalText: 'Scanned document: ${document.title}',
             detectedIntent: SmartMessageIntent.addNote,
+            // Every file that was scanned, so History shows the same
+            // attachments the document itself carries.
+            attachments: document.files,
             extractedData: {
               'type': document.type.name,
               'title': document.title,

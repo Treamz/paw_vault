@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -43,7 +44,11 @@ PickedFile _picked() => PickedFile(
       contentType: 'image/png',
     );
 
-PawCheck _check({String id = 'check-1', DateTime? checkedAt}) {
+PawCheck _check({
+  String id = 'check-1',
+  DateTime? checkedAt,
+  List<String> observations = const ['A dark area near the centre of the pad.'],
+}) {
   return PawCheck(
     id: EntityId(id),
     userId: const EntityId('user-1'),
@@ -51,7 +56,7 @@ PawCheck _check({String id = 'check-1', DateTime? checkedAt}) {
     location: PawLocation.frontLeft,
     attentionLevel: PawAttentionLevel.monitor,
     checkedAt: UtcDateTime(checkedAt ?? DateTime.utc(2026, 9, 18)),
-    observations: const ['A dark area near the centre of the pad.'],
+    observations: observations,
     status: PawCheckStatus.confirmed,
   );
 }
@@ -60,6 +65,7 @@ Widget _app({
   required _FakePawScanAiRepository ai,
   _FakePawCheckRepository? repository,
   _FakePawPhotoPicker? picker,
+  bool pushed = false,
 }) {
   return MultiRepositoryProvider(
     providers: [
@@ -79,7 +85,27 @@ Widget _app({
         value: const NoopAnalyticsService(),
       ),
     ],
-    child: const MaterialApp(home: PawScanScreen(petId: 'pet-1')),
+    child: MaterialApp(
+      // `pushed` puts the screen on a route that can be popped, so a test can
+      // leave it. The ScaffoldMessenger lives above at the MaterialApp, so a
+      // message it showed survives the pop unless the screen takes it down.
+      home: pushed
+          ? Builder(
+              builder: (context) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const PawScanScreen(petId: 'pet-1'),
+                      ),
+                    ),
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            )
+          : const PawScanScreen(petId: 'pet-1'),
+    ),
   );
 }
 
@@ -210,7 +236,213 @@ void main() {
         findsOneWidget,
       );
       expect(find.text(PawScanCopy.nothingSavedYet), findsOneWidget);
-      expect(find.text('Log this check'), findsOneWidget);
+      expect(find.text('Save'), findsOneWidget);
+    });
+
+    testWidgets('the saved message does not outlive the screen',
+        (tester) async {
+      // QA: the "saved" message rode along to the main menu and stayed there
+      // until the app was killed. It names this screen's History and its
+      // action moves this screen's tabs, so closing the screen takes it down.
+      _useTallSurface(tester);
+      final ai = _FakePawScanAiRepository()..next = _draft();
+      final picker = _FakePawPhotoPicker()..next = _picked();
+      await tester.pumpWidget(_app(ai: ai, picker: picker, pushed: true));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await _analyze(tester, picker);
+
+      final save = find.text('Save');
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(find.text('Paw check saved to History'), findsOneWidget);
+
+      // Leaving the screen takes the message with it.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.text('Paw check saved to History'), findsNothing);
+    });
+
+    testWidgets('shows every observation, not just the first', (tester) async {
+      // The card is the whole record of a check — there is no detail screen
+      // behind it — so truncating to the first observation hid part of what
+      // the owner had approved.
+      _useTallSurface(tester);
+      final repository = _FakePawCheckRepository([
+        _check(
+          observations: const [
+            'A dark area near the centre of the pad.',
+            'The nail on this toe is longer than the others.',
+            'Some redness between the toes.',
+          ],
+        ),
+      ]);
+      await tester.pumpWidget(
+        _app(ai: _FakePawScanAiRepository(), repository: repository),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('History'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('A dark area near the centre of the pad.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('The nail on this toe is longer than the others.'),
+        findsOneWidget,
+      );
+      expect(find.text('Some redness between the toes.'), findsOneWidget);
+    });
+
+    testWidgets('marks the check that was just saved', (tester) async {
+      // QA: tapping View landed on a list that looked unchanged, with no way
+      // to tell which row was the one just saved.
+      _useTallSurface(tester);
+      final ai = _FakePawScanAiRepository()..next = _draft();
+      final picker = _FakePawPhotoPicker()..next = _picked();
+      final repository = _FakePawCheckRepository([_check(id: 'older')]);
+      await tester.pumpWidget(
+        _app(ai: ai, picker: picker, repository: repository),
+      );
+      await tester.pumpAndSettle();
+      await _analyze(tester, picker);
+
+      final save = find.text('Save');
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+
+      // Follow the snackbar's own action, as the owner does.
+      await tester.tap(find.text('View'));
+      await tester.pumpAndSettle();
+
+      final saved = repository.saved.last;
+      final savedCard = tester.widget<Card>(
+        find.byKey(ValueKey('paw-check-${saved.id.value}')),
+      );
+      final olderCard = tester.widget<Card>(
+        find.byKey(const ValueKey('paw-check-older')),
+      );
+      expect(
+        savedCard.shape,
+        isA<RoundedRectangleBorder>(),
+        reason: 'the just-saved check is outlined',
+      );
+      expect(savedCard.color, isNotNull);
+      expect(
+        olderCard.shape,
+        isNull,
+        reason: 'older checks are left alone',
+      );
+    });
+
+    testWidgets('a result is the end of the flow, with nothing after it',
+        (tester) async {
+      // QA: the capture controls sat below Discard/Save, so the first step
+      // looked like it repeated itself. The paw selector there was worse than
+      // redundant — the saved check takes its location from the draft, so
+      // changing it after a result silently did nothing.
+      _useTallSurface(tester);
+      final ai = _FakePawScanAiRepository()..next = _draft();
+      final picker = _FakePawPhotoPicker()..next = _picked();
+      await tester.pumpWidget(_app(ai: ai, picker: picker));
+      await tester.pumpAndSettle();
+
+      // With a photo taken but not yet described, the capture step is there.
+      await tester.tap(find.text(PawScanCopy.takePhoto));
+      await tester.pumpAndSettle();
+      expect(find.text('Which paw?'), findsOneWidget);
+      expect(find.text(PawScanCopy.camera), findsOneWidget);
+      expect(find.textContaining('Describe'), findsOneWidget);
+
+      await tester.tap(find.textContaining('Describe'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Save'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+      expect(find.text('Which paw?'), findsNothing);
+      expect(find.text(PawScanCopy.camera), findsNothing);
+      expect(find.text(PawScanCopy.gallery), findsNothing);
+      expect(find.textContaining('Describe'), findsNothing);
+      // The photo stays as context for what the result describes, but with
+      // no way to remove it.
+      expect(find.byType(Image), findsWidgets);
+      expect(find.byTooltip('Remove photo 1'), findsNothing);
+    });
+
+    testWidgets('discarding a result returns to the capture step',
+        (tester) async {
+      _useTallSurface(tester);
+      final ai = _FakePawScanAiRepository()..next = _draft();
+      final picker = _FakePawPhotoPicker()..next = _picked();
+      await tester.pumpWidget(_app(ai: ai, picker: picker));
+      await tester.pumpAndSettle();
+      await _analyze(tester, picker);
+
+      final discard = find.text('Discard');
+      await tester.ensureVisible(discard);
+      await tester.tap(discard);
+      await tester.pumpAndSettle();
+
+      // Discard clears the photos too, so this is the empty start state.
+      expect(find.text('Save'), findsNothing);
+      expect(find.text(PawScanCopy.takePhoto), findsOneWidget);
+      expect(find.text('Which paw?'), findsNothing);
+    });
+
+    testWidgets('deleting a check asks first', (tester) async {
+      // QA: the delete icon removed the check on the spot. A check cannot be
+      // recovered — its photos go from storage with it — so a mis-tap on a
+      // small icon must not be enough.
+      _useTallSurface(tester);
+      final repository = _FakePawCheckRepository([_check()]);
+      await tester.pumpWidget(
+        _app(ai: _FakePawScanAiRepository(), repository: repository),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('History'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Delete this check'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete this paw check?'), findsOneWidget);
+
+      // Backing out leaves it alone.
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(repository.checks, hasLength(1));
+
+      await tester.tap(find.byTooltip('Delete this check'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+      expect(repository.checks, isEmpty);
+    });
+
+    testWidgets('a rejected gallery photo can be replaced from the gallery',
+        (tester) async {
+      // QA: a poor photo picked from the gallery can only be "retaken" with
+      // the camera, which is no use — the owner needs to choose a different
+      // one. The gallery option used to disappear on a rejection.
+      _useTallSurface(tester);
+      final ai = _FakePawScanAiRepository()
+        ..next = const PawScanDraft.unusable(
+          photoQuality: PawScanPhotoQuality.blurry,
+        );
+      final picker = _FakePawPhotoPicker()..next = _picked();
+      await tester.pumpWidget(_app(ai: ai, picker: picker));
+      await tester.pumpAndSettle();
+      await _analyze(tester, picker);
+
+      expect(find.text(PawScanCopy.takeAnotherPhoto), findsOneWidget);
+      expect(
+        find.text(PawScanCopy.chooseAnotherFromGallery),
+        findsOneWidget,
+        reason: 'a gallery photo cannot be retaken, only replaced',
+      );
     });
 
     testWidgets('warns when the safety filter rewrote something',
@@ -245,7 +477,7 @@ void main() {
       await _analyze(tester, picker);
 
       expect(find.text('That does not look like a paw'), findsOneWidget);
-      expect(find.text('Log this check'), findsNothing);
+      expect(find.text('Save'), findsNothing);
       for (final level in PawAttentionLevel.values) {
         expect(
           find.text(formatPawAttentionLevel(level)),
@@ -280,7 +512,7 @@ void main() {
       );
       // It is presented as a failed read, with a retake offered.
       expect(find.text('Could not read the result'), findsOneWidget);
-      expect(find.text('Log this check'), findsNothing);
+      expect(find.text('Save'), findsNothing);
     });
 
     testWidgets('a blocked reply tells the owner to call their vet',
@@ -296,7 +528,7 @@ void main() {
 
       expect(find.text('Could not analyse this photo'), findsOneWidget);
       expect(find.textContaining('contact your vet now'), findsOneWidget);
-      expect(find.text('Log this check'), findsNothing);
+      expect(find.text('Save'), findsNothing);
     });
   });
 
@@ -359,7 +591,7 @@ void main() {
       await _capture(tester, picker);
 
       expect(
-        find.widgetWithText(FilledButton, 'Describe 1 photo'),
+        find.widgetWithText(FilledButton, PawScanCopy.describe),
         findsOneWidget,
       );
       // The camera stays available, demoted.
@@ -410,7 +642,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.widgetWithText(OutlinedButton, 'Describe 1 photo'),
+        find.widgetWithText(OutlinedButton, PawScanCopy.describe),
         findsOneWidget,
       );
     });
@@ -437,18 +669,18 @@ void main() {
     });
   });
 
-  group('journal', () {
+  group('history', () {
     testWidgets('shows an empty state with no checks', (tester) async {
       await tester.pumpWidget(_app(ai: _FakePawScanAiRepository()));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Journal'));
+      await tester.tap(find.text('History'));
       await tester.pumpAndSettle();
 
       expect(find.text('No paw checks yet'), findsOneWidget);
     });
 
-    testWidgets('a journal tile with every action fits a narrow phone',
+    testWidgets('a history tile with every action fits a narrow phone',
         (tester) async {
       // Caught on device: the chip plus the actions overflowed a Row by 13px,
       // clipping the delete button. Two checks of the same paw enable the
@@ -469,7 +701,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Journal'));
+      await tester.tap(find.text('History'));
       await tester.pumpAndSettle();
 
       // A RenderFlex overflow surfaces as a thrown FlutterError.
@@ -486,7 +718,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Journal'));
+      await tester.tap(find.text('History'));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('paw-check-check-1')), findsOneWidget);
@@ -514,7 +746,15 @@ PawScanDraft _draft({
 }
 
 class _FakePawCheckRepository implements PawCheckRepository {
-  List<PawCheck> checks = const [];
+  _FakePawCheckRepository([List<PawCheck>? seed])
+      : checks = List.of(seed ?? const []);
+
+  /// Behaves like a store rather than a fixed list: saving has to show up in
+  /// the watched stream, or a test cannot see what the owner would see after
+  /// saving.
+  List<PawCheck> checks;
+  final saved = <PawCheck>[];
+  final _controller = StreamController<List<PawCheck>>.broadcast();
 
   @override
   Future<void> initialize() async {}
@@ -523,8 +763,9 @@ class _FakePawCheckRepository implements PawCheckRepository {
   Stream<List<PawCheck>> watchChecks({
     required EntityId userId,
     required EntityId petId,
-  }) {
-    return Stream.value(checks);
+  }) async* {
+    yield List.of(checks);
+    yield* _controller.stream;
   }
 
   @override
@@ -537,14 +778,21 @@ class _FakePawCheckRepository implements PawCheckRepository {
   }
 
   @override
-  Future<void> saveCheck(PawCheck check) async {}
+  Future<void> saveCheck(PawCheck check) async {
+    saved.add(check);
+    checks = [check, ...checks.where((other) => other.id != check.id)];
+    _controller.add(List.of(checks));
+  }
 
   @override
   Future<void> deleteCheck({
     required EntityId userId,
     required EntityId petId,
     required EntityId checkId,
-  }) async {}
+  }) async {
+    checks = checks.where((other) => other.id != checkId).toList();
+    _controller.add(List.of(checks));
+  }
 }
 
 class _FakePetRepository implements PetRepository {
@@ -596,6 +844,11 @@ class _FakePawPhotoPicker implements PawPhotoPicker {
     lastSource = source;
     return next;
   }
+
+  @override
+  Future<List<PickedFile>> pickMultipleFromGallery() async =>
+      pick(PawPhotoSource.gallery)
+          .then((file) => file == null ? <PickedFile>[] : [file]);
 }
 
 class _FakeStorageRepository implements StorageRepository {
