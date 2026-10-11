@@ -115,7 +115,7 @@ class _PetListViewState extends State<_PetListView> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                width: _listPaneWidth,
+                width: twoPaneListWidth,
                 // Its own Scaffold so that adding a pet sits inside the pane
                 // it belongs to. Hung off the outer one it floated over the
                 // profile instead, covering whatever was at that corner.
@@ -158,10 +158,6 @@ class _PetListViewState extends State<_PetListView> {
   }
 }
 
-/// Wide enough for a pet's name and species on one line each, narrow enough
-/// to leave the profile the larger share.
-const double _listPaneWidth = 380;
-
 class _PetListContent extends StatelessWidget {
   const _PetListContent({
     required this.pets,
@@ -181,7 +177,12 @@ class _PetListContent extends StatelessWidget {
     final select = onSelect;
 
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        select == null ? 16 : twoPaneListBottomInset,
+      ),
       itemCount: pets.length,
       separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {

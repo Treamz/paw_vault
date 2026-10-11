@@ -1,6 +1,7 @@
 // Renders each primary screen with seeded sample data and captures a
 // screenshot for the App Store. Run via tool/screenshots.sh (or `flutter drive`
 // with test_driver/screenshots.dart) on the required simulator sizes.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,7 +19,9 @@ import 'package:paw_vault/core/subscription/domain/services/subscription_service
 import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
 import 'package:paw_vault/features/account/data/repositories/local_owner_profile_repository.dart';
 import 'package:paw_vault/features/account/domain/repositories/owner_profile_repository.dart';
+import 'package:paw_vault/features/documents/data/services/url_launcher_document_file_opener.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
+import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
 import 'package:paw_vault/features/documents/presentation/screens/documents_screen.dart';
 import 'package:paw_vault/features/pets/data/repositories/local_weight_entry_repository.dart';
 import 'package:paw_vault/features/pets/domain/repositories/pet_repository.dart';
@@ -37,7 +40,6 @@ import 'package:paw_vault/features/vet_summary_export/domain/repositories/vet_su
 import 'package:paw_vault/features/vet_summary_export/domain/services/pdf_share_service.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/services/vet_summary_pdf_generator.dart';
 import 'package:paw_vault/features/vet_summary_export/presentation/screens/vet_summary_export_screen.dart';
-
 import 'support/fakes.dart';
 import 'support/sample_data.dart';
 
@@ -82,6 +84,12 @@ void main() {
     RepositoryProvider<AnalyticsService>.value(value: analytics),
     RepositoryProvider<ReminderNotificationScheduler>.value(
       value: FakeReminderNotificationScheduler(),
+    ),
+    // Read as the documents pane builds. The sheet it replaces on a wide
+    // screen only read it once someone tapped a row, so this harness went
+    // without it until the pane arrived.
+    RepositoryProvider<DocumentFileOpener>.value(
+      value: const UrlLauncherDocumentFileOpener(),
     ),
   ];
 

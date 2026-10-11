@@ -7,6 +7,7 @@ import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_layout.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
@@ -64,6 +65,21 @@ class _DocumentsViewState extends State<_DocumentsView> {
   /// on a document started the download and left the owner watching a blank
   /// box for a couple of seconds. `CachedNetworkImage` alone only fixes the
   /// *second* open.
+  /// Held by id so that filtering, sorting or deleting cannot move the
+  /// selection to whatever took that position.
+  String? _selectedDocumentId;
+
+  /// What the detail pane shows: the pick while it is still on screen, and
+  /// otherwise the first, so the pane is never blank beside a full list.
+  PetDocument? _shownDocument(List<PetDocument> visible) {
+    if (visible.isEmpty) return null;
+    final picked = _selectedDocumentId;
+    for (final document in visible) {
+      if (document.id.value == picked) return document;
+    }
+    return visible.first;
+  }
+
   void _precacheAttachments(BuildContext context, DocumentsState state) {
     for (final document in state.documents) {
       for (final file in document.imageFiles) {
@@ -80,6 +96,8 @@ class _DocumentsViewState extends State<_DocumentsView> {
 
   @override
   Widget build(BuildContext context) {
+    final twoPanes = hasRoomForTwoPanes(MediaQuery.sizeOf(context));
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Documents'),
@@ -102,73 +120,123 @@ class _DocumentsViewState extends State<_DocumentsView> {
           ),
         ],
       ),
-      body: AdaptiveBody(
-        child: BlocConsumer<DocumentsCubit, DocumentsState>(
-          listenWhen: (previous, current) =>
-              previous.documents != current.documents,
-          listener: _precacheAttachments,
-          builder: (context, state) {
-            return switch (state.status) {
-              DocumentsStatus.initial ||
-              DocumentsStatus.loading =>
-                const LoadingView(),
-              DocumentsStatus.failure => ErrorStateView(
-                  title: 'Could not load documents',
-                  message: state.errorMessage,
-                ),
-              DocumentsStatus.ready => state.documents.isEmpty
-                  ? const EmptyStateView(
-                      icon: Icons.folder_outlined,
-                      title: 'No documents yet',
-                      message: 'Upload passports, vaccination records, and '
-                          'other documents to keep them in one place.',
-                    )
-                  : Column(
-                      children: [
-                        _TypeFilterBar(
-                          documents: state.documents,
-                          selected: state.filterType,
-                          onSelected: (type) {
-                            final cubit = context.read<DocumentsCubit>();
-                            if (type == null) {
-                              cubit.clearFilters();
-                            } else {
-                              cubit.setTypeFilter(type);
-                            }
-                          },
-                        ),
-                        Expanded(
-                          child: state.filteredDocuments.isEmpty
-                              ? const EmptyStateView(
-                                  icon: Icons.filter_alt_off_outlined,
-                                  title: 'No documents of this type',
-                                  message: 'Pick another type or All to see '
-                                      'the rest of the documents.',
-                                )
-                              : _DocumentsContent(
-                                  documents: _sorted(state.filteredDocuments),
-                                  petId: state.petId!,
-                                ),
-                        ),
-                      ],
-                    ),
-            };
-          },
-        ),
-      ),
-      floatingActionButton: BlocBuilder<DocumentsCubit, DocumentsState>(
+      body: BlocConsumer<DocumentsCubit, DocumentsState>(
+        listenWhen: (previous, current) =>
+            previous.documents != current.documents,
+        listener: _precacheAttachments,
         builder: (context, state) {
-          if (state.petId == null) return const SizedBox.shrink();
+          final visible = state.status == DocumentsStatus.ready
+              ? _sorted(state.filteredDocuments)
+              : const <PetDocument>[];
+          final shown = twoPanes ? _shownDocument(visible) : null;
 
-          return FloatingActionButton.extended(
-            onPressed: () => context.router.push(
-              DocumentFormRoute(petId: state.petId!),
-            ),
-            icon: const Icon(Icons.add),
-            label: const Text('Add document'),
+          final list = switch (state.status) {
+            DocumentsStatus.initial ||
+            DocumentsStatus.loading =>
+              const LoadingView(),
+            DocumentsStatus.failure => ErrorStateView(
+                title: 'Could not load documents',
+                message: state.errorMessage,
+              ),
+            DocumentsStatus.ready => state.documents.isEmpty
+                ? const EmptyStateView(
+                    icon: Icons.folder_outlined,
+                    title: 'No documents yet',
+                    message: 'Upload passports, vaccination records, and '
+                        'other documents to keep them in one place.',
+                  )
+                : Column(
+                    children: [
+                      _TypeFilterBar(
+                        documents: state.documents,
+                        selected: state.filterType,
+                        onSelected: (type) {
+                          final cubit = context.read<DocumentsCubit>();
+                          if (type == null) {
+                            cubit.clearFilters();
+                          } else {
+                            cubit.setTypeFilter(type);
+                          }
+                        },
+                      ),
+                      Expanded(
+                        child: visible.isEmpty
+                            ? const EmptyStateView(
+                                icon: Icons.filter_alt_off_outlined,
+                                title: 'No documents of this type',
+                                message: 'Pick another type or All to see '
+                                    'the rest of the documents.',
+                              )
+                            : _DocumentsContent(
+                                documents: visible,
+                                petId: state.petId!,
+                                selectedDocumentId: shown?.id.value,
+                                onSelect: twoPanes
+                                    ? (document) => setState(
+                                          () => _selectedDocumentId =
+                                              document.id.value,
+                                        )
+                                    : null,
+                              ),
+                      ),
+                    ],
+                  ),
+          };
+
+          if (!twoPanes) return AdaptiveBody(child: list);
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: twoPaneListWidth,
+                child: Scaffold(
+                  body: SafeArea(right: false, child: list),
+                  floatingActionButton: _addDocumentButton(context, state),
+                ),
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(
+                child: SafeArea(
+                  left: false,
+                  child: shown == null
+                      ? const EmptyStateView(
+                          icon: Icons.folder_outlined,
+                          title: 'No document selected',
+                          message: 'Pick a document to read it here.',
+                        )
+                      : DocumentDetailsView(
+                          key: ValueKey(shown.id.value),
+                          document: shown,
+                          onEdit: () => context.router.push(
+                            DocumentFormRoute(
+                              petId: state.petId!,
+                              documentId: shown.id.value,
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+            ],
           );
         },
       ),
+      floatingActionButton: twoPanes
+          ? null
+          : BlocBuilder<DocumentsCubit, DocumentsState>(
+              builder: _addDocumentButton,
+            ),
+    );
+  }
+
+  Widget _addDocumentButton(BuildContext context, DocumentsState state) {
+    if (state.petId == null) return const SizedBox.shrink();
+
+    return FloatingActionButton.extended(
+      onPressed: () =>
+          context.router.push(DocumentFormRoute(petId: state.petId!)),
+      icon: const Icon(Icons.add),
+      label: const Text('Add document'),
     );
   }
 }
@@ -220,15 +288,29 @@ class _DocumentsContent extends StatelessWidget {
   const _DocumentsContent({
     required this.documents,
     required this.petId,
+    this.selectedDocumentId,
+    this.onSelect,
   });
 
   final List<PetDocument> documents;
   final String petId;
 
+  /// Set only beside a detail pane, where a row picks what that pane shows
+  /// instead of opening a sheet over everything.
+  final String? selectedDocumentId;
+  final void Function(PetDocument document)? onSelect;
+
   @override
   Widget build(BuildContext context) {
+    final select = onSelect;
+
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        select == null ? 16 : twoPaneListBottomInset,
+      ),
       itemCount: documents.length,
       separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
@@ -267,7 +349,14 @@ class _DocumentsContent extends StatelessWidget {
             ),
             isThreeLine: expiry != null || document.hasFile,
             trailing: _DocumentThumbnail(document: document),
-            onTap: () => _showDocumentDetails(context, document),
+            selected: document.id.value == selectedDocumentId,
+            onTap: () {
+              if (select != null) {
+                select(document);
+                return;
+              }
+              _showDocumentDetails(context, document);
+            },
           ),
         );
       },
@@ -277,80 +366,103 @@ class _DocumentsContent extends StatelessWidget {
   /// Read-only view first; editing is an explicit action from here.
   void _showDocumentDetails(BuildContext context, PetDocument document) {
     final router = context.router;
-    final fileOpener = context.read<DocumentFileOpener>();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (sheetContext) {
-        final theme = Theme.of(sheetContext);
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.65,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) => ListView(
-            controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(child: Icon(_documentIcon(document.type))),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      document.title,
-                      style: theme.textTheme.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
+      builder: (sheetContext) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.65,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => DocumentDetailsView(
+          document: document,
+          scrollController: scrollController,
+          onEdit: () {
+            Navigator.of(sheetContext).pop();
+            router.push(
+              DocumentFormRoute(petId: petId, documentId: document.id.value),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// A document, read-only.
+///
+/// Shown in a sheet on a phone and in the pane beside the list on a wide
+/// surface. It takes how to edit rather than deciding, because only the
+/// sheet has to close itself on the way.
+class DocumentDetailsView extends StatelessWidget {
+  const DocumentDetailsView({
+    required this.document,
+    required this.onEdit,
+    this.scrollController,
+    super.key,
+  });
+
+  final PetDocument document;
+  final VoidCallback onEdit;
+
+  /// Set by the sheet, which drives its own drag from this list.
+  final ScrollController? scrollController;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fileOpener = context.read<DocumentFileOpener>();
+
+    return ListView(
+      controller: scrollController,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+      children: [
+        Row(
+          children: [
+            CircleAvatar(child: Icon(_documentIcon(document.type))),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                document.title,
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 16),
-              _detailRow(theme, 'Type', _formatDocumentType(document.type)),
-              if (document.issueDate != null)
-                _detailRow(
-                  theme,
-                  'Issued',
-                  DateFormat.yMMMMd()
-                      .format(document.issueDate!.toUtcDateTime()),
-                ),
-              if (document.expiryDate != null)
-                _detailRow(
-                  theme,
-                  'Expires',
-                  DateFormat.yMMMMd()
-                      .format(document.expiryDate!.toUtcDateTime()),
-                ),
-              if (document.notes != null && document.notes!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text('Notes', style: theme.textTheme.labelLarge),
-                const SizedBox(height: 4),
-                Text(document.notes!),
-              ],
-              // Every attachment, not just the first: a scanned document can
-              // have several pages, and showing one made the rest look lost.
-              for (final file in document.files) ...[
-                const SizedBox(height: 16),
-                AttachmentPreview(attachment: file, fileOpener: fileOpener),
-              ],
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                  router.push(
-                    DocumentFormRoute(
-                      petId: petId,
-                      documentId: document.id.value,
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('Edit document'),
-              ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _detailRow(theme, 'Type', _formatDocumentType(document.type)),
+        if (document.issueDate != null)
+          _detailRow(
+            theme,
+            'Issued',
+            DateFormat.yMMMMd().format(document.issueDate!.toUtcDateTime()),
           ),
-        );
-      },
+        if (document.expiryDate != null)
+          _detailRow(
+            theme,
+            'Expires',
+            DateFormat.yMMMMd().format(document.expiryDate!.toUtcDateTime()),
+          ),
+        if (document.notes != null && document.notes!.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text('Notes', style: theme.textTheme.labelLarge),
+          const SizedBox(height: 4),
+          Text(document.notes!),
+        ],
+        // Every attachment, not just the first: a scanned document can
+        // have several pages, and showing one made the rest look lost.
+        for (final file in document.files) ...[
+          const SizedBox(height: 16),
+          AttachmentPreview(attachment: file, fileOpener: fileOpener),
+        ],
+        const SizedBox(height: 24),
+        FilledButton.icon(
+          onPressed: onEdit,
+          icon: const Icon(Icons.edit_outlined),
+          label: const Text('Edit document'),
+        ),
+      ],
     );
   }
 

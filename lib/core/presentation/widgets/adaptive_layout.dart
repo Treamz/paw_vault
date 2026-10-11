@@ -25,3 +25,14 @@ bool hasRoomForTwoPanes(Size size) =>
 
 const double _minWidth = 900;
 const double _minShortestSide = 600;
+
+/// How wide the list is when it sits beside what it selects.
+///
+/// Shared so the three two-pane screens cannot drift apart. Sized by the
+/// densest of them: a document row carries a title, a type and date, a file
+/// count and an expiry, and below this it wraps the title onto three lines.
+const double twoPaneListWidth = 420;
+
+/// Room under a list that shares its pane with a floating button, which
+/// otherwise comes to rest on the last row.
+const double twoPaneListBottomInset = 96;
