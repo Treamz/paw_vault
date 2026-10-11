@@ -8,11 +8,23 @@
 #   tool/screenshots.sh           # all device sizes below
 #   tool/screenshots.sh iphone    # just the iPhone 6.9" set
 #   tool/screenshots.sh ipad      # just the iPad 13" set
+#   tool/screenshots.sh duo       # just the iPhone Duo set
 #
 # Apple required sizes (App Store Connect, 2024+):
 #   iPhone 6.9"  -> iPhone 16 Pro Max  (1320 x 2868)
 #   iPad 13"     -> iPad Pro 13-inch (M4)  (2064 x 2752)  [needed while the app
 #                   targets iPad; TARGETED_DEVICE_FAMILY = 1,2]
+#   iPhone Duo   -> iPhone Duo  (2853 x 2007 unfolded)
+#
+# The Duo sizes are not on Apple's published specifications page. They come
+# from the live catalog, which is the only place that carries them and which
+# Apple asks integrations to read rather than hard-code:
+#   GET /v1/appAssetLibraryRefData?fields[appAssetLibraryRefData]=imageSpecs
+# The IPHONE_DUO_PROFILE group accepts exactly four, two per fold state:
+#   1398x2034 and 2034x1398 folded, 2007x2853 and 2853x2007 unfolded.
+# A simulator left unfolded captures at 2853x2007, which is one of them, so
+# the run needs no resizing afterwards. Re-read the catalog rather than
+# trusting this comment if an upload is ever rejected.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -24,12 +36,14 @@ TARGET="integration_test/screenshots_test.dart"
 # label|simulator name
 DEVICES_IPHONE=("iphone_6_9|iPhone 16 Pro Max")
 DEVICES_IPAD=("ipad_13|iPad Pro 13-inch (M4)")
+DEVICES_DUO=("iphone_duo|iPhone Duo")
 
 case "${1:-all}" in
   iphone) DEVICES=("${DEVICES_IPHONE[@]}") ;;
   ipad)   DEVICES=("${DEVICES_IPAD[@]}") ;;
-  all)    DEVICES=("${DEVICES_IPHONE[@]}" "${DEVICES_IPAD[@]}") ;;
-  *) echo "Unknown argument: $1 (use: all | iphone | ipad)"; exit 1 ;;
+  duo)    DEVICES=("${DEVICES_DUO[@]}") ;;
+  all)    DEVICES=("${DEVICES_IPHONE[@]}" "${DEVICES_IPAD[@]}" "${DEVICES_DUO[@]}") ;;
+  *) echo "Unknown argument: $1 (use: all | iphone | ipad | duo)"; exit 1 ;;
 esac
 
 for entry in "${DEVICES[@]}"; do
