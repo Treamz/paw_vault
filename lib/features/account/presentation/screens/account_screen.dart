@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/account_auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/subscription/domain/services/subscription_service.dart';
 import 'package:paw_vault/features/account/presentation/cubit/account_cubit.dart';
 
@@ -78,7 +79,7 @@ class _AccountViewState extends State<_AccountView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(_isSignUp ? 'Create account' : 'Sign in')),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocConsumer<AccountCubit, AccountState>(
           listener: (context, state) {
             if (_submitted && state.isSignedIn) {

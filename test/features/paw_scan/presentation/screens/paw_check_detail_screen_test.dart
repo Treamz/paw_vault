@@ -92,7 +92,13 @@ void main() {
       );
       expect(find.text('Some redness between the toes.'), findsOneWidget);
       expect(find.text('Two things worth another look.'), findsOneWidget);
-      expect(find.text('She has been licking it.'), findsOneWidget);
+
+      // Last on a scrolling screen, so reach it rather than relying on it
+      // fitting: the content column is capped on a wide surface, which makes
+      // it taller than the test viewport.
+      final note = find.text('She has been licking it.');
+      await tester.scrollUntilVisible(note, 200);
+      expect(note, findsOneWidget);
     });
 
     testWidgets('carries the date, the paw and the attention level',

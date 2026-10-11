@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/features/documents/domain/services/document_file_opener.dart';
 import 'package:paw_vault/features/documents/presentation/widgets/attachment_views.dart';
 import 'package:paw_vault/features/smart_input/domain/entities/smart_input_draft.dart';
@@ -73,7 +74,7 @@ class _SmartInputViewState extends State<_SmartInputView>
           ],
         ),
       ),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocConsumer<SmartInputCubit, SmartInputState>(
           listenWhen: (previous, current) => previous.status != current.status,
           listener: (context, state) {

@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
 import 'package:paw_vault/features/paw_scan/domain/entities/paw_check.dart';
 import 'package:paw_vault/features/paw_scan/domain/paw_scan_copy.dart';
@@ -27,7 +28,7 @@ class PawCheckDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(formatPawLocation(check.location))),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [

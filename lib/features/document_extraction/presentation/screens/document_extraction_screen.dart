@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/document_extraction/domain/entities/document_extraction_draft.dart';
@@ -118,7 +119,7 @@ class _ExtractionViewState extends State<_ExtractionView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Scan Document')),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocConsumer<DocumentExtractionCubit, DocumentExtractionState>(
           listener: (context, state) {
             if (state.status == DocumentExtractionStatus.review &&

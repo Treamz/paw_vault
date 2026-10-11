@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/paw_scan/application/paw_photo_upload_service.dart';
@@ -93,7 +94,7 @@ class _PawScanViewState extends State<_PawScanView>
           ],
         ),
       ),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocConsumer<PawScanCubit, PawScanState>(
           listenWhen: (previous, current) => previous.status != current.status,
           listener: (context, state) {

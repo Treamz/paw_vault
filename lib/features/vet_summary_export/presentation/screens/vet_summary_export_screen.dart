@@ -1,11 +1,11 @@
 import 'dart:typed_data';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/vet_summary_export/application/load_vet_summary_data.dart';
 import 'package:paw_vault/features/vet_summary_export/domain/entities/vet_summary_export.dart';
@@ -115,7 +115,7 @@ class _VetSummaryViewState extends State<_VetSummaryView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Vet Summary')),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocConsumer<VetSummaryExportCubit, VetSummaryExportState>(
           listener: (context, state) {
             // Seeded here rather than in build(), once: the previous code

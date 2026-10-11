@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/presentation/widgets/time_picker_keyboard_focus.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
@@ -436,7 +437,7 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
               ),
           ],
         ),
-        body: SafeArea(
+        body: AdaptiveBody(
           child: BlocBuilder<TimelineEventCubit, TimelineEventState>(
             builder: (context, state) {
               if (widget.isEditMode &&

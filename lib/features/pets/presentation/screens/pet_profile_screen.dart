@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
@@ -131,7 +132,7 @@ class _PetProfileView extends StatelessWidget {
             ),
           ],
         ),
-        body: SafeArea(
+        body: AdaptiveBody(
           child: BlocBuilder<PetProfileCubit, PetProfileState>(
             builder: (context, state) {
               if (state.status == PetProfileStatus.loading) {

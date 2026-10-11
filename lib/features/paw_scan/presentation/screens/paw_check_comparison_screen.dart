@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/features/paw_scan/domain/entities/paw_check.dart';
 import 'package:paw_vault/features/paw_scan/domain/paw_scan_copy.dart';
 import 'package:paw_vault/features/paw_scan/presentation/widgets/paw_attention_badge.dart';
@@ -30,7 +31,7 @@ class PawCheckComparisonScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Compare paw checks')),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [

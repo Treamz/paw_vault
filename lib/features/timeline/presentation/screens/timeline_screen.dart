@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
@@ -38,7 +39,7 @@ class _TimelineView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Timeline')),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocBuilder<TimelineCubit, TimelineState>(
           builder: (context, state) {
             return switch (state.status) {

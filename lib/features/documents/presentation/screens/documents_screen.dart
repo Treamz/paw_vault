@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
@@ -101,7 +102,7 @@ class _DocumentsViewState extends State<_DocumentsView> {
           ),
         ],
       ),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocConsumer<DocumentsCubit, DocumentsState>(
           listenWhen: (previous, current) =>
               previous.documents != current.documents,

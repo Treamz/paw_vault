@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/core/utils/parse_decimal.dart';
 import 'package:paw_vault/features/pets/application/pet_photo_upload_service.dart';
@@ -321,7 +322,7 @@ class _PetFormViewState extends State<_PetFormView> {
         appBar: AppBar(
           title: Text(widget.isEditMode ? 'Edit Pet' : 'Add Pet'),
         ),
-        body: SafeArea(
+        body: AdaptiveBody(
           child: BlocBuilder<PetProfileCubit, PetProfileState>(
             builder: (context, state) {
               if (widget.isEditMode &&

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/app/router/app_router.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/core/subscription/presentation/cubit/subscription_cubit.dart';
 import 'package:paw_vault/core/subscription/presentation/pro_gate.dart';
@@ -47,7 +48,7 @@ class _PetListView extends StatelessWidget {
         title: const Text('PawVault'),
         actions: const [AccountAction()],
       ),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocBuilder<PetListCubit, PetListState>(
           builder: (context, state) {
             return switch (state.status) {

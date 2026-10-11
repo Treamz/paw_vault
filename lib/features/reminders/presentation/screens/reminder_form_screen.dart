@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/presentation/widgets/time_picker_keyboard_focus.dart';
 import 'package:paw_vault/features/reminders/domain/entities/reminder.dart';
 import 'package:paw_vault/features/reminders/domain/repositories/reminder_repository.dart';
@@ -253,7 +254,7 @@ class _ReminderFormViewState extends State<_ReminderFormView> {
             ),
         ],
       ),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocConsumer<ReminderFormCubit, ReminderFormCubitState>(
           listener: (context, state) {
             if (state.status == ReminderFormStatus.ready &&

@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:paw_vault/core/analytics/domain/services/analytics_service.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
+import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/storage/domain/repositories/storage_repository.dart';
 import 'package:paw_vault/features/document_extraction/domain/services/document_source_picker.dart';
 import 'package:paw_vault/features/documents/application/document_upload_service.dart';
@@ -278,7 +279,7 @@ class _DocumentFormViewState extends State<_DocumentFormView> {
             ),
         ],
       ),
-      body: SafeArea(
+      body: AdaptiveBody(
         child: BlocConsumer<DocumentFormCubit, DocumentFormState>(
           listener: (context, state) {
             if (state.status == DocumentFormStatus.ready &&
