@@ -493,6 +493,33 @@
   CocoaPods' Ruby `spawn` do not, so `pod` died with `Errno::EBADARCH` on
   every invocation, which takes iOS builds with it. Remove it with
   `/usr/local/git/uninstall.sh`; as a stopgap, drop `/usr/local/bin` from PATH.
+- [ ] **Verify the app on iPhone Duo.** Apple's prepare page says apps built
+  with the iOS 27 SDK resize dynamically between the foldable's outer and
+  inner displays, and that hardcoded screen sizes, fixed orientations and
+  device-idiom assumptions are what produce stretched, clipped or misplaced
+  content.
+  Not checkable on this machine yet. The `iPhone Duo` device type is listed by
+  `simctl`, but creating one fails with `code=403: Incompatible device`, and
+  its profile gives `minRuntimeVersion 27.1` (`modelIdentifier iPhone19,4`)
+  while the newest installed runtime is iOS 27.0. Apple states the Duo
+  simulator ships with Xcode 27.1, and 27.0 has no resizable device type
+  either, so this needs an Xcode update before it can be verified at all.
+  What the code audit already establishes, against Apple's own list of
+  breaking patterns: `lib/` contains no `MediaQuery...size`, no `orientation`,
+  no `SystemChrome` and no idiom checks, so no layout anywhere is derived from
+  screen size or orientation. `Info.plist` allows portrait and both landscapes
+  on iPhone, and the app is already scene-based (`UIApplicationSceneManifest`
+  with `FlutterSceneDelegate`), which is what replaces the `UIScreen.main`
+  pattern Apple asks people to drop. The fixed numbers in the widget tree are
+  component sizes — avatars, row thumbnails, a chart height, image previews —
+  not screen assumptions, and they survive a resize.
+  One nuance worth not re-deriving later: Apple's note that toolbars and tab
+  bars turn vertical under the 27.1 SDK concerns UIKit bars. The two `TabBar`s
+  here are Flutter widgets drawn inside the Flutter view, so that
+  repositioning does not apply to them.
+  Until the simulator exists, the useful substitute is pumping the main
+  screens at several canvas sizes, including a large squarish one, and failing
+  on overflow — it does not need the Duo's real dimensions.
 - [ ] **Running integration tests back to back degrades the simulator.** After
   roughly five consecutive `flutter drive` runs, the next one builds fine,
   launches the app to a white screen with only a status bar, and never prints
