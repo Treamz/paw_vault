@@ -510,8 +510,19 @@
   re-investigated as code bugs: a sweep wrapped in `timeout` (which macOS does
   not have, so every run exited 127 and reported nothing), and results
   invalidated by killing processes mid-sweep.
-  Diagnosed on Xcode 26 / Flutter 3.44.1 and not yet re-checked on Xcode 27
-  / 3.47.7, where only a single drive run has been made so far.
+  Re-checked on Xcode 27 / Flutter 3.47.7, and the symptom has changed. 13
+  consecutive runs completed with no hang at all, where before it set in
+  around the fifth — but the batches-of-three reboots were still in place, so
+  this does not isolate the upgrade as the cause. The 14th run was the first
+  without a reboot before it, and it failed in a new way: the device had put
+  itself in `Shutdown`, so `simctl install` returned `Unable to lookup in
+  current state: Shutdown` and the app never started, which `flutter drive`
+  reports as three failed start attempts rather than as a hang. Running that
+  test alone on a freshly booted simulator passed. So something still takes
+  the device down over a long sequence; it is now a shutdown rather than a
+  white screen with no VM service line.
+  To settle whether the upgrade fixed the original symptom, run the full suite
+  once with the reboots removed.
 - [ ] **`tool/screenshots.sh ipad` hangs**, found while verifying the above
   and unrelated to the blank-capture bug. The Xcode build succeeds, the app
   launches to a white screen with only a status bar, and `flutter drive`
