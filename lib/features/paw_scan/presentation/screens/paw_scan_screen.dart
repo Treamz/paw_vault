@@ -93,50 +93,52 @@ class _PawScanViewState extends State<_PawScanView>
           ],
         ),
       ),
-      body: BlocConsumer<PawScanCubit, PawScanState>(
-        listenWhen: (previous, current) => previous.status != current.status,
-        listener: (context, state) {
-          if (state.status == PawScanStatus.saved) {
-            _noteController.clear();
-            setState(() => _includeInVetSummary = false);
-            final messenger = ScaffoldMessenger.of(context);
-            // Replace rather than queue: saving twice in a row used to stack
-            // two four-second messages.
-            _savedMessage?.close();
-            final shown = messenger.showSnackBar(
-              SnackBar(
-                content: const Text('Paw check saved to History'),
-                duration: const Duration(seconds: 3),
-                action: SnackBarAction(
-                  label: 'View',
-                  onPressed: () {
-                    messenger.hideCurrentSnackBar();
-                    _tabController.animateTo(1);
-                  },
+      body: SafeArea(
+        child: BlocConsumer<PawScanCubit, PawScanState>(
+          listenWhen: (previous, current) => previous.status != current.status,
+          listener: (context, state) {
+            if (state.status == PawScanStatus.saved) {
+              _noteController.clear();
+              setState(() => _includeInVetSummary = false);
+              final messenger = ScaffoldMessenger.of(context);
+              // Replace rather than queue: saving twice in a row used to stack
+              // two four-second messages.
+              _savedMessage?.close();
+              final shown = messenger.showSnackBar(
+                SnackBar(
+                  content: const Text('Paw check saved to History'),
+                  duration: const Duration(seconds: 3),
+                  action: SnackBarAction(
+                    label: 'View',
+                    onPressed: () {
+                      messenger.hideCurrentSnackBar();
+                      _tabController.animateTo(1);
+                    },
+                  ),
                 ),
-              ),
+              );
+              _savedMessage = shown;
+              // Forget it once it has gone, however it went — timed out, was
+              // hidden by "View", or was replaced. `close()` on an already
+              // dismissed message throws `Bad state: No element`, so dispose
+              // must only ever close one that is still showing.
+              shown.closed.then((_) {
+                if (_savedMessage == shown) {
+                  _savedMessage = null;
+                }
+              });
+            }
+          },
+          builder: (context, state) {
+            return TabBarView(
+              controller: _tabController,
+              children: [
+                _buildScanTab(context, state),
+                _HistoryTab(state: state, petName: state.petName),
+              ],
             );
-            _savedMessage = shown;
-            // Forget it once it has gone, however it went — timed out, was
-            // hidden by "View", or was replaced. `close()` on an already
-            // dismissed message throws `Bad state: No element`, so dispose
-            // must only ever close one that is still showing.
-            shown.closed.then((_) {
-              if (_savedMessage == shown) {
-                _savedMessage = null;
-              }
-            });
-          }
-        },
-        builder: (context, state) {
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              _buildScanTab(context, state),
-              _HistoryTab(state: state, petName: state.petName),
-            ],
-          );
-        },
+          },
+        ),
       ),
     );
   }

@@ -30,66 +30,68 @@ class PawCheckComparisonScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Compare paw checks')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const PawScanDisclaimer(),
-          const SizedBox(height: 16),
-          if (mismatched) ...[
-            Card(
-              color: Theme.of(context).colorScheme.tertiaryContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'These checks are of different paws, so they may not be '
-                  'comparable.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color:
-                            Theme.of(context).colorScheme.onTertiaryContainer,
-                      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const PawScanDisclaimer(),
+            const SizedBox(height: 16),
+            if (mismatched) ...[
+              Card(
+                color: Theme.of(context).colorScheme.tertiaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'These checks are of different paws, so they may not be '
+                    'comparable.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onTertiaryContainer,
+                        ),
+                  ),
                 ),
               ),
+              const SizedBox(height: 16),
+            ],
+            Text(
+              dayGap == 0
+                  ? 'Both checks are from the same day.'
+                  : '$dayGap ${dayGap == 1 ? 'day' : 'days'} apart',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
-          ],
-          Text(
-            dayGap == 0
-                ? 'Both checks are from the same day.'
-                : '$dayGap ${dayGap == 1 ? 'day' : 'days'} apart',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final columns = [
-                _CheckColumn(check: earlier, label: 'Earlier'),
-                _CheckColumn(check: later, label: 'Later'),
-              ];
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = [
+                  _CheckColumn(check: earlier, label: 'Earlier'),
+                  _CheckColumn(check: later, label: 'Later'),
+                ];
 
-              // Side by side on anything wider than a small phone; stacked
-              // below that, so neither column becomes unreadable.
-              if (constraints.maxWidth < 380) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                // Side by side on anything wider than a small phone; stacked
+                // below that, so neither column becomes unreadable.
+                if (constraints.maxWidth < 380) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      columns.first,
+                      const SizedBox(height: 24),
+                      columns.last,
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    columns.first,
-                    const SizedBox(height: 24),
-                    columns.last,
+                    Expanded(child: columns.first),
+                    const SizedBox(width: 16),
+                    Expanded(child: columns.last),
                   ],
                 );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: columns.first),
-                  const SizedBox(width: 16),
-                  Expanded(child: columns.last),
-                ],
-              );
-            },
-          ),
-        ],
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

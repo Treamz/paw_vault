@@ -436,260 +436,267 @@ class _TimelineEventFormViewState extends State<_TimelineEventFormView> {
               ),
           ],
         ),
-        body: BlocBuilder<TimelineEventCubit, TimelineEventState>(
-          builder: (context, state) {
-            if (widget.isEditMode &&
-                state.status == TimelineEventStatus.loading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        body: SafeArea(
+          child: BlocBuilder<TimelineEventCubit, TimelineEventState>(
+            builder: (context, state) {
+              if (widget.isEditMode &&
+                  state.status == TimelineEventStatus.loading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            if (widget.isEditMode &&
-                state.status == TimelineEventStatus.notFound) {
-              return const Center(child: Text('Event not found'));
-            }
+              if (widget.isEditMode &&
+                  state.status == TimelineEventStatus.notFound) {
+                return const Center(child: Text('Event not found'));
+              }
 
-            final isSaving = state.status == TimelineEventStatus.saving;
+              final isSaving = state.status == TimelineEventStatus.saving;
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    DropdownButtonFormField<PetEventType>(
-                      initialValue: _selectedType,
-                      decoration: InputDecoration(
-                        labelText: 'Event Type *',
-                        errorText: _validation?.errorFor('type'),
-                      ),
-                      items: PetEventType.values
-                          .map(
-                            (type) => DropdownMenuItem(
-                              value: type,
-                              child: Text(_formatEventType(type)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: isSaving
-                          ? null
-                          : (value) {
-                              setState(() {
-                                _selectedType = value;
-                                _updateFormState();
-                              });
-                            },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _titleController,
-                      decoration: InputDecoration(
-                        labelText: 'Title *',
-                        errorText: _validation?.errorFor('title'),
-                      ),
-                      enabled: !isSaving,
-                      onChanged: (_) => _updateFormState(),
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      title: const Text('Date *'),
-                      subtitle: Text(
-                        _selectedDate != null
-                            ? dateFormat.format(_selectedDate!)
-                            : 'Not set',
-                      ),
-                      trailing: const Icon(Icons.calendar_today),
-                      onTap: isSaving ? null : _selectDate,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    if (_validation?.errorFor('date') != null) ...[
-                      Text(
-                        _validation!.errorFor('date')!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontSize: 12,
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DropdownButtonFormField<PetEventType>(
+                        initialValue: _selectedType,
+                        decoration: InputDecoration(
+                          labelText: 'Event Type *',
+                          errorText: _validation?.errorFor('type'),
                         ),
+                        items: PetEventType.values
+                            .map(
+                              (type) => DropdownMenuItem(
+                                value: type,
+                                child: Text(_formatEventType(type)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: isSaving
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _selectedType = value;
+                                  _updateFormState();
+                                });
+                              },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _titleController,
+                        decoration: InputDecoration(
+                          labelText: 'Title *',
+                          errorText: _validation?.errorFor('title'),
+                        ),
+                        enabled: !isSaving,
+                        onChanged: (_) => _updateFormState(),
+                      ),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        title: const Text('Date *'),
+                        subtitle: Text(
+                          _selectedDate != null
+                              ? dateFormat.format(_selectedDate!)
+                              : 'Not set',
+                        ),
+                        trailing: const Icon(Icons.calendar_today),
+                        onTap: isSaving ? null : _selectDate,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      if (_validation?.errorFor('date') != null) ...[
+                        Text(
+                          _validation!.errorFor('date')!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _descriptionController,
+                        decoration: InputDecoration(
+                          labelText: 'Description',
+                          errorText: _validation?.errorFor('description'),
+                          hintText: 'Optional details about the event',
+                        ),
+                        maxLines: 4,
+                        enabled: !isSaving,
+                        onChanged: (_) => _updateFormState(),
+                      ),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        title: const Text('Reminder Date'),
+                        subtitle: Text(
+                          _selectedReminderDate != null
+                              ? dateFormat.format(_selectedReminderDate!)
+                              : 'Not set',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (_selectedReminderDate != null)
+                              IconButton(
+                                icon: const Icon(Icons.clear),
+                                tooltip: 'Clear reminder date',
+                                onPressed: isSaving ? null : _clearReminderDate,
+                              ),
+                            const Icon(Icons.calendar_today),
+                          ],
+                        ),
+                        onTap: isSaving ? null : _selectReminderDate,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      ListTile(
+                        title: const Text('Reminder Time'),
+                        subtitle: Text(
+                          _selectedReminderDate != null
+                              ? timeFormat.format(_selectedReminderDate!)
+                              : 'Not set',
+                        ),
+                        trailing: const Icon(Icons.schedule),
+                        onTap: isSaving ? null : _selectReminderTime,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      if (_validation?.errorFor('nextReminderDate') !=
+                          null) ...[
+                        Text(
+                          _validation!.errorFor('nextReminderDate')!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      const SizedBox(height: 24),
+                      Text(
+                        'Attachments',
+                        style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: 8),
-                    ],
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _descriptionController,
-                      decoration: InputDecoration(
-                        labelText: 'Description',
-                        errorText: _validation?.errorFor('description'),
-                        hintText: 'Optional details about the event',
-                      ),
-                      maxLines: 4,
-                      enabled: !isSaving,
-                      onChanged: (_) => _updateFormState(),
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      title: const Text('Reminder Date'),
-                      subtitle: Text(
-                        _selectedReminderDate != null
-                            ? dateFormat.format(_selectedReminderDate!)
-                            : 'Not set',
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_selectedReminderDate != null)
-                            IconButton(
-                              icon: const Icon(Icons.clear),
-                              tooltip: 'Clear reminder date',
-                              onPressed: isSaving ? null : _clearReminderDate,
-                            ),
-                          const Icon(Icons.calendar_today),
-                        ],
-                      ),
-                      onTap: isSaving ? null : _selectReminderDate,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    ListTile(
-                      title: const Text('Reminder Time'),
-                      subtitle: Text(
-                        _selectedReminderDate != null
-                            ? timeFormat.format(_selectedReminderDate!)
-                            : 'Not set',
-                      ),
-                      trailing: const Icon(Icons.schedule),
-                      onTap: isSaving ? null : _selectReminderTime,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    if (_validation?.errorFor('nextReminderDate') != null) ...[
-                      Text(
-                        _validation!.errorFor('nextReminderDate')!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontSize: 12,
+                      if (_attachmentUrls.isNotEmpty ||
+                          _pendingPhotos.isNotEmpty) ...[
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (var i = 0; i < _attachmentUrls.length; i++)
+                              _AttachmentThumbnail(
+                                key: ValueKey('stored-$i'),
+                                image: Image.network(
+                                  _attachmentUrls[i],
+                                  width: 72,
+                                  height: 72,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, _, __) => Container(
+                                    width: 72,
+                                    height: 72,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest,
+                                    child: const Icon(Icons.image_outlined),
+                                  ),
+                                ),
+                                onRemove: isSaving
+                                    ? null
+                                    : () => _removeStoredAttachment(i),
+                              ),
+                            for (var i = 0; i < _pendingPhotos.length; i++)
+                              _AttachmentThumbnail(
+                                key: ValueKey('pending-$i'),
+                                image: _pendingPhotos[i].extension == 'pdf'
+                                    ? Container(
+                                        width: 72,
+                                        height: 72,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerHighest,
+                                        child: const Icon(
+                                          Icons.picture_as_pdf_outlined,
+                                        ),
+                                      )
+                                    : Image.memory(
+                                        _pendingPhotos[i].bytes,
+                                        width: 72,
+                                        height: 72,
+                                        fit: BoxFit.cover,
+                                        gaplessPlayback: true,
+                                      ),
+                                onRemove: isSaving
+                                    ? null
+                                    : () => _removePendingPhoto(i),
+                              ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    const SizedBox(height: 24),
-                    Text(
-                      'Attachments',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    if (_attachmentUrls.isNotEmpty ||
-                        _pendingPhotos.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                      ],
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          for (var i = 0; i < _attachmentUrls.length; i++)
-                            _AttachmentThumbnail(
-                              key: ValueKey('stored-$i'),
-                              image: Image.network(
-                                _attachmentUrls[i],
-                                width: 72,
-                                height: 72,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, _, __) => Container(
-                                  width: 72,
-                                  height: 72,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest,
-                                  child: const Icon(Icons.image_outlined),
-                                ),
-                              ),
-                              onRemove: isSaving
-                                  ? null
-                                  : () => _removeStoredAttachment(i),
-                            ),
-                          for (var i = 0; i < _pendingPhotos.length; i++)
-                            _AttachmentThumbnail(
-                              key: ValueKey('pending-$i'),
-                              image: _pendingPhotos[i].extension == 'pdf'
-                                  ? Container(
-                                      width: 72,
-                                      height: 72,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainerHighest,
-                                      child: const Icon(
-                                        Icons.picture_as_pdf_outlined,
-                                      ),
-                                    )
-                                  : Image.memory(
-                                      _pendingPhotos[i].bytes,
-                                      width: 72,
-                                      height: 72,
-                                      fit: BoxFit.cover,
-                                      gaplessPlayback: true,
+                          OutlinedButton.icon(
+                            onPressed: isSaving
+                                ? null
+                                : () => _pickAttachmentPhoto(
+                                      EventPhotoSource.camera,
                                     ),
-                              onRemove: isSaving
-                                  ? null
-                                  : () => _removePendingPhoto(i),
-                            ),
+                            icon: const Icon(Icons.photo_camera_outlined),
+                            label: const Text('Camera'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: isSaving
+                                ? null
+                                : () => _pickAttachmentPhoto(
+                                      EventPhotoSource.gallery,
+                                    ),
+                            icon: const Icon(Icons.photo_library_outlined),
+                            label: const Text('Gallery'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: isSaving
+                                ? null
+                                : () => _pickAttachmentPhoto(
+                                      EventPhotoSource.file,
+                                    ),
+                            icon: const Icon(Icons.attach_file),
+                            label: const Text('File'),
+                          ),
                         ],
                       ),
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed: isSaving ? null : _saveEvent,
+                        child: isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(
+                                widget.isEditMode
+                                    ? 'Save Changes'
+                                    : 'Add Event',
+                              ),
+                      ),
                       const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: isSaving
+                            ? null
+                            : () {
+                                _dismissKeyboard();
+                                context.router.back();
+                              },
+                        child: const Text('Cancel'),
+                      ),
                     ],
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: isSaving
-                              ? null
-                              : () =>
-                                  _pickAttachmentPhoto(EventPhotoSource.camera),
-                          icon: const Icon(Icons.photo_camera_outlined),
-                          label: const Text('Camera'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: isSaving
-                              ? null
-                              : () => _pickAttachmentPhoto(
-                                    EventPhotoSource.gallery,
-                                  ),
-                          icon: const Icon(Icons.photo_library_outlined),
-                          label: const Text('Gallery'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: isSaving
-                              ? null
-                              : () => _pickAttachmentPhoto(
-                                    EventPhotoSource.file,
-                                  ),
-                          icon: const Icon(Icons.attach_file),
-                          label: const Text('File'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: isSaving ? null : _saveEvent,
-                      child: isSaving
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(
-                              widget.isEditMode ? 'Save Changes' : 'Add Event',
-                            ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: isSaving
-                          ? null
-                          : () {
-                              _dismissKeyboard();
-                              context.router.back();
-                            },
-                      child: const Text('Cancel'),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

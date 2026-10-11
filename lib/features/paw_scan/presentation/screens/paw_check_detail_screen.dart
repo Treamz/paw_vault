@@ -27,106 +27,108 @@ class PawCheckDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(formatPawLocation(check.location))),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const PawScanDisclaimer(),
-          const SizedBox(height: 16),
-          Text(
-            DateFormat.yMMMMd().add_jm().format(checkedAt),
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: 16),
-          PawAttentionCard(level: check.attentionLevel),
-          if (check.photoUrls.isNotEmpty) ...[
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const PawScanDisclaimer(),
             const SizedBox(height: 16),
             Text(
-              check.photoUrls.length == 1 ? 'Photo' : 'Photos',
-              style: theme.textTheme.titleSmall,
+              DateFormat.yMMMMd().add_jm().format(checkedAt),
+              style: theme.textTheme.titleMedium,
             ),
-            for (final url in check.photoUrls) ...[
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: () => showFullScreenImage(
-                  context,
-                  CachedNetworkImageProvider(url.toString()),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: CachedNetworkImage(
-                    imageUrl: url.toString(),
-                    height: 240,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    // Says a photo is on its way rather than leaving an empty
-                    // box, as the documents and Smart Input previews do.
-                    placeholder: (context, _) => Container(
+            const SizedBox(height: 16),
+            PawAttentionCard(level: check.attentionLevel),
+            if (check.photoUrls.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                check.photoUrls.length == 1 ? 'Photo' : 'Photos',
+                style: theme.textTheme.titleSmall,
+              ),
+              for (final url in check.photoUrls) ...[
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () => showFullScreenImage(
+                    context,
+                    CachedNetworkImageProvider(url.toString()),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: CachedNetworkImage(
+                      imageUrl: url.toString(),
                       height: 240,
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      alignment: Alignment.center,
-                      child: const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      // Says a photo is on its way rather than leaving an empty
+                      // box, as the documents and Smart Input previews do.
+                      placeholder: (context, _) => Container(
+                        height: 240,
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        alignment: Alignment.center,
+                        child: const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      fadeInDuration: const Duration(milliseconds: 120),
+                      errorWidget: (context, _, __) => Container(
+                        height: 240,
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.broken_image_outlined),
                       ),
                     ),
-                    fadeInDuration: const Duration(milliseconds: 120),
-                    errorWidget: (context, _, __) => Container(
-                      height: 240,
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.broken_image_outlined),
+                  ),
+                ),
+              ],
+            ],
+            if (check.observations.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Text(
+                PawScanCopy.whatPawScanCanSee,
+                style: theme.textTheme.titleSmall,
+              ),
+              for (final observation in check.observations) ...[
+                const SizedBox(height: 8),
+                Text(observation, style: theme.textTheme.bodyMedium),
+              ],
+            ],
+            if (check.summary != null) ...[
+              const SizedBox(height: 16),
+              Text(check.summary!, style: theme.textTheme.bodyMedium),
+            ],
+            if (check.ownerNote != null) ...[
+              const SizedBox(height: 24),
+              Text('Your note', style: theme.textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Text(check.ownerNote!, style: theme.textTheme.bodyMedium),
+            ],
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Icon(
+                  check.includeInVetSummary
+                      ? Icons.check_circle_outline
+                      : Icons.remove_circle_outline,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    check.includeInVetSummary
+                        ? 'Included in the vet summary'
+                        : 'Not included in the vet summary',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
-              ),
-            ],
-          ],
-          if (check.observations.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Text(
-              PawScanCopy.whatPawScanCanSee,
-              style: theme.textTheme.titleSmall,
+              ],
             ),
-            for (final observation in check.observations) ...[
-              const SizedBox(height: 8),
-              Text(observation, style: theme.textTheme.bodyMedium),
-            ],
           ],
-          if (check.summary != null) ...[
-            const SizedBox(height: 16),
-            Text(check.summary!, style: theme.textTheme.bodyMedium),
-          ],
-          if (check.ownerNote != null) ...[
-            const SizedBox(height: 24),
-            Text('Your note', style: theme.textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Text(check.ownerNote!, style: theme.textTheme.bodyMedium),
-          ],
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Icon(
-                check.includeInVetSummary
-                    ? Icons.check_circle_outline
-                    : Icons.remove_circle_outline,
-                size: 18,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  check.includeInVetSummary
-                      ? 'Included in the vet summary'
-                      : 'Not included in the vet summary',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

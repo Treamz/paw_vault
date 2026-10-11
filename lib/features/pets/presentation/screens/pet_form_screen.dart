@@ -321,316 +321,323 @@ class _PetFormViewState extends State<_PetFormView> {
         appBar: AppBar(
           title: Text(widget.isEditMode ? 'Edit Pet' : 'Add Pet'),
         ),
-        body: BlocBuilder<PetProfileCubit, PetProfileState>(
-          builder: (context, state) {
-            if (widget.isEditMode && state.status == PetProfileStatus.loading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        body: SafeArea(
+          child: BlocBuilder<PetProfileCubit, PetProfileState>(
+            builder: (context, state) {
+              if (widget.isEditMode &&
+                  state.status == PetProfileStatus.loading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            final isSaving = state.status == PetProfileStatus.saving;
+              final isSaving = state.status == PetProfileStatus.saving;
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Name *',
-                        errorText: _validation?.errorFor('name'),
-                      ),
-                      enabled: !isSaving,
-                      onChanged: (_) => _updateFormState(),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _speciesController,
-                      decoration: InputDecoration(
-                        labelText: 'Species',
-                        errorText: _validation?.errorFor('species'),
-                      ),
-                      enabled: !isSaving,
-                      onChanged: (_) => _updateFormState(),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _breedController,
-                      decoration: InputDecoration(
-                        labelText: 'Breed',
-                        errorText: _validation?.errorFor('breed'),
-                      ),
-                      enabled: !isSaving,
-                      onChanged: (_) => _updateFormState(),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<PetGender>(
-                      initialValue: _selectedGender,
-                      decoration: const InputDecoration(labelText: 'Gender'),
-                      items: PetGender.values
-                          .map(
-                            (gender) => DropdownMenuItem(
-                              value: gender,
-                              child: Text(
-                                gender.name[0].toUpperCase() +
-                                    gender.name.substring(1),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: isSaving
-                          ? null
-                          : (value) {
-                              setState(() {
-                                _selectedGender = value;
-                                _updateFormState();
-                              });
-                            },
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      title: const Text('Birth Date'),
-                      subtitle: Text(
-                        _selectedBirthDate != null
-                            ? DateOnly.fromDateTime(_selectedBirthDate!)
-                                .toString()
-                            : 'Not set',
-                      ),
-                      trailing: const Icon(Icons.calendar_today),
-                      onTap: isSaving ? null : _selectBirthDate,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    if (_validation?.errorFor('birthDate') != null) ...[
-                      Text(
-                        _validation!.errorFor('birthDate')!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontSize: 12,
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: InputDecoration(
+                          labelText: 'Name *',
+                          errorText: _validation?.errorFor('name'),
                         ),
+                        enabled: !isSaving,
+                        onChanged: (_) => _updateFormState(),
                       ),
-                      const SizedBox(height: 8),
-                    ],
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: TextFormField(
-                            controller: _weightController,
-                            decoration: InputDecoration(
-                              labelText: 'Weight',
-                              errorText: _validation?.errorFor('weight'),
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            enabled: !isSaving,
-                            onChanged: (_) => _updateFormState(),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _speciesController,
+                        decoration: InputDecoration(
+                          labelText: 'Species',
+                          errorText: _validation?.errorFor('species'),
+                        ),
+                        enabled: !isSaving,
+                        onChanged: (_) => _updateFormState(),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _breedController,
+                        decoration: InputDecoration(
+                          labelText: 'Breed',
+                          errorText: _validation?.errorFor('breed'),
+                        ),
+                        enabled: !isSaving,
+                        onChanged: (_) => _updateFormState(),
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<PetGender>(
+                        initialValue: _selectedGender,
+                        decoration: const InputDecoration(labelText: 'Gender'),
+                        items: PetGender.values
+                            .map(
+                              (gender) => DropdownMenuItem(
+                                value: gender,
+                                child: Text(
+                                  gender.name[0].toUpperCase() +
+                                      gender.name.substring(1),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: isSaving
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _selectedGender = value;
+                                  _updateFormState();
+                                });
+                              },
+                      ),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        title: const Text('Birth Date'),
+                        subtitle: Text(
+                          _selectedBirthDate != null
+                              ? DateOnly.fromDateTime(_selectedBirthDate!)
+                                  .toString()
+                              : 'Not set',
+                        ),
+                        trailing: const Icon(Icons.calendar_today),
+                        onTap: isSaving ? null : _selectBirthDate,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      if (_validation?.errorFor('birthDate') != null) ...[
+                        Text(
+                          _validation!.errorFor('birthDate')!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 12,
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: DropdownButtonFormField<PetWeightUnit>(
-                            initialValue: _selectedWeightUnit,
-                            isExpanded: true,
-                            decoration:
-                                const InputDecoration(labelText: 'Unit'),
-                            items: PetWeightUnit.values
-                                .map(
-                                  (unit) => DropdownMenuItem(
-                                    value: unit,
-                                    child: Text(unit.name),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: isSaving
-                                ? null
-                                : (value) {
-                                    setState(() {
-                                      _selectedWeightUnit =
-                                          value ?? PetWeightUnit.kilogram;
-                                      _updateFormState();
-                                    });
-                                  },
+                        const SizedBox(height: 8),
+                      ],
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: TextFormField(
+                              controller: _weightController,
+                              decoration: InputDecoration(
+                                labelText: 'Weight',
+                                errorText: _validation?.errorFor('weight'),
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                              enabled: !isSaving,
+                              onChanged: (_) => _updateFormState(),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: DropdownButtonFormField<PetWeightUnit>(
+                              initialValue: _selectedWeightUnit,
+                              isExpanded: true,
+                              decoration:
+                                  const InputDecoration(labelText: 'Unit'),
+                              items: PetWeightUnit.values
+                                  .map(
+                                    (unit) => DropdownMenuItem(
+                                      value: unit,
+                                      child: Text(unit.name),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: isSaving
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        _selectedWeightUnit =
+                                            value ?? PetWeightUnit.kilogram;
+                                        _updateFormState();
+                                      });
+                                    },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Body Measurements',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      if (_validation?.errorFor('measurements') != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          _validation!.errorFor('measurements')!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 12,
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Body Measurements',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    if (_validation?.errorFor('measurements') != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        _validation!.errorFor('measurements')!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                    for (var i = 0; i < _measurements.length; i++)
-                      KeyedSubtree(
-                        key: ValueKey('measurement-${_measurementRowIds[i]}'),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child:
-                                    DropdownButtonFormField<PetMeasurementType>(
-                                  initialValue: _measurements[i].type,
-                                  isExpanded: true,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Measurement',
-                                  ),
-                                  items: [
-                                    for (final type
-                                        in PetMeasurementType.values)
-                                      if (type == _measurements[i].type ||
-                                          !_usedMeasurementTypes(
-                                            exceptIndex: i,
-                                          ).contains(type))
-                                        DropdownMenuItem(
-                                          value: type,
-                                          child: Text(
-                                            type.label,
-                                            overflow: TextOverflow.ellipsis,
+                      for (var i = 0; i < _measurements.length; i++)
+                        KeyedSubtree(
+                          key: ValueKey('measurement-${_measurementRowIds[i]}'),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 3,
+                                  child: DropdownButtonFormField<
+                                      PetMeasurementType>(
+                                    initialValue: _measurements[i].type,
+                                    isExpanded: true,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Measurement',
+                                    ),
+                                    items: [
+                                      for (final type
+                                          in PetMeasurementType.values)
+                                        if (type == _measurements[i].type ||
+                                            !_usedMeasurementTypes(
+                                              exceptIndex: i,
+                                            ).contains(type))
+                                          DropdownMenuItem(
+                                            value: type,
+                                            child: Text(
+                                              type.label,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
                                           ),
-                                        ),
-                                  ],
-                                  onChanged: isSaving
+                                    ],
+                                    onChanged: isSaving
+                                        ? null
+                                        : (value) {
+                                            setState(() {
+                                              _measurements[i] =
+                                                  _measurements[i]
+                                                      .copyWith(type: value);
+                                              _updateFormState();
+                                            });
+                                          },
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  flex: 2,
+                                  child: TextFormField(
+                                    controller: _measurementControllers[i],
+                                    decoration: const InputDecoration(
+                                      labelText: 'Value',
+                                      suffixText: 'cm',
+                                    ),
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                    enabled: !isSaving,
+                                    onChanged: (value) {
+                                      _measurements[i] = _measurements[i]
+                                          .copyWith(value: value);
+                                      _updateFormState();
+                                    },
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.remove_circle_outline),
+                                  tooltip: 'Remove measurement',
+                                  onPressed: isSaving
                                       ? null
-                                      : (value) {
-                                          setState(() {
-                                            _measurements[i] = _measurements[i]
-                                                .copyWith(type: value);
-                                            _updateFormState();
-                                          });
-                                        },
+                                      : () => _removeMeasurementRow(i),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                flex: 2,
-                                child: TextFormField(
-                                  controller: _measurementControllers[i],
-                                  decoration: const InputDecoration(
-                                    labelText: 'Value',
-                                    suffixText: 'cm',
-                                  ),
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                                  enabled: !isSaving,
-                                  onChanged: (value) {
-                                    _measurements[i] =
-                                        _measurements[i].copyWith(value: value);
-                                    _updateFormState();
-                                  },
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.remove_circle_outline),
-                                tooltip: 'Remove measurement',
-                                onPressed: isSaving
-                                    ? null
-                                    : () => _removeMeasurementRow(i),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: isSaving ||
+                                  _measurements.length >=
+                                      PetMeasurementType.values.length
+                              ? null
+                              : _addMeasurementRow,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add measurement'),
+                        ),
                       ),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: isSaving ||
-                                _measurements.length >=
-                                    PetMeasurementType.values.length
-                            ? null
-                            : _addMeasurementRow,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add measurement'),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _microchipController,
+                        decoration: InputDecoration(
+                          labelText: 'Microchip Number',
+                          errorText: _validation?.errorFor('microchipNumber'),
+                        ),
+                        enabled: !isSaving,
+                        onChanged: (_) => _updateFormState(),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _microchipController,
-                      decoration: InputDecoration(
-                        labelText: 'Microchip Number',
-                        errorText: _validation?.errorFor('microchipNumber'),
+                      const SizedBox(height: 16),
+                      _PhotoPickerField(
+                        photoUrl: _photoUrl,
+                        pickedPhoto: _pickedPhoto,
+                        enabled: !isSaving,
+                        onPick: _pickPhoto,
+                        onRemove: _removePhoto,
                       ),
-                      enabled: !isSaving,
-                      onChanged: (_) => _updateFormState(),
-                    ),
-                    const SizedBox(height: 16),
-                    _PhotoPickerField(
-                      photoUrl: _photoUrl,
-                      pickedPhoto: _pickedPhoto,
-                      enabled: !isSaving,
-                      onPick: _pickPhoto,
-                      onRemove: _removePhoto,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _allergiesController,
-                      decoration: const InputDecoration(
-                        labelText: 'Allergies',
-                        hintText: 'Comma-separated (e.g., Chicken, Beef)',
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _allergiesController,
+                        decoration: const InputDecoration(
+                          labelText: 'Allergies',
+                          hintText: 'Comma-separated (e.g., Chicken, Beef)',
+                        ),
+                        enabled: !isSaving,
+                        onChanged: (_) => _updateFormState(),
                       ),
-                      enabled: !isSaving,
-                      onChanged: (_) => _updateFormState(),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _conditionsController,
-                      decoration: const InputDecoration(
-                        labelText: 'Chronic Conditions',
-                        hintText: 'Comma-separated',
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _conditionsController,
+                        decoration: const InputDecoration(
+                          labelText: 'Chronic Conditions',
+                          hintText: 'Comma-separated',
+                        ),
+                        enabled: !isSaving,
+                        onChanged: (_) => _updateFormState(),
                       ),
-                      enabled: !isSaving,
-                      onChanged: (_) => _updateFormState(),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _notesController,
-                      decoration: InputDecoration(
-                        labelText: 'Notes',
-                        errorText: _validation?.errorFor('notes'),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _notesController,
+                        decoration: InputDecoration(
+                          labelText: 'Notes',
+                          errorText: _validation?.errorFor('notes'),
+                        ),
+                        maxLines: 4,
+                        enabled: !isSaving,
+                        onChanged: (_) => _updateFormState(),
                       ),
-                      maxLines: 4,
-                      enabled: !isSaving,
-                      onChanged: (_) => _updateFormState(),
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: isSaving ? null : _savePet,
-                      child: isSaving
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(
-                              widget.isEditMode ? 'Save Changes' : 'Add Pet',
-                            ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: isSaving ? null : () => context.router.back(),
-                      child: const Text('Cancel'),
-                    ),
-                  ],
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed: isSaving ? null : _savePet,
+                        child: isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(
+                                widget.isEditMode ? 'Save Changes' : 'Add Pet',
+                              ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed:
+                            isSaving ? null : () => context.router.back(),
+                        child: const Text('Cancel'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
