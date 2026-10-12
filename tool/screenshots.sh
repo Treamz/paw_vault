@@ -50,15 +50,31 @@ for entry in "${DEVICES[@]}"; do
   label="${entry%%|*}"
   name="${entry##*|}"
 
-  udid="$(xcrun simctl list devices available | grep -F "$name (" | head -1 | grep -oE '[0-9A-F-]{36}' || true)"
+  # Every simulator of this name, not just the first. simctl reports
+  # isAvailable=true for devices whose runtime data has gone, and booting one
+  # answers "Unable to boot deleted device" -- so the only way to know a
+  # candidate is usable is to boot it. `boot` also returns before the device
+  # is up, and `flutter drive` then fails with "No supported devices found
+  # with name or id matching ...", which is why bootstatus waits here.
+  udid=""
+  while read -r candidate; do
+    [ -n "$candidate" ] || continue
+    if xcrun simctl bootstatus "$candidate" -b >/dev/null 2>&1; then
+      udid="$candidate"
+      break
+    fi
+    echo "   skipping $candidate — it will not boot"
+  done <<EOF
+$(xcrun simctl list devices available | grep -F "$name (" | grep -oE '[0-9A-F-]{36}')
+EOF
+
   if [ -z "$udid" ]; then
-    echo "⚠️  Simulator not found: $name — skipping."
+    echo "⚠️  No bootable simulator named: $name — skipping."
     echo "    Create it in Xcode > Settings > Components, or list with: xcrun simctl list devices"
     continue
   fi
 
   echo "📱 $name ($label) — $udid"
-  xcrun simctl boot "$udid" 2>/dev/null || true
 
   # Clear the app before capturing. A system permission alert raised by an
   # earlier run outlives it, sits over the app, and makes every capture the
