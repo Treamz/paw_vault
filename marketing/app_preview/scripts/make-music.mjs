@@ -22,7 +22,11 @@ import {dirname, join} from 'node:path';
 const SAMPLE_RATE = 44100;
 const BPM = 120;
 const BEAT = 60 / BPM; // seconds per beat (0.5s)
-const DURATION = 15.5; // seconds
+// Length and output name are arguments so the same bed can be regenerated at
+// another length without overwriting the ad's. Defaults keep the ad as it was.
+//   node scripts/make-music.mjs            -> 15.5s, public/ad_music.wav
+//   node scripts/make-music.mjs 24.6 x.wav -> 24.6s, public/x.wav
+const DURATION = Number(process.argv[2] ?? 15.5); // seconds
 const N = Math.floor(SAMPLE_RATE * DURATION);
 
 // Master buffer (mono, float)
@@ -181,7 +185,7 @@ function wavHeader(dataLen) {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outDir = join(__dirname, '..', 'public');
 mkdirSync(outDir, {recursive: true});
-const outPath = join(outDir, 'ad_music.wav');
+const outPath = join(outDir, process.argv[3] ?? 'ad_music.wav');
 writeFileSync(outPath, Buffer.concat([wavHeader(pcm.length), pcm]));
 
 console.log(
