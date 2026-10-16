@@ -78,16 +78,63 @@ pet, health, records, vaccine, tracker, vet — already indexed); singular forms
 (Apple matches plurals).
 
 ```
+dog,cat,medical,history,reminder,passport,document,scanner,puppy,kitten,visit,exam,meds,shots,card
+```
+
+- **98 / 100** ✅ (revised 2026-10-16; the first value is kept below)
+- Targets, by data: **medical, history** (pet medical history 7.4/High),
+  **passport** (8.4 traffic), **reminder** (vaccine reminder 7.2/High), **dog,
+  cat, puppy, kitten** (species reach; "dog health" 6.6), the differentiators
+  **document, scanner**, and the five added below.
+
+### Revision, 2026-10-16
+
+The five keywords this document recommends were checked in KeyApp first, and
+the field turned out not to be where they were losing. Every researched phrase
+already combines from what is indexed, so adding any of them here would have
+spent characters on nothing:
+
+| Phrase | Combines from |
+| --- | --- |
+| vet records | *vet* + *records* — both in the Subtitle |
+| vaccine reminder | *vaccine* (Subtitle) + *reminder* (this field) |
+| pet medical history | *pet* (Name) + *medical*, *history* (this field) |
+| dog health | *dog* (this field) + *health* (Name) |
+| pet vaccine tracker | *pet*, *vaccine*, *tracker* — Name and Subtitle |
+
+So the revision trades the weakest words for measured ones instead. Scored with
+mcp-appstore, the same tool as the table above. Each added word opens a phrase
+whose other half is already in the Name or Subtitle, so one word buys a whole
+term:
+
+| Added | Opens | Difficulty | Traffic |
+| --- | --- | --- | --- |
+| **visit** | **vet visit** | **6.06** | **9.02 (Very high)** |
+| exam | vet exam | 6.07 | 8.53 (High) |
+| **meds** | **pet meds** | **5.85** | 7.55 (High) |
+| shots | pet shots | 7.56 | 7.91 (High) |
+| card | vaccine card | 6.95 | 7.55 (High) |
+
+**`vet visit` beats everything in the research above**: easier than *vet
+records* (6.49), which the table calls the best ratio, and more traffic than
+*pet passport* (8.4), which it calls the hardest. It cost five characters
+because *vet* was already in the Subtitle.
+
+Dropped: `insurance`, `breed`, `care`, `log`, `pdf`. None opens a researched
+phrase; KeyApp scores *pet care* and *pet insurance* at its floor of 5; and
+*breed* carries a different intent — breed-identification apps, not records.
+`passport` stays: *pet passport* is still the highest-traffic phrase found.
+
+Previous value, for comparison:
+
+```
 dog,cat,medical,history,reminder,passport,insurance,document,scanner,pdf,puppy,kitten,care,log,breed
 ```
 
-- **100 / 100** ✅
-- Targets, by data: **medical, history** (pet medical history 7.4/High),
-  **passport** (8.4 traffic), **reminder** (vaccine reminder 7.2/High), **dog,
-  cat, puppy, kitten** (species reach; "dog health" 6.6), and the
-  differentiators **document, scanner, pdf, insurance, breed**.
-- Spare-capacity swaps to test post-launch: `prescription`, `microchip`,
-  `organizer`, `wellness`.
+Not applied yet: the keyword field is only editable on a version in
+preparation, and 1.0.13 is READY_FOR_SALE. It goes in with the next version.
+The ten phrases — the five above and the five from the research — are tracked
+in KeyApp so the before/after is measurable.
 
 ---
 
