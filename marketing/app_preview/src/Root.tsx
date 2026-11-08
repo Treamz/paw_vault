@@ -2,10 +2,28 @@ import {Composition} from 'remotion';
 import {Montage, TOTAL_FRAMES} from './Montage';
 import {Ad, AD_TOTAL_FRAMES} from './Ad';
 import {AppPreview, APP_PREVIEW_TOTAL_FRAMES} from './AppPreview';
+import {
+  CreativeAsset,
+  CREATIVE_WIDTH,
+  CREATIVE_HEIGHT,
+} from './CreativeAsset';
 
 export const RemotionRoot: React.FC = () => {
   return (
     <>
+      {/*
+        App Store CREATIVE ASSET — one universal still for both the product
+        page header and the search result. Rendered with `remotion still`,
+        not `render`; the single frame is the deliverable.
+      */}
+      <Composition
+        id="CreativeAsset"
+        component={CreativeAsset}
+        durationInFrames={1}
+        fps={30}
+        width={CREATIVE_WIDTH}
+        height={CREATIVE_HEIGHT}
+      />
       {/*
         App Store APP PREVIEW (compliant, full-bleed). Each app screenshot fills
         the entire 886x1920 frame edge-to-edge — no device frame/border/radius/
@@ -56,16 +74,6 @@ export const RemotionRoot: React.FC = () => {
         width={1080}
         height={1080}
         defaultProps={{square: true as boolean}}
-      />
-      {/* Same ad, sized for the App Store App Preview slot (iPhone 886x1920). */}
-      <Composition
-        id="AdPreview"
-        component={Ad}
-        durationInFrames={AD_TOTAL_FRAMES}
-        fps={30}
-        width={886}
-        height={1920}
-        defaultProps={{square: false as boolean}}
       />
     </>
   );

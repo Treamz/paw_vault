@@ -33,8 +33,13 @@ DRIVER="test_driver/screenshots.dart"
 BUNDLE_ID="com.treamz.pawVault"
 TARGET="integration_test/screenshots_test.dart"
 
-# label|simulator name
-DEVICES_IPHONE=("iphone_6_9|iPhone 16 Pro Max")
+# label|simulator names, comma separated and tried in order.
+#
+# More than one name per size because a device stops existing when Xcode drops
+# the runtime it sat on: the iOS 18 runtimes went away and took every
+# "iPhone 16 Pro Max" with them, and this script then had nothing to run on.
+# Any of these gives the same capture size for its slot.
+DEVICES_IPHONE=("iphone_6_9|iPhone 17 Pro Max,iPhone 18 Pro Max,iPhone 16 Pro Max")
 DEVICES_IPAD=("ipad_13|iPad Pro 13-inch (M4)")
 DEVICES_DUO=("iphone_duo|iPhone Duo")
 
@@ -57,16 +62,22 @@ for entry in "${DEVICES[@]}"; do
   # is up, and `flutter drive` then fails with "No supported devices found
   # with name or id matching ...", which is why bootstatus waits here.
   udid=""
-  while read -r candidate; do
-    [ -n "$candidate" ] || continue
-    if xcrun simctl bootstatus "$candidate" -b >/dev/null 2>&1; then
-      udid="$candidate"
-      break
-    fi
-    echo "   skipping $candidate — it will not boot"
-  done <<EOF
-$(xcrun simctl list devices available | grep -F "$name (" | grep -oE '[0-9A-F-]{36}')
+  # Split on commas only: the names themselves contain spaces.
+  IFS=',' read -r -a candidate_names <<< "$name"
+  for candidate_name in "${candidate_names[@]}"; do
+    [ -n "$udid" ] && break
+    while read -r candidate; do
+      [ -n "$candidate" ] || continue
+      if xcrun simctl bootstatus "$candidate" -b >/dev/null 2>&1; then
+        udid="$candidate"
+        name="$candidate_name"
+        break
+      fi
+      echo "   skipping $candidate ($candidate_name) — it will not boot"
+    done <<EOF
+$(xcrun simctl list devices available | grep -F "$candidate_name (" | grep -oE '[0-9A-F-]{36}')
 EOF
+  done
 
   if [ -z "$udid" ]; then
     echo "⚠️  No bootable simulator named: $name — skipping."
