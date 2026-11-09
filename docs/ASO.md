@@ -136,6 +136,95 @@ preparation, and 1.0.13 is READY_FOR_SALE. It goes in with the next version.
 The ten phrases — the five above and the five from the research — are tracked
 in KeyApp so the before/after is measurable.
 
+### Second keyword field: es-MX, 2026-11-09
+
+Section 9 calls localizing the keyword field the highest-ROI move left. The US
+storefront indexes English (US) **and** Spanish (Mexico), so the es-MX
+localization is a second 100-byte field rather than a translation: the app has
+no in-app localization at all, and its es-MX name, subtitle and description are
+the English ones. Only `whatsNew` is really written in Spanish.
+
+It carries no screenshots either, and that is not a blocker: 1.0.14 went
+`READY_FOR_SALE` with es-MX at zero media, because App Store Connect falls back
+to the primary language's screenshots for any localization that has none.
+Uploading a Spanish set would mean screenshots of an English app.
+
+**The claim is no longer unverified.** Rank tracking on the live listing settles
+it, and `microchip` is the clean proof: PawVault sits at **246** for it in the
+US, and the string appears in no en-US field, shares a stem with nothing there,
+and is not in the Name or Subtitle. The only place it exists is the es-MX
+keyword field. `pet vaccination` at **188** corroborates — `vaccination` is also
+es-MX-only — but it is weaker evidence, because `vaccine` sits in the Subtitle
+and Apple may well stem the two together.
+
+So es-MX words are indexed for the US store, and they combine with en-US words
+across the locale boundary. The ranks also show the limit: everything reachable
+only through es-MX sits in the 180-250 band, while `pet health records` from the
+Name sits at **20**. A second field buys reach, not strength.
+
+The field was still carrying the 1.0.14 value, which spent a third of itself on
+nothing:
+
+```
+allergy,app,dog,cat,animal,keeper,walk,medication,meds,vaccination,shots,microchip,weight,id
+```
+
+`dog`, `cat`, `meds` and `shots` are already in the en-US field, and words are
+combined across both, so each was a duplicate. `app` is ignored. `walk` names a
+feature PawVault does not have — the kind of irrelevant term 2.3.7 is about,
+and traffic that cannot convert.
+
+Measured with KeyApp popularity (what the account already tracks) and
+`difficulty.py` against Apple's live top 10. Relevance is grounded in the data
+model, not in judgement: `Pet` has `weight`, `measurements`, `microchipNumber`,
+`allergies`, `chronicConditions`, `breed`; `PetDocumentType` has
+`vaccinationCertificate`, `labResult`, `prescription`, `receipt`, `insurance`;
+`PetEventType` has `vaccination`, `medication`, `labTest`, `surgery`,
+`symptom`, `grooming`, `allergy`.
+
+| Word | Phrase measured | Diff. | Pop | Kept | Why |
+| --- | --- | --- | --- | --- | --- |
+| animal | animal record keeper | 52 | 31 | yes | synonym for pet; the only real popularity in the set |
+| keeper | pet vaccination record keeper | 52 | 31 | yes | connector: autocomplete confirms the query, and `record` is in the Name |
+| vaccination | pet vaccination | **20** | 5 | yes | already ranks 188; cheapest reachable phrase we own |
+| rabies | rabies vaccine | **18** | 5 | yes | `vaccine` is in the Subtitle, so one word buys the phrase |
+| symptom | pet symptom | **30** | 5 | yes | logged event type; see the caveat below |
+| lab | pet lab results | 69 | 5 | yes | 3 bytes for a document type and an event type |
+| allergy | pet allergy | 70 | 5 | yes | dedicated field; its popularity of 33 is **human pollen traffic**, discarded |
+| weight | pet weight | 74 | 5 | yes | dedicated field plus `measurements` |
+| microchip | pet microchip | 77 | 5 | yes | dedicated field; already ranks 246 |
+| medication | pet medication | 81 | 5 | yes | event type; `meds` in en-US does not stem to it |
+| id, log, pdf, receipt | — | — | 5 | yes | 2-7 bytes each; `id` for microchip, `pdf`/`log` for the vet summary export, `receipt` a document type |
+| breed | dog breed | 69 | 5 | **no** | en-US already has `dog` and `scanner`; adding `breed` builds "dog breed scanner", which is breed identification, not records |
+| insurance | pet insurance | **100** | 5 | **no** | unwinnable; dropping it from en-US on 2026-10-16 was right |
+| surgery | pet surgery | 72 | 5 | **no** | Apple's top 10 for it are vet *games* |
+| grooming | pet grooming | 79 | 5 | **no** | service and booking apps |
+| prescription | pet prescription | 83 | 5 | **no** | relevant but no room at that difficulty |
+
+New value, 99/100 bytes, no word shared with the en-US name, subtitle or field:
+
+```
+animal,keeper,vaccination,rabies,symptom,lab,allergy,weight,microchip,id,medication,receipt,log,pdf
+```
+
+**Caveat on `symptom`.** It is the most winnable word in the set at difficulty
+30, and the app genuinely records symptoms. But Apple's top 10 for "pet
+symptom" are symptom *checkers*, and PawVault deliberately does not check
+anything (see the claim audit below and `docs/PAW_SCAN.md`). The traffic may
+convert badly. It is one word in a field that is rewritten every version — swap
+it for `prescription` next round if the rank arrives without installs.
+
+Written straight to App Store Connect on version 1.0.15 while it was in
+`PREPARE_FOR_SUBMISSION`; the en-US field was re-read afterwards to confirm it
+was untouched. Cost: 2 KeyApp credits (two autocomplete lookups); difficulty
+and popularity were free. The eleven new phrases are now tracked in KeyApp, so
+the before/after is measurable from the next daily pull.
+
+One tooling note: `aso-metadata`'s `keyword_field.py` returned `rabie`. Its
+plural heuristic strips a trailing `s` from any word over four letters that
+does not end in `ss`, `us` or `is`, so `rabies` became `rabie` — a token
+nobody searches. Corrected by hand here.
+
 ---
 
 ## 4. Promotional Text (≤170, updatable without review)
@@ -241,7 +330,9 @@ heavy, swap primary to Lifestyle and keep Medical secondary.)
   records" vs "Dog & cat health, vet records."
 - Test the spare keyword swaps (`prescription`, `microchip`, `wellness`).
 - **Localize** Name/Subtitle/Keywords for top markets — localized keyword fields
-  unlock entirely new index space (highest-ROI ASO move).
+  unlock entirely new index space (highest-ROI ASO move). Done for es-MX, the
+  US store's second indexed locale, and confirmed to be indexed (see section 3).
+  Still open for other storefronts.
 - Drive **ratings** with a well-timed in-app prompt (e.g. after the first vet
   summary export) — rating volume strongly influences ranking.
 
@@ -249,7 +340,8 @@ heavy, swap primary to Lifestyle and keep Medical secondary.)
 
 - **Name:** PawVault: Pet Health Records (28)
 - **Subtitle:** Vaccine tracker & vet records (29)
-- **Keywords:** `dog,cat,medical,history,reminder,passport,insurance,document,scanner,pdf,puppy,kitten,care,log,breed` (100)
+- **Keywords (en-US):** `dog,cat,medical,history,reminder,passport,document,scanner,puppy,kitten,visit,exam,meds,shots,card` (98)
+- **Keywords (es-MX):** `animal,keeper,vaccination,rabies,symptom,lab,allergy,weight,microchip,id,medication,receipt,log,pdf` (99)
 - **Category:** Medical / Lifestyle · 4+
 
 ## Claim audit (required before every submission)
