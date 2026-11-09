@@ -16,9 +16,65 @@ class FlutterFireAuthDataSource implements FirebaseAuthDataSource {
   final GoogleSignIn _googleSignIn;
   bool _googleInitialized = false;
 
+  /// Set once the server has confirmed the cached session, so the check below
+  /// costs one round trip per app run rather than one per caller.
+  bool _sessionConfirmed = false;
+
   @override
   Future<AppUser?> currentUser() async {
-    return _mapUser(_auth.currentUser);
+    final user = _auth.currentUser;
+    if (user == null) {
+      return null;
+    }
+
+    if (!_sessionConfirmed) {
+      switch (await _checkSession(user)) {
+        case _SessionCheck.rejected:
+          // The account behind this session is gone for good. Reporting it
+          // as signed in is what left the app stuck: every read went out
+          // under a uid the server would not accept, which Firestore
+          // answered with permission-denied, and nothing ever signed in
+          // again -- the only way out was reinstalling, losing the data with
+          // it. Returning null instead sends every caller down the
+          // `?? signInAnonymously()` path it already has.
+          await _discardSession();
+          return null;
+        case _SessionCheck.accepted:
+          _sessionConfirmed = true;
+        case _SessionCheck.unknown:
+          // Keep the session and ask again next time: see
+          // [terminalAuthErrorCodes] for why this way round.
+          break;
+      }
+    }
+
+    return _mapUser(user);
+  }
+
+  /// Asks the server whether [user]'s session is still good.
+  Future<_SessionCheck> _checkSession(User user) async {
+    try {
+      // Forced, so the answer comes from the server. An unexpired token
+      // already in memory says nothing about whether the account behind it
+      // still exists.
+      await user.getIdToken(true);
+      return _SessionCheck.accepted;
+    } on FirebaseAuthException catch (error) {
+      return isTerminalAuthErrorCode(error.code)
+          ? _SessionCheck.rejected
+          : _SessionCheck.unknown;
+    } catch (_) {
+      return _SessionCheck.unknown;
+    }
+  }
+
+  Future<void> _discardSession() async {
+    try {
+      await _auth.signOut();
+    } catch (_) {
+      // Best effort. The session is being replaced either way, and failing
+      // to clear it must not stop the app signing in again.
+    }
   }
 
   @override
@@ -177,3 +233,23 @@ class FlutterFireAuthDataSource implements FirebaseAuthDataSource {
     );
   }
 }
+
+/// Firebase Auth codes that mean a cached session will never be accepted
+/// again, so the only way on is to start a new one.
+///
+/// Everything else is treated as "cannot tell right now" -- above all
+/// `network-request-failed`. The bias matters: guessing the other way would
+/// throw away a perfectly good session, and reach the owner's archive under a
+/// brand-new empty account, every time the app opened without a connection.
+const terminalAuthErrorCodes = <String>{
+  'user-not-found',
+  'user-disabled',
+  'user-token-expired',
+  'invalid-user-token',
+};
+
+/// Whether [code] means the session is beyond saving.
+bool isTerminalAuthErrorCode(String code) =>
+    terminalAuthErrorCodes.contains(code);
+
+enum _SessionCheck { accepted, rejected, unknown }

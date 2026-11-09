@@ -924,3 +924,32 @@
     the 420pt list pane: `integration_test/archive_search_test.dart` captures
     it, and the two-pane widget tests pin that the detail pane follows a
     narrowed list.
+- [x] **Recover from a dead auth session instead of dead-ending.** A tester on
+  1.0.15 hit `[cloud_firestore/permission-denied]` on the pet list with no way
+  out but reinstalling. Diagnosis: the device held an anonymous account that no
+  longer existed server-side. `currentUser()` returned the locally cached user
+  without ever asking the server, so every read went out under a uid Firestore
+  would not accept, and nothing re-authenticated.
+  * Not a regression from 1.0.15 — no Firebase, auth, rules or iOS config file
+    changed between v1.0.14 and v1.0.15. Confirmed by diffing the tags.
+  * The fix sits in `FlutterFireAuthDataSource.currentUser()`, not in
+    `AuthRepository`: 28 test files implement that interface, and a data-source
+    change heals the bootstrap *and* every cubit that calls `currentUser()`
+    directly, with no contract change.
+  * It forces a token refresh (`getIdToken(true)`) once per app run; a
+    definitive rejection clears the session and returns null, which drops every
+    caller into the `?? signInAnonymously()` path it already had.
+  * **Offline is deliberately not terminal.** Only four codes end a session
+    (`user-not-found`, `user-disabled`, `user-token-expired`,
+    `invalid-user-token`). Treating `network-request-failed` as terminal would
+    put an offline owner into a new empty account on every launch — worse than
+    the bug being fixed. Pinned by a test.
+  * Verified against the real project on a simulator, including a cold
+    relaunch with a persisted session so the new check actually ran.
+- [ ] **Latent: App Check is linked but never configured.** The device log
+  shows `firebase_app_check` registering `DeviceCheckProvider` on its own
+  (it arrives transitively, and nothing in Dart calls `activate`). On the
+  simulator attestation is unsupported, so Firestore gets a placeholder token
+  and carries on only because enforcement is off. If App Check enforcement is
+  ever switched on in the console, the app will be denied everywhere. Decide
+  whether to configure it properly or drop the dependency.
