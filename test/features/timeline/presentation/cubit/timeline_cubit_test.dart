@@ -226,6 +226,103 @@ void main() {
       await cubit.close();
     });
 
+    test('searches titles, descriptions and event types', () async {
+      final booster = _event(title: 'Rabies booster');
+      final limp = _event(
+        id: 'event-2',
+        type: PetEventType.symptom,
+        title: 'Not himself',
+        description: 'Limping on the left front paw after the walk',
+      );
+      final visit = _event(
+        id: 'event-3',
+        type: PetEventType.vetVisit,
+        title: 'Clinic',
+      );
+      final authRepository = _FakeAuthRepository(
+        currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+      );
+      final cubit = TimelineCubit(
+        timelineRepository: _FakeTimelineRepository(
+          watchedEvents: [booster, limp, visit],
+        ),
+        authRepository: authRepository,
+      );
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.setQuery('rabies');
+      expect(cubit.state.filteredEvents, [booster]);
+
+      cubit.setQuery('limping');
+      expect(cubit.state.filteredEvents, [limp]);
+
+      // Through the enum name, which the matcher splits into words.
+      cubit.setQuery('vet visit');
+      expect(cubit.state.filteredEvents, [visit]);
+
+      await cubit.close();
+    });
+
+    test('narrows by the search on top of the type filter', () async {
+      final match = _event(title: 'Rabies booster');
+      final wrongType = _event(
+        id: 'event-2',
+        type: PetEventType.vetVisit,
+        title: 'Rabies booster appointment',
+      );
+      final wrongText = _event(id: 'event-3', title: 'Lyme booster');
+      final cubit = TimelineCubit(
+        timelineRepository: _FakeTimelineRepository(
+          watchedEvents: [match, wrongType, wrongText],
+        ),
+        authRepository: _FakeAuthRepository(
+          currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+        ),
+      );
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.setEventTypeFilter(PetEventType.vaccination);
+      cubit.setQuery('rabies');
+
+      expect(cubit.state.filteredEvents, [match]);
+
+      await cubit.close();
+    });
+
+    test('keeps the search when the other filters are cleared', () async {
+      final booster = _event(title: 'Rabies booster');
+      final visit = _event(
+        id: 'event-2',
+        type: PetEventType.vetVisit,
+        title: 'Clinic',
+      );
+      final cubit = TimelineCubit(
+        timelineRepository: _FakeTimelineRepository(
+          watchedEvents: [booster, visit],
+        ),
+        authRepository: _FakeAuthRepository(
+          currentUserValue: const AppUser(id: 'user-1', isAnonymous: true),
+        ),
+      );
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.setEventTypeFilter(PetEventType.vetVisit);
+      cubit.setQuery('rabies');
+      cubit.clearFilters();
+
+      expect(cubit.state.filterEventType, isNull);
+      expect(cubit.state.query, 'rabies');
+      expect(cubit.state.filteredEvents, [booster]);
+
+      await cubit.close();
+    });
+
     test('clears all filters', () async {
       final event1 = _event();
       final event2 = _event(type: PetEventType.vetVisit);
@@ -265,15 +362,19 @@ void main() {
 }
 
 PetEvent _event({
+  String id = 'event-1',
   PetEventType type = PetEventType.vaccination,
+  String title = 'Annual vaccination',
+  String? description,
   UtcDateTime? date,
 }) {
   return PetEvent(
-    id: const EntityId('event-1'),
+    id: EntityId(id),
     userId: const EntityId('user-1'),
     petId: const EntityId('pet-1'),
     type: type,
-    title: 'Annual vaccination',
+    title: title,
+    description: description,
     date: date ?? UtcDateTime(DateTime(2024, 1, 15)),
     source: PetEventSource.manual,
   );

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/core/utils/text_search.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
 
@@ -88,6 +89,15 @@ class TimelineCubit extends Cubit<TimelineState> {
     );
   }
 
+  /// Narrows the timeline to events matching [query].
+  ///
+  /// Kept out of [clearFilters] for the same reason as on the documents
+  /// list: the search box stays on screen, so clearing the type and date
+  /// filters must not empty it behind the user's back.
+  void setQuery(String query) {
+    emit(state.copyWith(query: query));
+  }
+
   void clearFilters() {
     emit(
       state.copyWith(
@@ -121,6 +131,7 @@ class TimelineState {
     this.filterEventType,
     this.filterStartDate,
     this.filterEndDate,
+    this.query = '',
     this.errorMessage,
   });
 
@@ -131,6 +142,10 @@ class TimelineState {
   final PetEventType? filterEventType;
   final DateTime? filterStartDate;
   final DateTime? filterEndDate;
+
+  /// The free-text search, empty when nothing is being searched for.
+  final String query;
+
   final String? errorMessage;
 
   bool get isReady => status == TimelineStatus.ready;
@@ -155,6 +170,21 @@ class TimelineState {
           .toList();
     }
 
+    // An event carries far less text than a document -- no scan behind it --
+    // so the search covers everything it does have that a person would
+    // remember it by.
+    if (query.trim().isNotEmpty) {
+      filtered = filtered
+          .where(
+            (event) => matchesSearchQuery(query, [
+              event.title,
+              event.type.name,
+              event.description,
+            ]),
+          )
+          .toList();
+    }
+
     return filtered;
   }
 
@@ -166,6 +196,7 @@ class TimelineState {
     PetEventType? filterEventType,
     DateTime? filterStartDate,
     DateTime? filterEndDate,
+    String? query,
     String? errorMessage,
     bool clearEventTypeFilter = false,
     bool clearStartDateFilter = false,
@@ -184,6 +215,8 @@ class TimelineState {
           : (filterStartDate ?? this.filterStartDate),
       filterEndDate:
           clearEndDateFilter ? null : (filterEndDate ?? this.filterEndDate),
+      // No clear flag: an empty query already means "not searching".
+      query: query ?? this.query,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }

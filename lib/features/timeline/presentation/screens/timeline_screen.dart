@@ -7,6 +7,7 @@ import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/presentation/widgets/adaptive_layout.dart';
 import 'package:paw_vault/core/presentation/widgets/full_screen_image.dart';
+import 'package:paw_vault/core/presentation/widgets/search_field.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/features/timeline/domain/entities/pet_event.dart';
 import 'package:paw_vault/features/timeline/domain/repositories/timeline_repository.dart';
@@ -45,6 +46,16 @@ class _TimelineViewState extends State<_TimelineView> {
   /// selection to whatever took that position.
   String? _selectedEventId;
 
+  /// Owned here rather than by [SearchField] so that the box and the query
+  /// behind it cannot disagree.
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   /// What the detail pane shows: the pick while it is still on screen, and
   /// otherwise the first, so the pane is never blank beside a full list.
   PetEvent? _shownEvent(List<PetEvent> visible) {
@@ -77,22 +88,36 @@ class _TimelineViewState extends State<_TimelineView> {
                 title: 'Could not load timeline',
                 message: state.errorMessage,
               ),
-            TimelineStatus.ready => visible.isEmpty
+            TimelineStatus.ready => state.events.isEmpty
                 ? const EmptyStateView(
                     icon: Icons.timeline,
                     title: 'No events yet',
                     message: "Add health events to track your pet's "
                         'medical history.',
                   )
-                : _TimelineContent(
-                    events: visible,
-                    petId: state.petId!,
-                    selectedEventId: shown?.id.value,
-                    onSelect: twoPanes
-                        ? (event) => setState(
-                              () => _selectedEventId = event.id.value,
-                            )
-                        : null,
+                : Column(
+                    children: [
+                      SearchField(
+                        controller: _searchController,
+                        hintText: 'Search events',
+                        onChanged: context.read<TimelineCubit>().setQuery,
+                      ),
+                      Expanded(
+                        child: visible.isEmpty
+                            ? _NoEventsFoundView(query: state.query)
+                            : _TimelineContent(
+                                events: visible,
+                                petId: state.petId!,
+                                selectedEventId: shown?.id.value,
+                                onSelect: twoPanes
+                                    ? (event) => setState(
+                                          () =>
+                                              _selectedEventId = event.id.value,
+                                        )
+                                    : null,
+                              ),
+                      ),
+                    ],
                   ),
           };
 
@@ -151,6 +176,35 @@ class _TimelineViewState extends State<_TimelineView> {
         TimelineEventFormRoute(petId: state.petId!),
       ),
       child: const Icon(Icons.add),
+    );
+  }
+}
+
+/// Shown when the pet has events but none of them survive what is on screen.
+///
+/// Before the search box this case shared the "No events yet" message with a
+/// genuinely empty timeline, which told someone who had mistyped that they
+/// had never recorded anything.
+class _NoEventsFoundView extends StatelessWidget {
+  const _NoEventsFoundView({required this.query});
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    if (query.trim().isEmpty) {
+      return const EmptyStateView(
+        icon: Icons.filter_alt_off_outlined,
+        title: 'Nothing to show',
+        message: 'No event matches the current filters.',
+      );
+    }
+
+    return EmptyStateView(
+      icon: Icons.search_off,
+      title: 'Nothing found',
+      message: 'No event matches "$query". The search covers titles, '
+          'descriptions and event types.',
     );
   }
 }

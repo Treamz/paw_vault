@@ -8,6 +8,7 @@ import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/presentation/widgets/adaptive_body.dart';
 import 'package:paw_vault/core/presentation/widgets/adaptive_layout.dart';
+import 'package:paw_vault/core/presentation/widgets/search_field.dart';
 import 'package:paw_vault/core/presentation/widgets/state_views.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
@@ -59,15 +60,19 @@ class _DocumentsViewState extends State<_DocumentsView> {
     return byType;
   }
 
-  /// Warms the image cache for every attachment as soon as the list arrives.
-  ///
-  /// The previews live inside the details sheet, so without this the first tap
-  /// on a document started the download and left the owner watching a blank
-  /// box for a couple of seconds. `CachedNetworkImage` alone only fixes the
-  /// *second* open.
   /// Held by id so that filtering, sorting or deleting cannot move the
   /// selection to whatever took that position.
   String? _selectedDocumentId;
+
+  /// Owned here rather than by [SearchField] so that the box and the query
+  /// behind it cannot disagree.
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   /// What the detail pane shows: the pick while it is still on screen, and
   /// otherwise the first, so the pane is never blank beside a full list.
@@ -80,6 +85,12 @@ class _DocumentsViewState extends State<_DocumentsView> {
     return visible.first;
   }
 
+  /// Warms the image cache for every attachment as soon as the list arrives.
+  ///
+  /// The previews live inside the details sheet, so without this the first tap
+  /// on a document started the download and left the owner watching a blank
+  /// box for a couple of seconds. `CachedNetworkImage` alone only fixes the
+  /// *second* open.
   void _precacheAttachments(BuildContext context, DocumentsState state) {
     for (final document in state.documents) {
       for (final file in document.imageFiles) {
@@ -147,6 +158,11 @@ class _DocumentsViewState extends State<_DocumentsView> {
                   )
                 : Column(
                     children: [
+                      SearchField(
+                        controller: _searchController,
+                        hintText: 'Search titles, notes and scans',
+                        onChanged: context.read<DocumentsCubit>().setQuery,
+                      ),
                       _TypeFilterBar(
                         documents: state.documents,
                         selected: state.filterType,
@@ -161,11 +177,9 @@ class _DocumentsViewState extends State<_DocumentsView> {
                       ),
                       Expanded(
                         child: visible.isEmpty
-                            ? const EmptyStateView(
-                                icon: Icons.filter_alt_off_outlined,
-                                title: 'No documents of this type',
-                                message: 'Pick another type or All to see '
-                                    'the rest of the documents.',
+                            ? _NoDocumentsFoundView(
+                                query: state.query,
+                                hasTypeFilter: state.filterType != null,
                               )
                             : _DocumentsContent(
                                 documents: visible,
@@ -237,6 +251,44 @@ class _DocumentsViewState extends State<_DocumentsView> {
           context.router.push(DocumentFormRoute(petId: state.petId!)),
       icon: const Icon(Icons.add),
       label: const Text('Add document'),
+    );
+  }
+}
+
+/// Shown when the pet has documents but none of them survive what is on
+/// screen.
+///
+/// Which control emptied the list decides the message. The one message this
+/// used to carry -- "No documents of this type" -- was already a guess, and
+/// with a search box above the chips it would send someone to the chips to
+/// undo a typo.
+class _NoDocumentsFoundView extends StatelessWidget {
+  const _NoDocumentsFoundView({
+    required this.query,
+    required this.hasTypeFilter,
+  });
+
+  final String query;
+  final bool hasTypeFilter;
+
+  @override
+  Widget build(BuildContext context) {
+    if (query.trim().isEmpty) {
+      return const EmptyStateView(
+        icon: Icons.filter_alt_off_outlined,
+        title: 'No documents of this type',
+        message: 'Pick another type or All to see the rest of the documents.',
+      );
+    }
+
+    return EmptyStateView(
+      icon: Icons.search_off,
+      title: 'Nothing found',
+      message: hasTypeFilter
+          ? 'No document of this type matches "$query". Try All, or a '
+              'shorter search.'
+          : 'No document matches "$query". The search covers titles, notes '
+              'and the text read from scans.',
     );
   }
 }

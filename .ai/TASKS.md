@@ -900,3 +900,27 @@
   blanking screenshots.
 - [x] The document **form** attached one file at a time, replacing rather than
   appending. Fixed with the gallery multi-select work above.
+- [x] **Search the archive.** Documents and Timeline had filters by type and
+  date but no way to search at all — a gap a competitor's reviews name
+  outright ("medical records are not searchable for content, only by title").
+  Both lists now carry a search box.
+  * The matching is one shared function (`lib/core/utils/text_search.dart`)
+    rather than two: terms are matched independently and across fields, so
+    "rabies certificate" finds a document titled "Rabies booster" whose type
+    is a vaccination certificate, and it splits camelCase so an enum name
+    (`vetVisit`) is searchable as the words a person would type.
+  * Documents search reaches into `extractedText`, which is where Paw Scan
+    already files what it read off a scan. That is the part that answers the
+    review above: a vaccine's name is findable even when nobody typed it into
+    the title.
+  * The query is deliberately **not** cleared by `clearFilters()`. The type
+    chips and the search box are separate controls that are both on screen,
+    and picking "All" among the chips must not silently empty the box.
+  * Fixed while here: both screens' empty states conflated "nothing recorded"
+    with "nothing matched". The timeline told someone who had mistyped that
+    they had never recorded anything; documents sent them to the type chips
+    to undo a typo. Each now says which control emptied the list.
+  * Verified on a phone and in the two-pane layout, where the box has to fit
+    the 420pt list pane: `integration_test/archive_search_test.dart` captures
+    it, and the two-pane widget tests pin that the detail pane follows a
+    narrowed list.

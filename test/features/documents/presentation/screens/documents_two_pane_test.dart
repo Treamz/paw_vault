@@ -53,6 +53,21 @@ void main() {
       // where a sheet would have covered it.
       expect(find.byKey(const ValueKey('document-doc-1')), findsOneWidget);
     });
+    testWidgets('searches from the list pane, and the pane follows', (
+      tester,
+    ) async {
+      await pumpAt(tester, duoUnfolded);
+
+      // The box has to live and fit in the 420pt list pane rather than
+      // stretching across both.
+      await tester.enterText(find.byType(TextField), 'blood');
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('document-doc-2')), findsOneWidget);
+      expect(find.byKey(const ValueKey('document-doc-1')), findsNothing);
+      // The pane cannot keep showing a document the list no longer offers.
+      expect(inDetails('Blood panel'), findsOneWidget);
+    });
   });
 
   group('DocumentsScreen on a phone', () {

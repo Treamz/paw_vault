@@ -298,6 +298,131 @@ void main() {
       await cubit.close();
     });
 
+    test('searches titles', () async {
+      final rabies = _document(id: 'doc-1', title: 'Rabies booster');
+      final insurance = _document(id: 'doc-2', title: 'Pet insurance 2026');
+      final cubit = _readyCubit([rabies, insurance]);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.setQuery('rabies');
+
+      expect(cubit.state.filteredDocuments, [rabies]);
+
+      await cubit.close();
+    });
+
+    test('searches the text read from a scan, not just the title', () async {
+      // The whole reason the search reaches past the title: Paw Scan files a
+      // document under whatever title the owner gave it, while the vaccine's
+      // name only ever appears in the text it read off the page.
+      final scanned = _document(
+        id: 'doc-1',
+        title: 'Clinic paperwork',
+        extractedText: 'Nobivac Rabies, batch 44812, valid three years',
+      );
+      final other = _document(id: 'doc-2', title: 'Pet insurance 2026');
+      final cubit = _readyCubit([scanned, other]);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.setQuery('nobivac');
+
+      expect(cubit.state.filteredDocuments, [scanned]);
+
+      await cubit.close();
+    });
+
+    test('searches notes and the document type', () async {
+      final withNote = _document(
+        id: 'doc-1',
+        title: 'Paperwork',
+        notes: 'Handed over by the breeder',
+      );
+      final passport = _document(
+        id: 'doc-2',
+        title: 'Blue book',
+        type: PetDocumentType.passport,
+      );
+      final cubit = _readyCubit([withNote, passport]);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.setQuery('breeder');
+      expect(cubit.state.filteredDocuments, [withNote]);
+
+      cubit.setQuery('passport');
+      expect(cubit.state.filteredDocuments, [passport]);
+
+      await cubit.close();
+    });
+
+    test('narrows by the search on top of the type filter', () async {
+      final match = _document(
+        id: 'doc-1',
+        title: 'Rabies booster',
+        type: PetDocumentType.passport,
+      );
+      final wrongType = _document(id: 'doc-2', title: 'Rabies invoice');
+      final wrongText = _document(
+        id: 'doc-3',
+        title: 'Lyme booster',
+        type: PetDocumentType.passport,
+      );
+      final cubit = _readyCubit([match, wrongType, wrongText]);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.setTypeFilter(PetDocumentType.passport);
+      cubit.setQuery('rabies');
+
+      expect(cubit.state.filteredDocuments, [match]);
+
+      await cubit.close();
+    });
+
+    test('keeps the search when the type filters are cleared', () async {
+      // The chips and the search box are separate controls that are both on
+      // screen, so picking "All" among the chips must not empty the box.
+      final rabies = _document(id: 'doc-1', title: 'Rabies booster');
+      final insurance = _document(id: 'doc-2', title: 'Pet insurance 2026');
+      final cubit = _readyCubit([rabies, insurance]);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.setTypeFilter(PetDocumentType.passport);
+      cubit.setQuery('rabies');
+      cubit.clearFilters();
+
+      expect(cubit.state.filterType, isNull);
+      expect(cubit.state.query, 'rabies');
+      expect(cubit.state.filteredDocuments, [rabies]);
+
+      await cubit.close();
+    });
+
+    test('an emptied search shows everything again', () async {
+      final rabies = _document(id: 'doc-1', title: 'Rabies booster');
+      final insurance = _document(id: 'doc-2', title: 'Pet insurance 2026');
+      final cubit = _readyCubit([rabies, insurance]);
+
+      await cubit.load('pet-1');
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.setQuery('rabies');
+      expect(cubit.state.filteredDocuments, [rabies]);
+
+      cubit.setQuery('');
+      expect(cubit.state.filteredDocuments, [rabies, insurance]);
+
+      await cubit.close();
+    });
+
     test('preserves filters when watched documents update', () async {
       final passport = _document(id: 'doc-1', type: PetDocumentType.passport);
       final insurance = _document(id: 'doc-2', type: PetDocumentType.insurance);
@@ -339,6 +464,9 @@ DocumentsCubit _readyCubit(List<PetDocument> documents) {
 PetDocument _document({
   String id = 'document-1',
   PetDocumentType type = PetDocumentType.vaccinationCertificate,
+  String title = 'Vaccination certificate',
+  String? notes,
+  String? extractedText,
   DateOnly? issueDate,
   DateOnly? expiryDate,
   DateTime? createdAt,
@@ -347,8 +475,10 @@ PetDocument _document({
     id: EntityId(id),
     userId: const EntityId('user-1'),
     petId: const EntityId('pet-1'),
-    title: 'Vaccination certificate',
+    title: title,
     type: type,
+    notes: notes,
+    extractedText: extractedText,
     fileUrl: Uri.parse('https://example.com/doc.pdf'),
     storagePath: 'users/user-1/pets/pet-1/documents/$id.pdf',
     issueDate: issueDate,

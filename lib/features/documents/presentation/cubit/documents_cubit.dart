@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paw_vault/core/auth/domain/repositories/auth_repository.dart';
 import 'package:paw_vault/core/domain/value_objects/date_only.dart';
 import 'package:paw_vault/core/domain/value_objects/entity_id.dart';
+import 'package:paw_vault/core/utils/text_search.dart';
 import 'package:paw_vault/features/documents/domain/entities/pet_document.dart';
 import 'package:paw_vault/features/documents/domain/repositories/document_repository.dart';
 
@@ -97,6 +98,15 @@ class DocumentsCubit extends Cubit<DocumentsState> {
     );
   }
 
+  /// Narrows the list to documents matching [query].
+  ///
+  /// Not folded into [clearFilters]: the type chips and the search box are
+  /// two separate controls on screen, and picking "All" among the chips
+  /// should not silently empty a search box that stays visible above them.
+  void setQuery(String query) {
+    emit(state.copyWith(query: query));
+  }
+
   /// Shows only documents whose expiry date is on or before [cutoff].
   ///
   /// The UI supplies the cutoff (e.g. `DateTime.now().add(Duration(days: 30))`
@@ -141,6 +151,7 @@ class DocumentsState {
     this.documents = const [],
     this.filterType,
     this.expiringBefore,
+    this.query = '',
     this.errorMessage,
   });
 
@@ -150,6 +161,10 @@ class DocumentsState {
   final List<PetDocument> documents;
   final PetDocumentType? filterType;
   final DateTime? expiringBefore;
+
+  /// The free-text search, empty when nothing is being searched for.
+  final String query;
+
   final String? errorMessage;
 
   bool get isReady => status == DocumentsStatus.ready;
@@ -170,6 +185,26 @@ class DocumentsState {
       }).toList();
     }
 
+    // Last, because it is the only filter that has to look at the text of
+    // every document rather than one of its dates or its type.
+    //
+    // Reaching into extractedText is the point of searching here rather than
+    // over titles alone: Paw Scan already puts what a scan says into that
+    // field, so a vaccine's name appears in the search even when nobody typed
+    // it into the title.
+    if (query.trim().isNotEmpty) {
+      filtered = filtered
+          .where(
+            (document) => matchesSearchQuery(query, [
+              document.title,
+              document.type.name,
+              document.notes,
+              document.extractedText,
+            ]),
+          )
+          .toList();
+    }
+
     return filtered;
   }
 
@@ -180,6 +215,7 @@ class DocumentsState {
     List<PetDocument>? documents,
     PetDocumentType? filterType,
     DateTime? expiringBefore,
+    String? query,
     String? errorMessage,
     bool clearTypeFilter = false,
     bool clearExpiringBefore = false,
@@ -192,6 +228,9 @@ class DocumentsState {
       filterType: clearTypeFilter ? null : (filterType ?? this.filterType),
       expiringBefore:
           clearExpiringBefore ? null : (expiringBefore ?? this.expiringBefore),
+      // No clear flag: the empty string already means "not searching", so an
+      // empty query passes through as itself.
+      query: query ?? this.query,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }

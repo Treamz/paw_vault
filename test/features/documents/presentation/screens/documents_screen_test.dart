@@ -90,6 +90,71 @@ void main() {
       expect(find.text('Vaccination certificate'), findsOneWidget);
     });
 
+    testWidgets('narrows the list as a query is typed', (tester) async {
+      final passport = PetDocument(
+        id: const EntityId('doc-passport'),
+        userId: const EntityId('user-1'),
+        petId: const EntityId('pet-1'),
+        title: 'EU Pet Passport',
+        type: PetDocumentType.passport,
+        fileUrl: Uri.parse('https://example.com/passport.pdf'),
+        storagePath: 'users/user-1/pets/pet-1/documents/passport.pdf',
+      );
+
+      await tester.pumpWidget(_app([_document(), passport]));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'passport');
+      await tester.pumpAndSettle();
+
+      expect(find.text('EU Pet Passport'), findsOneWidget);
+      expect(find.text('Vaccination certificate'), findsNothing);
+
+      // Clearing the box puts the rest back, and the box empties with it.
+      await tester.tap(find.byTooltip('Clear search'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('EU Pet Passport'), findsOneWidget);
+      expect(find.text('Vaccination certificate'), findsOneWidget);
+    });
+
+    testWidgets('finds a document by the text read off its scan',
+        (tester) async {
+      final scanned = PetDocument(
+        id: const EntityId('doc-scan'),
+        userId: const EntityId('user-1'),
+        petId: const EntityId('pet-1'),
+        title: 'Clinic paperwork',
+        type: PetDocumentType.vetReport,
+        extractedText: 'Nobivac Rabies, batch 44812',
+        fileUrl: Uri.parse('https://example.com/scan.pdf'),
+        storagePath: 'users/user-1/pets/pet-1/documents/scan.pdf',
+      );
+
+      await tester.pumpWidget(_app([_document(), scanned]));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'nobivac');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Clinic paperwork'), findsOneWidget);
+      expect(find.text('Vaccination certificate'), findsNothing);
+    });
+
+    testWidgets(
+        'a search that matches nothing says so, and does not send '
+        'the owner to the type chips', (tester) async {
+      await tester.pumpWidget(_app([_document()]));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'zzz');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nothing found'), findsOneWidget);
+      expect(find.text('No documents of this type'), findsNothing);
+      expect(find.text('No documents yet'), findsNothing);
+    });
+
     testWidgets('keeps the standard type icon in the leading slot',
         (tester) async {
       // A deliberate earlier choice: type icons keep the list scannable, so
